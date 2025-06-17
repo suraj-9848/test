@@ -10,7 +10,7 @@ import ManageHiring from '@/components/ManageHiring';
 import PaymentApproval from '@/components/PaymentApproval';
 
 const Index: React.FC = () => {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   const [activeSection, setActiveSection] = useState('payments');

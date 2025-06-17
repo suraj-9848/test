@@ -8,16 +8,6 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) => {
   const [isCollegesExpanded, setIsCollegesExpanded] = useState(true);
-  const [selectedCollege, setSelectedCollege] = useState('Aquinas College of Engineering');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  const colleges = [
-    'Aquinas College of Engineering',
-    'Aquinas Institute of Technology', 
-    'Aquinas Business School',
-    'Aquinas Medical College',
-    'Aquinas Arts & Science College'
-  ];
 
   const roleButtons = [
     { key: 'college-admins', label: 'Admins', icon: '👥' },
@@ -38,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
           </div>
         </div>
       </div>
-      
+
       <nav className="mt-8 px-4">
         <div className="space-y-4">
           {/* View Colleges */}
@@ -60,35 +50,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
 
             {isCollegesExpanded && (
               <div className="space-y-4">
-                {/* Custom Dropdown */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-600 mb-2">Select College</label>
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-between"
-                  >
-                    <span className="text-gray-700 text-sm truncate">{selectedCollege}</span>
-                    <FaChevronDown className="w-3 h-3 text-gray-500" />
-                  </button>
-
-                  {dropdownOpen && (
-                    <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {colleges.map((college) => (
-                        <li
-                          key={college}
-                          onClick={() => {
-                            setSelectedCollege(college);
-                            setDropdownOpen(false);
-                          }}
-                          className="px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 cursor-pointer"
-                        >
-                          {college}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
                 {/* Role Buttons */}
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-3">View Roles</label>
