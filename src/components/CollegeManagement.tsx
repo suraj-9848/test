@@ -1,74 +1,66 @@
-
-import React, { useState } from 'react';
-import { FaEdit, FaTrash, FaEye, FaPlus, FaSearch, FaFilter } from 'react-icons/fa';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  college: string;
-  status: 'Active' | 'Inactive';
-  joinDate: string;
-}
+'use client';
+import React, { useMemo } from 'react';
+import {
+  FaEdit,
+  FaTrash,
+  FaEye,
+  FaPlus,
+  FaSearch,
+  FaFilter,
+} from 'react-icons/fa';
+import {
+  useAdminStore,
+  AdminUser,
+  InstructorUser,
+  StudentUser,
+  UserStatus,
+} from '@/store/adminStore';
 
 interface CollegeManagementProps {
   type: 'college-admins' | 'instructors' | 'students';
 }
 
 const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
-  const [users] = useState<User[]>(() => {
-    const baseData = [
-      {
-        id: 1,
-        name: 'Dr. Rajesh Kumar',
-        email: 'rajesh@aquinas.edu',
-        role: type === 'college-admins' ? 'College Admin' : type === 'instructors' ? 'Senior Professor' : 'Final Year',
-        college: 'Aquinas College of Engineering',
-        status: 'Active' as const,
-        joinDate: '2020-01-15'
-      },
-      {
-        id: 2,
-        name: 'Prof. Priya Sharma',
-        email: 'priya@aquinas.edu',
-        role: type === 'college-admins' ? 'Deputy Admin' : type === 'instructors' ? 'Associate Professor' : 'Third Year',
-        college: 'Aquinas College of Engineering',
-        status: 'Active' as const,
-        joinDate: '2021-03-20'
-      },
-      {
-        id: 3,
-        name: 'Dr. Amit Patel',
-        email: 'amit@aquinas.edu',
-        role: type === 'college-admins' ? 'Academic Head' : type === 'instructors' ? 'Assistant Professor' : 'Second Year',
-        college: 'Aquinas College of Engineering',
-        status: 'Active' as const,
-        joinDate: '2019-08-10'
-      },
-      ...(type === 'students' ? [
-        {
-          id: 4,
-          name: 'Rohit Gupta',
-          email: 'rohit@student.aquinas.edu',
-          role: 'Fourth Year',
-          college: 'Aquinas College of Engineering',
-          status: 'Active' as const,
-          joinDate: '2020-09-01'
-        },
-        {
-          id: 5,
-          name: 'Sneha Reddy',
-          email: 'sneha@student.aquinas.edu',
-          role: 'First Year',
-          college: 'Aquinas College of Engineering',
-          status: 'Active' as const,
-          joinDate: '2023-09-01'
-        }
-      ] : [])
-    ];
-    return baseData;
-  });
+  const {
+    admins,
+    instructors,
+    students,
+    search,
+    collegeFilter,
+    statusFilter,
+    setSearch,
+    setCollegeFilter,
+    setStatusFilter,
+    addUser,
+    deleteUser,
+  } = useAdminStore();
+
+  const users = useMemo(() => {
+    switch (type) {
+      case 'college-admins':
+        return admins as AdminUser[];
+      case 'instructors':
+        return instructors as InstructorUser[];
+      case 'students':
+        return students as StudentUser[];
+      default:
+        return [];
+    }
+  }, [type, admins, instructors, students]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch =
+        search.trim() === '' ||
+        user.name.toLowerCase().includes(search.toLowerCase()) ||
+        user.email.toLowerCase().includes(search.toLowerCase());
+      const matchesCollege =
+        collegeFilter === 'All Colleges' || user.college === collegeFilter;
+      const matchesStatus =
+        statusFilter === 'All' || user.status === statusFilter;
+      return matchesSearch && matchesCollege && matchesStatus;
+    });
+  }, [users, search, collegeFilter, statusFilter]);
 
   const getTitle = () => {
     switch (type) {
@@ -96,7 +88,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: UserStatus) => {
     return status === 'Active' ? (
       <span className="px-3 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
         Active
@@ -106,6 +98,39 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
         Inactive
       </span>
     );
+  };
+
+  const collegeOptions = useMemo(() => {
+    const all = users.map((u) => u.college);
+    return ['All Colleges', ...Array.from(new Set(all))];
+  }, [users]);
+
+  const handleAddUser = () => {
+    const base = {
+      id: Date.now(),
+      name: 'New User',
+      email: 'new@user.com',
+      college: 'Aquinas College of Engineering',
+      status: 'Active' as UserStatus,
+      joinDate: new Date().toISOString().slice(0, 10),
+    };
+
+    if (type === 'college-admins') {
+      addUser(type, {
+        ...base,
+        role: 'College Admin',
+      } as AdminUser);
+    } else if (type === 'instructors') {
+      addUser(type, {
+        ...base,
+        role: 'Senior Professor',
+      } as InstructorUser);
+    } else {
+      addUser(type, {
+        ...base,
+        role: 'First Year',
+      } as StudentUser);
+    }
   };
 
   return (
@@ -118,16 +143,23 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
           </div>
           <div>
             <h2 className="text-3xl font-bold text-gray-800">{getTitle()}</h2>
-            <p className="text-gray-600">Manage and monitor {type.replace('-', ' ')}</p>
+            <p className="text-gray-600">
+              Manage and monitor {type.replace('-', ' ')}
+            </p>
           </div>
         </div>
-        <button className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+        <button
+          className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+          onClick={handleAddUser}
+        >
           <FaPlus className="w-4 h-4" />
-          <span className="font-medium">Add New {type === 'college-admins' ? 'Admin' : type === 'instructors' ? 'Instructor' : 'Student'}</span>
+          <span className="font-medium">
+            Add New {type === 'college-admins' ? 'Admin' : type === 'instructors' ? 'Instructor' : 'Student'}
+          </span>
         </button>
       </div>
 
-      {/* Filters Card */}
+      {/* Filters */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
         <div className="flex items-center space-x-2 mb-4">
           <FaFilter className="w-4 h-4 text-teal-500" />
@@ -142,52 +174,56 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
                 type="text"
                 placeholder={`Search ${type}...`}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
-          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">College</label>
-            <select className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors bg-white">
-              <option>All Colleges</option>
-              <option>Aquinas College of Engineering</option>
-              <option>Aquinas Institute of Technology</option>
-              <option>Aquinas Business School</option>
+            <select
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+              value={collegeFilter}
+              onChange={(e) => setCollegeFilter(e.target.value)}
+            >
+              {collegeOptions.map((college) => (
+                <option key={college}>{college}</option>
+              ))}
             </select>
           </div>
-          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors bg-white">
-              <option>All Status</option>
-              <option>Active</option>
-              <option>Inactive</option>
+            <select
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as UserStatus | 'All')}
+            >
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Table Card */}
+      {/* Table */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">College</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Join Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                {['#', 'Name', 'Email', 'Role', 'College', 'Join Date', 'Status', 'Actions'].map((heading) => (
+                  <th key={heading} className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    {heading}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user, index) => (
+              {filteredUsers.map((user, index) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{index + 1}</td>
+                  <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs font-bold">{user.name.charAt(0)}</span>
@@ -195,59 +231,29 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
                       <span className="text-sm font-medium text-gray-900">{user.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                  <td className="px-6 py-4">
                     <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.college}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.joinDate}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(user.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
-                        <FaEdit className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <FaTrash className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 text-sm text-gray-600">{user.college}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{user.joinDate}</td>
+                  <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <button className="text-blue-500 hover:text-blue-700 p-1"><FaEye /></button>
+                    <button className="text-yellow-500 hover:text-yellow-700 p-1"><FaEdit /></button>
+                    <button
+                      className="text-red-500 hover:text-red-700 p-1"
+                      onClick={() => deleteUser(type, user.id)}
+                    >
+                      <FaTrash />
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-700">Showing</span>
-            <select className="px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white">
-              <option>5</option>
-              <option>10</option>
-              <option>25</option>
-            </select>
-            <span className="text-sm text-gray-700">of {users.length} entries</span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition-colors">
-              Previous
-            </button>
-            <button className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg text-sm shadow-md">
-              1
-            </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition-colors">
-              Next
-            </button>
-          </div>
         </div>
       </div>
     </div>
