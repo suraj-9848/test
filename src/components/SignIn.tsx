@@ -84,9 +84,9 @@ const SignIn = () => {
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-transparent bg-clip-text">
+            {/* <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-transparent bg-clip-text">
               Admin Sign In
-            </h1>
+            </h1> */}
             <p className="text-sm text-gray-600">
               Access the Nirudhuyog LMS dashboard
             </p>

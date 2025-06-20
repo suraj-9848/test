@@ -90,11 +90,11 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
 
   const getStatusBadge = (status: UserStatus) => {
     return status === 'Active' ? (
-      <span className="px-3 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+      <span className="px-3 py-1 text-xs font-medium bg-gray-200 text-gray-800 rounded-full">
         Active
       </span>
     ) : (
-      <span className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+      <span className="px-3 py-1 text-xs font-medium bg-gray-300 text-gray-900 rounded-full">
         Inactive
       </span>
     );
@@ -134,12 +134,12 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
   };
 
   return (
-    <div className="p-8 bg-gradient-to-br from-gray-50 to-white min-h-screen">
+    <div className="p-8 bg-gray-100 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-2xl">{getIcon()}</span>
+          <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-2xl text-white">{getIcon()}</span>
           </div>
           <div>
             <h2 className="text-3xl font-bold text-gray-800">{getTitle()}</h2>
@@ -149,7 +149,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
           </div>
         </div>
         <button
-          className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="flex items-center space-x-3 px-6 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           onClick={handleAddUser}
         >
           <FaPlus className="w-4 h-4" />
@@ -160,9 +160,9 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
         <div className="flex items-center space-x-2 mb-4">
-          <FaFilter className="w-4 h-4 text-teal-500" />
+          <FaFilter className="w-4 h-4 text-gray-500" />
           <h3 className="text-lg font-semibold text-gray-800">Filters & Search</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -173,7 +173,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
               <input
                 type="text"
                 placeholder={`Search ${type}...`}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -182,7 +182,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">College</label>
             <select
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white"
               value={collegeFilter}
               onChange={(e) => setCollegeFilter(e.target.value)}
             >
@@ -194,7 +194,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
             <select
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as UserStatus | 'All')}
             >
@@ -207,10 +207,10 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+            <thead className="bg-gray-100">
               <tr>
                 {['#', 'Name', 'Email', 'Role', 'College', 'Join Date', 'Status', 'Actions'].map((heading) => (
                   <th key={heading} className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -225,7 +225,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{index + 1}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs font-bold">{user.name.charAt(0)}</span>
                       </div>
                       <span className="text-sm font-medium text-gray-900">{user.name}</span>
@@ -233,7 +233,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                   <td className="px-6 py-4">
-                    <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                    <span className="px-3 py-1 text-xs font-medium bg-gray-200 text-gray-800 rounded-full">
                       {user.role}
                     </span>
                   </td>
@@ -241,8 +241,8 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
                   <td className="px-6 py-4 text-sm text-gray-600">{user.joinDate}</td>
                   <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
                   <td className="px-6 py-4 flex gap-2">
-                    <button className="text-blue-500 hover:text-blue-700 p-1"><FaEye /></button>
-                    <button className="text-yellow-500 hover:text-yellow-700 p-1"><FaEdit /></button>
+                    <button className="text-gray-500 hover:text-gray-700 p-1"><FaEye /></button>
+                    <button className="text-gray-500 hover:text-gray-700 p-1"><FaEdit /></button>
                     <button
                       className="text-red-500 hover:text-red-700 p-1"
                       onClick={() => deleteUser(type, user.id)}

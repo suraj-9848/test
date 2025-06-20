@@ -25,18 +25,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
 
   return (
     <div
-      className={`h-screen bg-gradient-to-b from-slate-50 to-white shadow-xl border-r border-gray-200 transition-all duration-300 ease-in-out
+      className={`h-screen bg-white shadow-xl border-r border-gray-200 transition-all duration-300 ease-in-out
         ${collapsed ? 'w-28' : 'w-80'} flex flex-col`}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
         <div className="flex items-center space-x-3 overflow-hidden">
-          <div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-lg">N</span>
           </div>
           {!collapsed && (
             <div className="whitespace-nowrap">
-              <span className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold text-gray-800">
                 NIRUDHYOG
               </span>
               <p className="text-sm text-gray-500 -mt-1">Admin Dashboard</p>
@@ -58,21 +58,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
           <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
             <button
               onClick={() => setIsCollegesExpanded(!isCollegesExpanded)}
-              className="w-full flex items-center justify-between text-gray-700 hover:text-teal-600 transition-colors mb-4"
+              className={`w-full flex items-center text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors mb-2 ${
+                collapsed ? 'justify-center' : 'justify-between'
+              }`}
             >
-              <div className={`flex items-center space-x-3`}>
-                <FaUniversity className="w-5 h-5  text-teal-500" />
+              <div className={`flex items-center ${collapsed ? '' : 'space-x-3'}`}>
+                <FaUniversity className="w-5 h-5 text-gray-700" />
                 {!collapsed && (
                   <span className="font-semibold text-lg">View Colleges</span>
                 )}
               </div>
-              {!collapsed && (
-                isCollegesExpanded ? (
+              {!collapsed &&
+                (isCollegesExpanded ? (
                   <FaChevronDown className="w-4 h-4" />
                 ) : (
                   <FaChevronRight className="w-4 h-4" />
-                )
-              )}
+                ))}
             </button>
 
             {!collapsed && isCollegesExpanded && (
@@ -85,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
                       onClick={() => setActiveSection(role.key)}
                       className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                         activeSection === role.key
-                          ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg transform scale-[1.02]'
+                          ? 'bg-gray-800 text-white shadow-lg transform scale-[1.02]'
                           : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:shadow-md'
                       }`}
                     >
@@ -106,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
                 collapsed ? 'justify-center' : 'space-x-3'
               } px-3 py-2 rounded-lg transition-all duration-200 ${
                 activeSection === 'manage-hiring'
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg'
+                  ? 'bg-gray-800 text-white shadow-lg'
                   : 'text-gray-700 hover:bg-gray-50 hover:shadow-md'
               }`}
             >
@@ -123,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
                 collapsed ? 'justify-center' : 'space-x-3'
               } px-3 py-2 rounded-lg transition-all duration-200 ${
                 activeSection === 'payments'
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
+                  ? 'bg-gray-800 text-white shadow-lg'
                   : 'text-gray-700 hover:bg-gray-50 hover:shadow-md'
               }`}
             >
