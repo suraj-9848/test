@@ -3,9 +3,14 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";import { validateOAuthUser } from "../../utils/auth";
+import { useRouter } from "next/navigation";
+import { validateOAuthUser } from "../../utils/auth";
 
-export default function AuthValidationWrapper({ children }: { children: React.ReactNode }) {
+export default function AuthValidationWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -24,16 +29,20 @@ export default function AuthValidationWrapper({ children }: { children: React.Re
       if (!resp.valid || role === "student") {
         await signOut({ redirect: false });
         window.location.href = "https://lms.nirudhyog.com/";
-      }else{
-        router.push(`/dashboard/${role}`)
       }
+      else {
+        router.push(`/dashboard/${role}`);
+      }
+
+      console.log("User validation response:", resp);
+      console.log("User role:", role);
 
     };
 
     if (status === "authenticated") {
       checkUser();
     }
-  }, [session, status,router]);
+  }, [session, status, router]);
 
   if (status === "loading") return null;
 
