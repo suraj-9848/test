@@ -24,6 +24,8 @@ export default function AuthValidationWrapper({ children }: { children: React.Re
       if (!resp.valid || role === "student") {
         await signOut({ redirect: false });
         window.location.href = "https://lms.nirudhyog.com/";
+      }else{
+        router.push(`/dashboard/${role}`)
       }
 
     };
