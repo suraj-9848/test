@@ -19,12 +19,13 @@ export default function AuthValidationWrapper({ children }: { children: React.Re
       }
 
       const resp = await validateOAuthUser(jwt);
-      const role = resp.user?.role?.toLowerCase();
+      const role = resp.user?.userRole?.toLowerCase();
 
       if (!resp.valid || role === "student") {
         await signOut({ redirect: false });
         window.location.href = "https://lms.nirudhyog.com/";
       }
+
     };
 
     if (status === "authenticated") {
