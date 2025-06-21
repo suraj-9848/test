@@ -1,43 +1,70 @@
-'use client';
+"use client";
 
-import Loader from '@/components/Loader';
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import React from 'react';
+import Loader from "@/components/Loader";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import React from "react";
 
 const DashboardLanding = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  if (status === 'loading') {
-    return <Loader/>;
-  }
-
-  if (!session) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center bg-gradient-to-br from-indigo-100 via-blue-200 to-indigo-100 px-6">
-        <h1 className="text-4xl font-bold text-gray-800 mb-4">Access Denied</h1>
-        <p className="text-gray-600">Please sign in to access the admin dashboard.</p>
-      </div>
-    );
+  if (status === "loading") {
+    return <Loader />;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#dfe9f3] via-[#a1c4fd] to-[#dfe9f3] px-4 py-12">
-      <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-10 text-center animate-fade-in">
-        <h1 className="text-4xl font-bold text-gray-800 mb-4">Welcome, Admin!</h1>
-        <p className="text-gray-600 mb-6">You are signed in as <span className="font-semibold">{session.user?.email}</span></p>
+    <div className="min-h-screen flex items-center justify-center bg-white px-4 py-12">
+      <div className="max-w-4xl w-full bg-white border border-neutral-200 rounded-3xl shadow-xl p-10 animate-fade-in">
+        <h1 className="text-4xl font-extrabold text-neutral-900 mb-3 text-center tracking-tight">
+          Welcome to Nirudhyog LMS
+        </h1>
+        <p className="text-neutral-600 text-center mb-10 text-base">
+          Empowering learners with a structured roadmap. <br />
+          You are signed in as{" "}
+          <span className="text-neutral-900 font-medium">
+            {session?.user?.email || "User"}
+          </span>
+        </p>
 
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-lg font-semibold shadow-md hover:bg-indigo-700 transition duration-300"
-        >
-          View Dashboard
-        </button>
+        {/* Overview Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+          <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200 hover:shadow-lg transition-all duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 mb-1">📘 Courses</h3>
+            <p className="text-sm text-neutral-500">12 curated learning paths</p>
+          </div>
 
+          <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200 hover:shadow-lg transition-all duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 mb-1">👥 Students</h3>
+            <p className="text-sm text-neutral-500">143 active learners enrolled</p>
+          </div>
+
+          <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200 hover:shadow-lg transition-all duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 mb-1">👨‍🏫 Instructors</h3>
+            <p className="text-sm text-neutral-500">5 experienced mentors</p>
+          </div>
+        </div>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            onClick={() => router.push("/dashboard/courses")}
+            className="px-6 py-3 bg-black text-white rounded-xl text-sm font-semibold hover:bg-neutral-800 transition"
+          >
+            Explore Courses
+          </button>
+          <button
+            onClick={() => router.push("/dashboard/profile")}
+            className="px-6 py-3 border border-neutral-300 text-neutral-800 rounded-xl text-sm font-semibold hover:bg-neutral-100 transition"
+          >
+            My Profile
+          </button>
+        </div>
+
+        {/* Sign Out */}
         <button
           onClick={() => signOut()}
-          className="block mt-6 text-sm text-gray-500 hover:underline"
+          className="mt-10 text-sm text-neutral-400 hover:text-neutral-600 hover:underline transition"
         >
           Sign out
         </button>

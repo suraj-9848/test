@@ -38,57 +38,91 @@ const SignIn = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-100 via-white to-indigo-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-5xl bg-white/60 backdrop-blur-md border border-gray-200/50 rounded-3xl shadow-2xl grid grid-cols-1 md:grid-cols-2 overflow-hidden">
-        {/* Left Panel (Hidden on small screens) */}
-        <div className="hidden md:flex flex-col justify-between bg-gradient-to-br from-violet-600 to-indigo-700 text-white p-10">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 flex items-center justify-center px-4">
+      <div className="w-full max-w-5xl bg-white border border-gray-200 rounded-3xl shadow-2xl grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+        {/* Left Panel (Black & White theme) */}
+        <div
+  style={{
+    clipPath: `path('M0,0 
+                Q20,0 20,20 
+                V100 
+                Q20,100 0,100 
+                Z 
+                M20,0 
+                H80 
+                Q100,0 100,20 
+                V30 
+                Q100,40 90,40 
+                H20 
+                Z')`,
+  }}
+          className="hidden md:flex flex-col justify-between text-white p-10 bg-black relative rounded-tr-[60px] rounded-bl-[40px]"
+        >
+          {/* Top Heading */}
           <div>
-            <h2 className="text-4xl font-extrabold mb-4 leading-tight">
-              Welcome to{" "}
-              <span className="text-white underline decoration-white/40">
-                Nirudhuyog LMS
-              </span>
+            <h2 className="text-4xl font-extrabold leading-tight  my-8">
+              Welcome to <br />
+              <span className="text-white/90">Nirudhyog LMS</span>
             </h2>
-            <p className="text-base text-violet-100 leading-relaxed">
-              Manage institutions, instructors, learners, and courses—all from a
-              single unified admin panel. Simplifying your learning operations
-              with powerful tools and seamless access.
-            </p>
+
+            {/* Quote */}
+            <div className="text-sm text-white/80 mb-6 leading-relaxed">
+              <p>
+                “Search and manage your institution easily with Nirudhyog.
+                Simplify operations and focus on learning.”
+              </p>
+            </div>
+
+            {/* User Info */}
+            <div className="mb-10">
+              <p className="font-bold">Team Nirudhyog</p>
+              <p className="text-sm text-white/60">Digital LMS for Everyone</p>
+            </div>
           </div>
 
-          <div className="mt-10 bg-white/10 p-5 rounded-xl shadow-inner">
-            <p className="text-sm italic mb-3">
-              “Empowering education through seamless digital learning
-              management.”
+          {/* Bottom Bubble Box */}
+          <div className="mt-10 relative bg-white text-black shadow-md rounded-[24px] p-5">
+            <h4 className="font-bold text-base mb-1 leading-snug">
+              Control your institution better with Nirudhyog
+            </h4>
+            <p className="text-sm text-gray-600 mb-3">
+              All-in-one platform for admins, instructors, and students.
             </p>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-white/30 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                N
+
+            {/* Fake Avatars */}
+            <div className="flex  mt-2">
+              <div className="w-7 h-7 bg-gray-400 rounded-full text-white flex items-center justify-center text-xs font-bold">
+                A
               </div>
-              <div>
-                <p className="text-sm font-semibold">Nirudhuyog Team</p>
-                <p className="text-xs opacity-80">
-                  Admin Portal • LMS Platform
-                </p>
+              <div className="w-7 h-7 -translate-x-2 bg-gray-600 rounded-full text-white flex items-center justify-center text-xs font-bold">
+                B
               </div>
+              <div className="w-7 h-7  -translate-x-4 bg-gray-800 rounded-full text-white flex items-center justify-center text-xs font-bold">
+                C
+              </div>
+              <div className="w-7 h-7  -translate-x-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-medium">
+                +2
+              </div>
+            </div>
+
+            {/* Star icon bubble */}
+            <div className="absolute -top-4 -right-4 w-9 h-9 bg-white rounded-full shadow-md flex items-center justify-center">
+              <span className="text-black text-lg">★</span>
             </div>
           </div>
         </div>
 
-        {/* Right Panel */}
-        <div className="p-6 md:p-8">
+        {/* Right Panel - Form */}
+        <div className="p-6 md:p-8 bg-white text-black">
           <div className="flex justify-center mb-6">
-            <div className="w-14 h-14 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-md">
+            <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-md">
               <span className="text-white text-2xl font-bold">N</span>
             </div>
           </div>
 
           <div className="text-center mb-8">
-            {/* <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-transparent bg-clip-text">
-              Admin Sign In
-            </h1> */}
             <p className="text-sm text-gray-600">
-              Access the Nirudhuyog LMS dashboard
+              Sign in to continue to Nirudhyog LMS
             </p>
           </div>
 
@@ -107,8 +141,8 @@ const SignIn = () => {
                     onClick={() => setRole(r)}
                     className={`text-sm px-2 py-2 rounded-lg border transition-all duration-200 font-medium ${
                       role === r
-                        ? "bg-violet-100 text-violet-600 border-violet-400"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
                     }`}
                   >
                     {r}
@@ -131,7 +165,7 @@ const SignIn = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full px-4 py-2 h-11 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition text-gray-700"
+                className="w-full px-4 py-2 h-11 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black/40 focus:border-black transition"
                 required
               />
             </div>
@@ -151,13 +185,13 @@ const SignIn = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full px-4 py-2 h-11 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition text-gray-700 pr-10"
+                  className="w-full px-4 py-2 h-11 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black/40 focus:border-black transition pr-10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-violet-500 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition"
                 >
                   {showPassword ? (
                     <AiOutlineEyeInvisible size={20} />
@@ -172,16 +206,16 @@ const SignIn = () => {
             <div className="text-right">
               <button
                 type="button"
-                className="text-sm text-violet-600 hover:text-violet-700 transition"
+                className="text-sm text-black hover:underline transition"
               >
                 Forgot password?
               </button>
             </div>
 
-            {/* Sign In */}
+            {/* Submit */}
             <button
               type="submit"
-              className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md hover:from-violet-700 hover:to-indigo-700 transition"
+              className="w-full py-2 rounded-lg bg-black text-white font-semibold hover:bg-gray-900 transition"
             >
               Sign In
             </button>
@@ -199,8 +233,8 @@ const SignIn = () => {
             onClick={handleGoogleSignIn}
             className="w-full flex items-center justify-center gap-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
           >
-            <AiOutlineGoogle size={20} className="text-red-500" />
-            <span className="text-gray-700 font-medium">
+            <AiOutlineGoogle size={20} className="text-black" />
+            <span className="text-gray-800 font-medium">
               Continue with Google
             </span>
           </button>
@@ -208,8 +242,8 @@ const SignIn = () => {
           {/* Footer */}
           <div className="text-center mt-6">
             <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <button className="text-violet-600 hover:text-violet-700 font-medium transition">
+              Don’t have an account?{" "}
+              <button className="text-black font-medium hover:underline transition">
                 Contact administrator
               </button>
             </p>

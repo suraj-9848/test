@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { FaUser, FaBriefcase, FaCalendar, FaMapMarkerAlt, FaEdit, FaTrash, FaEye, FaPlus } from 'react-icons/fa';
-import { useHiringStore, Job, JobStatus, JobType } from '@/store/hiringStore';
+import { useHiringStore, JobStatus, JobType } from '@/store/hiringStore';
 
 const ManageHiring: React.FC = () => {
   const {
@@ -15,7 +15,7 @@ const ManageHiring: React.FC = () => {
     setDepartmentFilter,
     setTypeFilter,
     setStatusFilter,
-    addJob,
+    
     deleteJob,
   } = useHiringStore();
 
@@ -64,13 +64,13 @@ const ManageHiring: React.FC = () => {
     }
   };
 
-  const getTypeBadge = (type: JobType) => {
-    return (
-      <span className="px-2 py-1 text-xs font-medium bg-gray-200 text-gray-800 rounded">
-        {type}
-      </span>
-    );
-  };
+  // const getTypeBadge = (type: JobType) => {
+  //   return (
+  //     <span className="px-2 py-1 text-xs font-medium bg-gray-200 text-gray-800 rounded">
+  //       {type}
+  //     </span>
+  //   );
+  // };
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">

@@ -2,26 +2,18 @@
 
 import React, { useMemo } from 'react';
 import { FaEye, FaFileInvoice } from 'react-icons/fa';
-import { usePaymentStore, Payment, PaymentStatus } from '@/store/paymentStore';
+import { usePaymentStore, PaymentStatus } from '@/store/paymentStore';
 
 const PaymentApproval: React.FC = () => {
   const {
     payments,
     search,
-    branchFilter,
-    facultyFilter,
-    courseFilter,
-    batchFilter,
-    paymentTypeFilter,
+    
     statusFilter,
     setSearch,
-    setBranchFilter,
-    setFacultyFilter,
-    setCourseFilter,
-    setBatchFilter,
-    setPaymentTypeFilter,
+ 
     setStatusFilter,
-    deletePayment,
+    
   } = usePaymentStore();
 
   const filteredPayments = useMemo(() => {

@@ -1,3 +1,4 @@
+import AuthValidationWrapper from "@/components/AuthValidator";
 import Navbar from "@/components/Navbar";
 
 export default function Layout({
@@ -9,7 +10,9 @@ export default function Layout({
     <div className="flex flex-col">
   
         <Navbar/>
+        <AuthValidationWrapper>
         {children}
+        </AuthValidationWrapper>
       
     </div>
        

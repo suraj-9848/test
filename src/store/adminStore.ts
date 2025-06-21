@@ -60,7 +60,7 @@ function mapTypeToKey(type: UserCategory): keyof AdminStoreState {
   return map[type];
 }
 
-export const useAdminStore = create<AdminStoreState>((set, get) => ({
+export const useAdminStore = create<AdminStoreState>((set) => ({
   admins: [
     {
       id: 1,
