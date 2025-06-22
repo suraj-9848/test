@@ -7,9 +7,6 @@ import {
   FaPlus,
   FaSearch,
   FaFilter,
-  FaUser,
-  FaEnvelope,
-  FaUniversity,
   FaUsers,
 } from 'react-icons/fa';
 import {
@@ -22,7 +19,7 @@ import UserModal from './UserModal';
 import UserForm from './UserForm';
 import ConfirmModal from './ConfirmModal';
 
-const CollegeManagement: React.FC = () => {
+const UserManagement: React.FC = () => {
   const {
     users,
     search,
@@ -208,12 +205,12 @@ const CollegeManagement: React.FC = () => {
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto scrollbar-hide">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gradient-to-r from-blue-50 to-purple-50">
               <tr>
                 {['#', 'Username', 'Email', 'Role', 'Organization', 'Batches', 'Actions'].map((heading) => (
-                  <th key={heading} className="px-4 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                  <th key={heading} className="px-4 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider whitespace-nowrap">
                     {heading}
                   </th>
                 ))}
@@ -222,8 +219,8 @@ const CollegeManagement: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.map((user, index) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-black">{index + 1}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-sm font-medium text-black whitespace-nowrap">{index + 1}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs font-bold">{user.username.charAt(0)}</span>
@@ -231,16 +228,16 @@ const CollegeManagement: React.FC = () => {
                       <span className="text-sm font-medium text-black">{user.username}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                     {user.email || 'No email'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {getRoleBadge(user.userRole)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                     {getOrgName(user.org_id)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex flex-wrap gap-1">
                       {user.batch_id.slice(0, 2).map((batch) => (
                         <span key={batch} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
@@ -254,7 +251,7 @@ const CollegeManagement: React.FC = () => {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 flex gap-2">
+                  <td className="px-4 py-3 flex gap-2 whitespace-nowrap">
                     <button className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors">
                       <FaEye />
                     </button>
@@ -319,4 +316,4 @@ const CollegeManagement: React.FC = () => {
   );
 };
 
-export default CollegeManagement; 
+export default UserManagement; 

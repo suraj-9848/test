@@ -1,215 +1,168 @@
 import { create } from 'zustand';
 
-export type AdminRole = 'College Admin' | 'Deputy Admin' | 'Academic Head';
-export type InstructorRole = 'Senior Professor' | 'Associate Professor' | 'Assistant Professor';
-export type StudentRole = 'First Year' | 'Second Year' | 'Third Year' | 'Fourth Year' | 'Final Year';
-
-export type UserRole = AdminRole | InstructorRole | StudentRole;
-export type UserStatus = 'Active' | 'Inactive';
-
-export interface BaseUser {
-  id: number;
-  name: string;
-  email: string;
-  college: string;
-  status: UserStatus;
-  joinDate: string;
+export enum UserRole {
+  STUDENT = "student",
+  ADMIN = "admin",
+  COLLEGE_ADMIN = "college_admin",
+  INSTRUCTOR = "instructor",
 }
 
-export interface AdminUser extends BaseUser {
-  role: AdminRole;
+export interface User {
+  id: string;
+  username: string;
+  email: string | null;
+  password: string | null;
+  org_id: string | null;
+  batch_id: string[];
+  userRole: UserRole;
 }
-export interface InstructorUser extends BaseUser {
-  role: InstructorRole;
-}
-export interface StudentUser extends BaseUser {
-  role: StudentRole;
-}
-
-type UserCategory = 'college-admins' | 'instructors' | 'students';
-
-type StoreKeyMap = {
-  'college-admins': 'admins';
-  'instructors': 'instructors';
-  'students': 'students';
-};
 
 interface AdminStoreState {
-  admins: AdminUser[];
-  instructors: InstructorUser[];
-  students: StudentUser[];
+  users: User[];
   search: string;
-  collegeFilter: string;
-  statusFilter: UserStatus | 'All';
+  orgFilter: string;
+  roleFilter: UserRole | 'All';
+  selectedOrg: string | null;
 
   setSearch: (search: string) => void;
-  setCollegeFilter: (college: string) => void;
-  setStatusFilter: (status: UserStatus | 'All') => void;
+  setOrgFilter: (org: string) => void;
+  setRoleFilter: (role: UserRole | 'All') => void;
+  setSelectedOrg: (org: string | null) => void;
 
-  addUser: (type: UserCategory, user: AdminUser | InstructorUser | StudentUser) => void;
-  deleteUser: (type: UserCategory, id: number) => void;
-  editUser: (type: UserCategory, user: AdminUser | InstructorUser | StudentUser) => void;
+  addUser: (user: Omit<User, 'id'>) => void;
+  deleteUser: (id: string) => void;
+  editUser: (user: User) => void;
 }
 
-function mapTypeToKey(type: UserCategory): keyof AdminStoreState {
-  const map: StoreKeyMap = {
-    'college-admins': 'admins',
-    'instructors': 'instructors',
-    'students': 'students',
-  };
-  return map[type];
-}
+// Mock organizations data
+const mockOrgs = [
+  { id: '1', name: 'Aquinas College of Engineering' },
+  { id: '2', name: 'Oxford Institute of Technology' },
+  { id: '3', name: 'Modern Institute of Technology' },
+  { id: '4', name: 'St. Xavier\'s College' },
+  { id: '5', name: 'Delhi Technical University' },
+  { id: '6', name: 'IIT Delhi' },
+  { id: '7', name: 'BITS Pilani' }
+];
+
+// Mock batch data
+const mockBatches = [
+  '2024-Batch-A',
+  '2024-Batch-B', 
+  '2023-Batch-A',
+  '2023-Batch-B',
+  '2022-Batch-A',
+  '2022-Batch-B'
+];
 
 export const useAdminStore = create<AdminStoreState>((set) => ({
-  admins: [
+  users: [
     {
-      id: 1,
-      name: 'Dr. Rajesh Kumar',
+      id: '1',
+      username: 'Dr. Rajesh Kumar',
       email: 'rajesh@aquinas.edu',
-      role: 'College Admin',
-      college: 'Aquinas College of Engineering',
-      status: 'Active',
-      joinDate: '2020-01-15',
+      password: null,
+      org_id: '1',
+      batch_id: ['2024-Batch-A'],
+      userRole: UserRole.COLLEGE_ADMIN,
     },
     {
-      id: 2,
-      name: 'Prof. Neha Verma',
+      id: '2',
+      username: 'Prof. Neha Verma',
       email: 'neha@oxfordtech.edu',
-      role: 'Deputy Admin',
-      college: 'Oxford Institute of Technology',
-      status: 'Active',
-      joinDate: '2021-07-10',
+      password: null,
+      org_id: '2',
+      batch_id: ['2024-Batch-B'],
+      userRole: UserRole.COLLEGE_ADMIN,
     },
     {
-      id: 3,
-      name: 'Dr. Anil Joshi',
-      email: 'anil@modernit.edu',
-      role: 'Academic Head',
-      college: 'Modern Institute of Technology',
-      status: 'Inactive',
-      joinDate: '2018-06-05',
-    },
-    {
-      id: 4,
-      name: 'Dr. Fatima Khan',
-      email: 'fatima@stxaviers.edu',
-      role: 'College Admin',
-      college: 'St. Xavier’s College',
-      status: 'Active',
-      joinDate: '2019-12-01',
-    },
-  ],
-  instructors: [
-    {
-      id: 1,
-      name: 'Prof. Amit Sharma',
+      id: '3',
+      username: 'Prof. Amit Sharma',
       email: 'amit@aquinas.edu',
-      role: 'Senior Professor',
-      college: 'Aquinas College of Engineering',
-      status: 'Active',
-      joinDate: '2015-01-12',
+      password: null,
+      org_id: '1',
+      batch_id: ['2024-Batch-A', '2023-Batch-A'],
+      userRole: UserRole.INSTRUCTOR,
     },
     {
-      id: 2,
-      name: 'Dr. Meena Rao',
+      id: '4',
+      username: 'Dr. Meena Rao',
       email: 'meena@oxfordtech.edu',
-      role: 'Associate Professor',
-      college: 'Oxford Institute of Technology',
-      status: 'Active',
-      joinDate: '2016-03-25',
+      password: null,
+      org_id: '2',
+      batch_id: ['2024-Batch-B'],
+      userRole: UserRole.INSTRUCTOR,
     },
     {
-      id: 3,
-      name: 'Prof. Sanjay Singh',
-      email: 'sanjay@modernit.edu',
-      role: 'Assistant Professor',
-      college: 'Modern Institute of Technology',
-      status: 'Inactive',
-      joinDate: '2017-11-30',
-    },
-    {
-      id: 4,
-      name: 'Dr. Lata Mukherjee',
-      email: 'lata@stxaviers.edu',
-      role: 'Senior Professor',
-      college: 'St. Xavier’s College',
-      status: 'Active',
-      joinDate: '2020-09-10',
-    },
-  ],
-  students: [
-    {
-      id: 1,
-      name: 'Rohit Gupta',
+      id: '5',
+      username: 'Rohit Gupta',
       email: 'rohit@students.aquinas.edu',
-      role: 'Final Year',
-      college: 'Aquinas College of Engineering',
-      status: 'Active',
-      joinDate: '2020-09-01',
+      password: null,
+      org_id: '1',
+      batch_id: ['2024-Batch-A'],
+      userRole: UserRole.STUDENT,
     },
     {
-      id: 2,
-      name: 'Sneha Reddy',
+      id: '6',
+      username: 'Sneha Reddy',
       email: 'sneha@students.oxfordtech.edu',
-      role: 'Second Year',
-      college: 'Oxford Institute of Technology',
-      status: 'Inactive',
-      joinDate: '2022-09-01',
+      password: null,
+      org_id: '2',
+      batch_id: ['2023-Batch-B'],
+      userRole: UserRole.STUDENT,
     },
     {
-      id: 3,
-      name: 'Aman Yadav',
+      id: '7',
+      username: 'Aman Yadav',
       email: 'aman@students.modernit.edu',
-      role: 'Third Year',
-      college: 'Modern Institute of Technology',
-      status: 'Active',
-      joinDate: '2021-08-12',
+      password: null,
+      org_id: '3',
+      batch_id: ['2022-Batch-A'],
+      userRole: UserRole.STUDENT,
     },
     {
-      id: 4,
-      name: 'Priya Nair',
+      id: '8',
+      username: 'Priya Nair',
       email: 'priya@students.stxaviers.edu',
-      role: 'First Year',
-      college: 'St. Xavier’s College',
-      status: 'Active',
-      joinDate: '2023-08-20',
-    },
-    {
-      id: 5,
-      name: 'Karthik Iyer',
-      email: 'karthik@students.oxfordtech.edu',
-      role: 'Fourth Year',
-      college: 'Oxford Institute of Technology',
-      status: 'Active',
-      joinDate: '2020-09-15',
+      password: null,
+      org_id: '4',
+      batch_id: ['2024-Batch-A'],
+      userRole: UserRole.STUDENT,
     },
   ],
   search: '',
-  collegeFilter: 'All Colleges',
-  statusFilter: 'All',
+  orgFilter: 'All Organizations',
+  roleFilter: 'All',
+  selectedOrg: null,
 
   setSearch: (search) => set({ search }),
-  setCollegeFilter: (college) => set({ collegeFilter: college }),
-  setStatusFilter: (status) => set({ statusFilter: status }),
+  setOrgFilter: (org) => set({ orgFilter: org }),
+  setRoleFilter: (role) => set({ roleFilter: role }),
+  setSelectedOrg: (org) => set({ selectedOrg: org }),
 
-  addUser: (type, user) => {
-    const key = mapTypeToKey(type);
+  addUser: (user) => {
+    const newUser: User = {
+      ...user,
+      id: crypto.randomUUID(),
+    };
     set((state) => ({
-      [key]: [...state[key] as any[], user],
+      users: [...state.users, newUser],
     }));
   },
 
-  deleteUser: (type, id) => {
-    const key = mapTypeToKey(type);
+  deleteUser: (id) => {
     set((state) => ({
-      [key]: (state[key] as any[]).filter((u) => u.id !== id),
+      users: state.users.filter((u) => u.id !== id),
     }));
   },
 
-  editUser: (type, user) => {
-    const key = mapTypeToKey(type);
+  editUser: (user) => {
     set((state) => ({
-      [key]: (state[key] as any[]).map((u) => u.id === user.id ? user : u),
+      users: state.users.map((u) => u.id === user.id ? user : u),
     }));
   },
 }));
+
+// Export helper functions
+export const getOrgs = () => mockOrgs;
+export const getBatches = () => mockBatches; 
