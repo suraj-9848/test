@@ -4,7 +4,7 @@ export async function validateOAuthUser(sessionJwt: string) {
   }
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ;
   try {
-    const response = await fetch(`${baseUrl}/api/auth/google-login`, {
+    const response = await fetch(`${baseUrl}/api/auth/admin-login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
