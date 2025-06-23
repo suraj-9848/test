@@ -61,6 +61,8 @@ interface InstructorStoreState {
   modules: Module[];
   tests: Test[];
   questions: Question[];
+  isLoading: boolean;
+  error: string | null;
 
   // Filters
   courseSearch: string;
@@ -73,6 +75,7 @@ interface InstructorStoreState {
   setLevelFilter: (
     level: "ALL" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
   ) => void;
+  fetchCourses: () => void;
 
   // Course CRUD
   addCourse: (course: Omit<Course, "id" | "createdAt" | "updatedAt">) => void;
@@ -188,10 +191,20 @@ export const useInstructorStore = create<InstructorStoreState>((set) => ({
   courseSearch: "",
   statusFilter: "ALL",
   levelFilter: "ALL",
+  isLoading: false,
+  error: null,
 
   setCourseSearch: (search) => set({ courseSearch: search }),
   setStatusFilter: (status) => set({ statusFilter: status }),
   setLevelFilter: (level) => set({ levelFilter: level }),
+  fetchCourses: () => {
+    // Mock implementation - in a real app this would fetch from an API
+    set({ isLoading: true, error: null });
+    // Simulate API call
+    setTimeout(() => {
+      set({ isLoading: false });
+    }, 1000);
+  },
 
   addCourse: (course) =>
     set((state) => ({

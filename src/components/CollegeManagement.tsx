@@ -1,16 +1,11 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import {
-  FaEdit,
   FaTrash,
-  FaEye,
+  FaEdit,
   FaPlus,
   FaSearch,
-  FaFilter,
-  FaUser,
-  FaEnvelope,
-  FaUniversity,
-  FaUsers,
+  FaBuilding,
 } from 'react-icons/fa';
 import {
   useAdminStore,
@@ -143,7 +138,7 @@ const CollegeManagement: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-            <FaUsers className="w-6 h-6 text-white" />
+            <FaBuilding className="w-6 h-6 text-white" />
           </div>
           <div>
             <h2 className="text-2xl font-bold text-black">User Management</h2>
@@ -162,7 +157,7 @@ const CollegeManagement: React.FC = () => {
       {/* Filters */}
       <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex items-center space-x-2 mb-4">
-          <FaFilter className="w-4 h-4 text-blue-600" />
+          <FaBuilding className="w-4 h-4 text-blue-600" />
           <h3 className="text-lg font-semibold text-black">Filters & Search</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -256,7 +251,7 @@ const CollegeManagement: React.FC = () => {
                   </td>
                   <td className="px-4 py-3 flex gap-2">
                     <button className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors">
-                      <FaEye />
+                      <FaBuilding />
                     </button>
                     <button 
                       className="text-purple-500 hover:text-purple-700 p-1 hover:bg-purple-50 rounded transition-colors"

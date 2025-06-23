@@ -33,7 +33,7 @@ interface PaymentStoreState {
   editPayment: (payment: Payment) => void;
 }
 
-export const usePaymentStore = create<PaymentStoreState>((set, get) => ({
+export const usePaymentStore = create<PaymentStoreState>((set) => ({
   payments: [
     {
       id: 1,

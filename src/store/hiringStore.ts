@@ -30,7 +30,7 @@ interface HiringStoreState {
   editJob: (job: Job) => void;
 }
 
-export const useHiringStore = create<HiringStoreState>((set, get) => ({
+export const useHiringStore = create<HiringStoreState>((set) => ({
   jobs: [
     {
       id: 1,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaUser, FaEnvelope, FaUniversity, FaUsers, FaSave, FaTimes, FaPlus } from 'react-icons/fa';
 import { User, UserRole } from '@/store/adminStore';
-import { getOrgs, getBatches } from '@/store/adminStore';
 
 interface UserFormProps {
   user?: User | null;
@@ -75,8 +74,6 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, isEdit = 
       handleAddBatch();
     }
   };
-
-  const orgs = getOrgs();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   FaPlus,
   FaEdit,
@@ -13,7 +13,6 @@ import {
 } from "react-icons/fa";
 import {
   useInstructorStore,
-  Course,
   CourseStatus,
 } from "@/store/instructorStore";
 
@@ -28,10 +27,11 @@ const CoursesOverview: React.FC = () => {
     setLevelFilter,
     deleteCourse,
     updateCourse,
+    fetchCourses,
   } = useInstructorStore();
 
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
@@ -87,6 +87,10 @@ const CoursesOverview: React.FC = () => {
     updateCourse(courseId, { status: newStatus });
   };
 
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
+
   return (
     <div className="p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       {/* Header */}
@@ -106,7 +110,7 @@ const CoursesOverview: React.FC = () => {
         </div>
         <button
           className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowCreateModal(true)}
         >
           <FaPlus className="w-4 h-4" />
           <span className="font-semibold">Create New Course</span>
