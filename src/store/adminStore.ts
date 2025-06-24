@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { useOrganizationStore } from './organizationStore';
+import { userApi, User as ApiUser, CreateUserRequest, UpdateUserRequest } from '@/api/adminApi';
 
 export enum UserRole {
   STUDENT = "student",
@@ -17,33 +19,36 @@ export interface User {
   userRole: UserRole;
 }
 
+// Utility to map API user to store user
+function mapApiUserToStoreUser(apiUser: ApiUser): User {
+  return {
+    ...apiUser,
+    userRole: apiUser.userRole as UserRole,
+  };
+}
+
 interface AdminStoreState {
   users: User[];
   search: string;
   orgFilter: string;
   roleFilter: UserRole | 'All';
   selectedOrg: string | null;
+  loading: boolean;
+  error: string | null;
 
   setSearch: (search: string) => void;
   setOrgFilter: (org: string) => void;
   setRoleFilter: (role: UserRole | 'All') => void;
   setSelectedOrg: (org: string | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
 
-  addUser: (user: Omit<User, 'id'>) => void;
-  deleteUser: (id: string) => void;
-  editUser: (user: User) => void;
+  // User management functions
+  addUser: (userData: CreateUserRequest, role: UserRole) => Promise<void>;
+  deleteUser: (id: string, role: UserRole) => Promise<void>;
+  editUser: (id: string, userData: UpdateUserRequest, role: UserRole) => Promise<void>;
+  fetchUsers: (role?: UserRole | 'All') => Promise<void>;
 }
-
-// Mock organizations data
-const mockOrgs = [
-  { id: '1', name: 'Aquinas College of Engineering' },
-  { id: '2', name: 'Oxford Institute of Technology' },
-  { id: '3', name: 'Modern Institute of Technology' },
-  { id: '4', name: 'St. Xavier\'s College' },
-  { id: '5', name: 'Delhi Technical University' },
-  { id: '6', name: 'IIT Delhi' },
-  { id: '7', name: 'BITS Pilani' }
-];
 
 // Mock batch data
 const mockBatches = [
@@ -55,114 +60,131 @@ const mockBatches = [
   '2022-Batch-B'
 ];
 
-export const useAdminStore = create<AdminStoreState>((set) => ({
-  users: [
-    {
-      id: '1',
-      username: 'Dr. Rajesh Kumar',
-      email: 'rajesh@aquinas.edu',
-      password: null,
-      org_id: '1',
-      batch_id: ['2024-Batch-A'],
-      userRole: UserRole.COLLEGE_ADMIN,
-    },
-    {
-      id: '2',
-      username: 'Prof. Neha Verma',
-      email: 'neha@oxfordtech.edu',
-      password: null,
-      org_id: '2',
-      batch_id: ['2024-Batch-B'],
-      userRole: UserRole.COLLEGE_ADMIN,
-    },
-    {
-      id: '3',
-      username: 'Prof. Amit Sharma',
-      email: 'amit@aquinas.edu',
-      password: null,
-      org_id: '1',
-      batch_id: ['2024-Batch-A', '2023-Batch-A'],
-      userRole: UserRole.INSTRUCTOR,
-    },
-    {
-      id: '4',
-      username: 'Dr. Meena Rao',
-      email: 'meena@oxfordtech.edu',
-      password: null,
-      org_id: '2',
-      batch_id: ['2024-Batch-B'],
-      userRole: UserRole.INSTRUCTOR,
-    },
-    {
-      id: '5',
-      username: 'Rohit Gupta',
-      email: 'rohit@students.aquinas.edu',
-      password: null,
-      org_id: '1',
-      batch_id: ['2024-Batch-A'],
-      userRole: UserRole.STUDENT,
-    },
-    {
-      id: '6',
-      username: 'Sneha Reddy',
-      email: 'sneha@students.oxfordtech.edu',
-      password: null,
-      org_id: '2',
-      batch_id: ['2023-Batch-B'],
-      userRole: UserRole.STUDENT,
-    },
-    {
-      id: '7',
-      username: 'Aman Yadav',
-      email: 'aman@students.modernit.edu',
-      password: null,
-      org_id: '3',
-      batch_id: ['2022-Batch-A'],
-      userRole: UserRole.STUDENT,
-    },
-    {
-      id: '8',
-      username: 'Priya Nair',
-      email: 'priya@students.stxaviers.edu',
-      password: null,
-      org_id: '4',
-      batch_id: ['2024-Batch-A'],
-      userRole: UserRole.STUDENT,
-    },
-  ],
+export const useAdminStore = create<AdminStoreState>((set, get) => ({
+  users: [],
   search: '',
   orgFilter: 'All Organizations',
   roleFilter: 'All',
   selectedOrg: null,
+  loading: false,
+  error: null,
 
   setSearch: (search) => set({ search }),
   setOrgFilter: (org) => set({ orgFilter: org }),
   setRoleFilter: (role) => set({ roleFilter: role }),
   setSelectedOrg: (org) => set({ selectedOrg: org }),
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error }),
 
-  addUser: (user) => {
-    const newUser: User = {
-      ...user,
-      id: crypto.randomUUID(),
-    };
-    set((state) => ({
-      users: [...state.users, newUser],
-    }));
+  addUser: async (userData, role) => {
+    try {
+      set({ loading: true, error: null });
+      let response;
+      
+      switch (role) {
+        case UserRole.COLLEGE_ADMIN:
+          response = await userApi.createCollegeAdmin(userData);
+          break;
+        case UserRole.INSTRUCTOR:
+          response = await userApi.createInstructor(userData);
+          break;
+        case UserRole.STUDENT:
+          response = await userApi.createStudent(userData);
+          break;
+        default:
+          throw new Error('Invalid user role');
+      }
+      
+      set((state) => ({
+        users: [...state.users, mapApiUserToStoreUser(response.user)],
+        loading: false,
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create user';
+      set({ error: errorMessage, loading: false });
+      throw error;
+    }
   },
 
-  deleteUser: (id) => {
-    set((state) => ({
-      users: state.users.filter((u) => u.id !== id),
-    }));
+  deleteUser: async (id, role) => {
+    try {
+      set({ loading: true, error: null });
+      
+      switch (role) {
+        case UserRole.COLLEGE_ADMIN:
+          await userApi.deleteCollegeAdmin(id);
+          break;
+        case UserRole.INSTRUCTOR:
+          await userApi.deleteInstructor(id);
+          break;
+        case UserRole.STUDENT:
+          await userApi.deleteStudent(id);
+          break;
+        default:
+          throw new Error('Invalid user role');
+      }
+      
+      set((state) => ({
+        users: state.users.filter((u) => u.id !== id),
+        loading: false,
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
+      set({ error: errorMessage, loading: false });
+      throw error;
+    }
   },
 
-  editUser: (user) => {
-    set((state) => ({
-      users: state.users.map((u) => u.id === user.id ? user : u),
-    }));
+  editUser: async (id, userData, role) => {
+    try {
+      set({ loading: true, error: null });
+      let response;
+      
+      switch (role) {
+        case UserRole.COLLEGE_ADMIN:
+          response = await userApi.updateCollegeAdmin(id, userData);
+          break;
+        case UserRole.INSTRUCTOR:
+          response = await userApi.updateInstructor(id, userData);
+          break;
+        case UserRole.STUDENT:
+          response = await userApi.updateStudent(id, userData);
+          break;
+        default:
+          throw new Error('Invalid user role');
+      }
+      
+      set((state) => ({
+        users: state.users.map((u) => u.id === id ? mapApiUserToStoreUser(response.user) : u),
+        loading: false,
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update user';
+      set({ error: errorMessage, loading: false });
+      throw error;
+    }
+  },
+
+  fetchUsers: async (role) => {
+    try {
+      set({ loading: true, error: null });
+      const apiRole = role && role !== 'All' ? role : undefined;
+      const response = await userApi.getAllUsers(apiRole);
+      set({
+        users: response.users.map(mapApiUserToStoreUser),
+        loading: false,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch users';
+      set({ error: errorMessage, loading: false });
+      throw error;
+    }
   },
 }));
 
 // Export helper functions
-export const getOrgs = () => mockOrgs;
+export const getOrgs = () => {
+  const { organizations } = useOrganizationStore.getState();
+  return organizations.map(org => ({ id: org.id, name: org.name }));
+};
 export const getBatches = () => mockBatches; 

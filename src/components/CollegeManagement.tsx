@@ -16,6 +16,7 @@ import {
 import UserModal from './UserModal';
 import UserForm from './UserForm';
 import ConfirmModal from './ConfirmModal';
+import { CreateUserRequest, UpdateUserRequest } from '@/api/adminApi';
 
 const CollegeManagement: React.FC = () => {
   const {
@@ -104,22 +105,36 @@ const CollegeManagement: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleSubmitUser = (userData: Omit<User, 'id'>) => {
+  const handleSubmitUser = async (userData: Omit<User, 'id'>) => {
+    const { userRole, ...rest } = userData;
     if (selectedUser) {
       // Edit mode
-      editUser({ ...userData, id: selectedUser.id });
+      const updateData: UpdateUserRequest = {
+        username: rest.username,
+        email: rest.email || undefined,
+        password: rest.password || undefined,
+        batch_id: rest.batch_id,
+      };
+      await editUser(selectedUser.id, updateData, userRole as UserRole);
       setIsEditModalOpen(false);
     } else {
       // Add mode
-      addUser(userData);
+      const createData: CreateUserRequest = {
+        username: rest.username,
+        email: rest.email || undefined,
+        password: rest.password || undefined,
+        org_id: rest.org_id || '',
+        batch_id: rest.batch_id,
+      };
+      await addUser(createData, userRole as UserRole);
       setIsAddModalOpen(false);
     }
     setSelectedUser(null);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (selectedUser) {
-      deleteUser(selectedUser.id);
+      await deleteUser(selectedUser.id, selectedUser.userRole as UserRole);
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
     }

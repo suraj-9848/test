@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation';
 
 import Sidebar from '@/components/AdminSidebar';
 import UserManagement from '@/components/UserManagement';
+import OrganizationManagement from '@/components/OrganizationManagement';
 import ManageHiring from '@/components/ManageHiring';
 import PaymentApproval from '@/components/PaymentApproval';
+import { ToastProvider } from '@/components/ToastContext';
 
 const Index: React.FC = () => {
   const { status } = useSession();
@@ -26,6 +28,8 @@ const Index: React.FC = () => {
     switch (activeSection) {
       case 'users':
         return <UserManagement />;
+      case 'organizations':
+        return <OrganizationManagement />;
       case 'manage-hiring':
         return <ManageHiring />;
       case 'payments':
@@ -50,10 +54,12 @@ const Index: React.FC = () => {
   if (status === 'unauthenticated') return null;
 
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
-      <div className="flex-1 overflow-auto bg-white">{renderContent()}</div>
-    </div>
+    <ToastProvider>
+      <div className="flex h-screen bg-white">
+        <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+        <div className="flex-1 overflow-auto bg-white">{renderContent()}</div>
+      </div>
+    </ToastProvider>
   );
 };
 

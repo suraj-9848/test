@@ -4,6 +4,7 @@ import {
   FaUserTie,
   FaBars,
   FaRupeeSign,
+  FaBuilding,
 } from 'react-icons/fa';
 
 interface SidebarProps {
@@ -16,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection }) =>
 
   const menuItems = [
     { key: 'users', label: 'Users', icon: FaUsers },
+    { key: 'organizations', label: 'Organizations', icon: FaBuilding },
     { key: 'manage-hiring', label: 'Manage Hiring', icon: FaUserTie },
     { key: 'payments', label: 'Payments', icon: FaRupeeSign },
   ];

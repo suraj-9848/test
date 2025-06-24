@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaUser, FaEnvelope, FaUniversity, FaUsers, FaSave, FaTimes, FaPlus } from 'react-icons/fa';
-import { User, UserRole } from '@/store/adminStore';
+import { User, UserRole, getOrgs } from '@/store/adminStore';
 
 interface UserFormProps {
   user?: User | null;
@@ -75,6 +75,8 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, isEdit = 
     }
   };
 
+  const organizations = getOrgs();
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -117,7 +119,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, isEdit = 
             <span>Password *</span>
           </label>
           <input
-            type="password"
+            type="text"
             value={formData.password}
             onChange={(e) => handleInputChange('password', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-black text-sm"
@@ -132,14 +134,19 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel, isEdit = 
             <FaUniversity className="w-3 h-3 text-blue-600" />
             <span>Organization *</span>
           </label>
-          <input
-            type="text"
+          <select
             value={formData.org_id}
             onChange={(e) => handleInputChange('org_id', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-black text-sm"
-            placeholder="Enter organization"
             required
-          />
+          >
+            <option value="">Select Organization</option>
+            {organizations.map((org) => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
