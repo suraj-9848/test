@@ -8,7 +8,6 @@ import {
   FaBars,
   FaPlus,
   FaList,
-  FaQuestionCircle,
   FaChartBar,
 } from "react-icons/fa";
 
@@ -45,11 +44,19 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
       label: "Manage Tests",
       icon: <FaClipboardList className="w-4 h-4" />,
     },
+  
     {
-      key: "question-bank",
-      label: "Question Bank",
-      icon: <FaQuestionCircle className="w-4 h-4" />,
+      key: "batches",
+      label: "Batches",
+      icon: <FaGraduationCap className="w-4 h-4" />,
     },
+
+    {
+      key: "Module Content",
+      label: "Module Content",
+      icon: <FaBook className="w-4 h-4" />,
+    }
+
   ];
 
   return (

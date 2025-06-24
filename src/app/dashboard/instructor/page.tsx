@@ -8,6 +8,9 @@ import InstructorSidebar from '../../../components/InstructorSidebar';
 import CoursesOverview from "../../../components/CoursesOverview";
 import CreateCourse from "../../../components/CreateCourse";
 import ManageModules from "../../../components/ManageModules";
+import ModuleContent from '../../../components/ModuleContent';
+import CreateBatch from '../../../components/CreateBatch';
+
 
 const InstructorDashboard: React.FC = () => {
   const { status } = useSession();
@@ -22,18 +25,29 @@ const InstructorDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'dashboard':
+      case "dashboard":
         return <CoursesOverview />;
-      case 'courses-overview':
+      case "courses-overview":
         return <CoursesOverview />;
-      case 'create-course':
+      case "create-course":
         return <CreateCourse />;
-      case 'manage-modules':
+      case "manage-modules":
         return <ManageModules />;
-      case 'manage-tests':
-        return <div className="p-8"><h1 className="text-2xl font-bold">Manage Tests - Coming Soon</h1></div>;
-      case 'question-bank':
-        return <div className="p-8"><h1 className="text-2xl font-bold">Question Bank - Coming Soon</h1></div>;
+      case "Module Content":
+        return (
+          <ModuleContent
+            onClose={() => setActiveSection("manage-modules")}
+          />
+        );
+      case "batches":
+        return <CreateBatch />;
+      case "manage-tests":
+        return (
+          <div className="p-8">
+            <h1 className="text-2xl font-bold">Manage Tests - Coming Soon</h1>
+          </div>
+        );
+     
       default:
         return <CoursesOverview />;
     }

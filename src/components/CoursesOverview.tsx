@@ -30,8 +30,7 @@ const CoursesOverview: React.FC = () => {
     fetchCourses,
   } = useInstructorStore();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
@@ -110,7 +109,7 @@ const CoursesOverview: React.FC = () => {
         </div>
         <button
           className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => setShowModal(true)}
         >
           <FaPlus className="w-4 h-4" />
           <span className="font-semibold">Create New Course</span>
