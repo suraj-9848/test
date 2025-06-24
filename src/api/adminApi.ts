@@ -1,4 +1,5 @@
 import { getSession } from "next-auth/react";
+import { UserRole } from "@/store/adminStore";
 
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
 
@@ -12,6 +13,7 @@ export interface User {
   batch_id: string[];
   userRole: "student" | "admin" | "college_admin" | "instructor";
 }
+
 
 export interface Organization {
   id: string;
@@ -278,6 +280,69 @@ export const userApi = {
         method: "POST",
         headers,
         body: JSON.stringify(role ? { role } : {}),
+      }
+    );
+    return handleApiResponse(response);
+  },
+
+  // Get users with optional role filter
+  getUsers: async (
+    role?: string
+  ): Promise<{ message: string; users: User[] }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(
+      `${BACKEND_BASE_URL}/api/admin/get-users${role ? `?role=${role}` : ""}`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+    return handleApiResponse(response);
+  },
+
+  // Create user with role
+  createUser: async (
+    data: CreateUserRequest,
+    role: UserRole
+  ): Promise<{ message: string; user: User }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${BACKEND_BASE_URL}/api/admin/create-user`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ ...data, role }),
+    });
+    return handleApiResponse(response);
+  },
+
+  // Delete user by ID and role
+  deleteUser: async (
+    userId: string,
+    role: UserRole
+  ): Promise<{ message: string }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(
+      `${BACKEND_BASE_URL}/api/admin/delete-user/${userId}`,
+      {
+        method: "DELETE",
+        headers,
+      }
+    );
+    return handleApiResponse(response);
+  },
+
+  // Update user by ID, with role
+  updateUser: async (
+    userId: string,
+    data: UpdateUserRequest,
+    role: UserRole
+  ): Promise<{ message: string; user: User }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(
+      `${BACKEND_BASE_URL}/api/admin/update-user/${userId}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ ...data, role }),
       }
     );
     return handleApiResponse(response);

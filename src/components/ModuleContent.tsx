@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaFileExport,
   FaQuestionCircle,
@@ -6,7 +6,6 @@ import {
   FaEdit,
   FaTrash,
   FaTimes,
-  FaSave,
   FaBook,
   FaChevronDown,
 } from "react-icons/fa";
@@ -14,11 +13,7 @@ import { useSession } from "next-auth/react";
 import axios from "axios";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> bd8e2df30d01f57bb1a56062ca3ec6ba63fd9e08
-// Import the actual store hooks
+
 import { useModuleStore } from "@/store/moduleStore";
 import { useCourseStore } from "@/store/courseStore";
 import type {
@@ -30,118 +25,6 @@ import type {
 
 // Dynamically import ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
-<<<<<<< HEAD
-=======
-// Import the actual store hooks
-import { useModuleStore } from "@/store/moduleStore";
-import { useCourseStore } from "@/store/courseStore";
-import type {
-  Module,
-  CreateDayContentData,
-  CreateMCQData,
-  MCQQuestion,
-} from "@/store/moduleStore";
-
-// Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
-
-// Placeholder type definitions (replace with actual types from your store)
-interface Module {
-  id: string;
-  title: string;
-  order: number;
-  days: Array<{
-    id: string;
-    dayNumber: number;
-    title: string;
-    content: string;
-    completed: boolean;
-  }>;
-  mcq?: {
-    id: string;
-    questions: MCQQuestion[];
-    passingScore: number;
-  };
-  isLocked: boolean;
-}
-
-interface CreateDayContentData {
-  content: string;
-  dayNumber: number;
-  title: string;
-}
-
-interface MCQQuestion {
-  id: string;
-  question: any; // Quill Delta
-  options: Array<{ id: string; text: any }>;
-  correctAnswer: string;
-  explanation: any; // Quill Delta
-}
-
-interface CreateMCQData {
-  questions: MCQQuestion[];
-  passingScore: number;
-}
-
-// Placeholder store hooks (replace with actual store implementation)
-const useModuleStore = () => ({
-  modules: [] as Module[],
-  selectedModule: null as Module | null,
-  setSelectedModule: (module: Module | null) => {},
-  fetchModules: async (batchId: string, courseId: string, jwt: string) => {},
-  createDayContent: async (
-    batchId: string,
-    courseId: string,
-    moduleId: string,
-    data: CreateDayContentData,
-    jwt: string
-  ) => {},
-  updateDayContent: async (
-    batchId: string,
-    courseId: string,
-    moduleId: string,
-    dayId: string,
-    data: CreateDayContentData,
-    jwt: string
-  ) => {},
-  deleteDayContent: async (
-    batchId: string,
-    courseId: string,
-    moduleId: string,
-    dayId: string,
-    jwt: string
-  ) => {},
-  createMCQ: async (
-    batchId: string,
-    courseId: string,
-    moduleId: string,
-    data: CreateMCQData,
-    jwt: string
-  ) => {},
-  updateMCQ: async () => {},
-  deleteMCQ: async (
-    batchId: string,
-    courseId: string,
-    moduleId: string,
-    mcqId: string,
-    jwt: string
-  ) => {},
-  loading: false,
-  error: null as string | null,
-  clearError: () => {},
-});
-
-const useCourseStore = () => ({
-  courses: [] as Array<{ id: string; title: string }>,
-  batches: [] as Array<{ id: string; name: string }>,
-  loading: false,
-  fetchBatches: async (jwt: string) => {},
-  fetchAllCoursesInBatch: async (batchId: string, jwt: string) => {},
-});
->>>>>>> a855778 (Implement code changes to enhance functionality and improve performance)
-=======
->>>>>>> bd8e2df30d01f57bb1a56062ca3ec6ba63fd9e08
 
 interface ModuleContentProps {
   batchId?: string;
