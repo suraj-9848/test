@@ -9,34 +9,117 @@ import {
   FaEyeSlash,
   FaFileExport,
   FaTimes,
-  FaSave,
   FaChevronDown,
   FaChevronRight,
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
 import axios from "axios";
-import { useModuleStore, Module, CreateModuleData } from "@/store/moduleStore";
+import { useModuleStore, Module } from "@/store/moduleStore";
 import { useCourseStore } from "@/store/courseStore";
-import dynamic from "next/dynamic";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
 
-// Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
-import "react-quill/dist/quill.snow.css";
+// Custom styles for the editor
+const editorStyles = `
+  .ProseMirror {
+    outline: none;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    min-height: 120px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .ProseMirror:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
 
-interface MCQQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation?: string;
-}
-
-interface DayContent {
-  id: string;
-  dayNumber: number;
+// Rich Text Editor Component
+const RichTextEditor: React.FC<{
   content: string;
-  completed: boolean;
-}
+  onChange: (content: string) => void;
+  placeholder?: string;
+}> = ({ content, onChange }) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Image,
+      Link.configure({
+        openOnClick: false,
+      }),
+      TextStyle,
+      Color,
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    immediatelyRender: false, // Fix SSR hydration issues
+  });
+
+  if (!editor) {
+    return <div>Loading editor...</div>;
+  }
+
+  return (
+    <div className="border border-gray-300 rounded-lg">
+      <style dangerouslySetInnerHTML={{ __html: editorStyles }} />
+      {/* Toolbar */}
+      <div className="border-b border-gray-300 p-2 flex flex-wrap gap-1">
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={`px-2 py-1 rounded text-sm ${
+            editor.isActive("bold") ? "bg-blue-500 text-white" : "bg-gray-100"
+          }`}
+        >
+          Bold
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={`px-2 py-1 rounded text-sm ${
+            editor.isActive("italic") ? "bg-blue-500 text-white" : "bg-gray-100"
+          }`}
+        >
+          Italic
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          className={`px-2 py-1 rounded text-sm ${
+            editor.isActive("heading", { level: 2 })
+              ? "bg-blue-500 text-white"
+              : "bg-gray-100"
+          }`}
+        >
+          H2
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          className={`px-2 py-1 rounded text-sm ${
+            editor.isActive("bulletList")
+              ? "bg-blue-500 text-white"
+              : "bg-gray-100"
+          }`}
+        >
+          List
+        </button>
+      </div>
+      {/* Editor */}
+      <EditorContent editor={editor} className="prose max-w-none" />
+    </div>
+  );
+};
 
 const ManageModules: React.FC = () => {
   const { data: session } = useSession();
@@ -96,45 +179,12 @@ const ManageModules: React.FC = () => {
     isLocked: false,
   });
 
-  // Quill configuration
-  const quillModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      [{ script: "sub" }, { script: "super" }],
-      [{ indent: "-1" }, { indent: "+1" }],
-      ["link", "image", "video"],
-      [{ color: [] }, { background: [] }],
-      [{ align: [] }],
-      ["clean"],
-    ],
-  };
-
-  const quillFormats = [
-    "header",
-    "bold",
-    "italic",
-    "underline",
-    "strike",
-    "list",
-    "bullet",
-    "script",
-    "indent",
-    "link",
-    "image",
-    "video",
-    "color",
-    "background",
-    "align",
-  ];
-
   // Authentication setup
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
-        const googleIdToken = (session as any)?.id_token;
+        const googleIdToken = (session as { id_token: string })?.id_token;
         if (!googleIdToken) return;
 
         const loginRes = await axios.post(
@@ -158,7 +208,7 @@ const ManageModules: React.FC = () => {
   // Fetch batches when JWT is available
   useEffect(() => {
     if (backendJwt) {
-      fetchBatches(backendJwt);
+      fetchBatches();
     }
   }, [backendJwt, fetchBatches]);
 
@@ -262,7 +312,7 @@ const ManageModules: React.FC = () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
       await axios.post(
-        `${baseUrl}/api/instructor/batches/${selectedBatchId}/courses/${selectedCourseId}/modules/${selectedModuleForContent.id}/content`,
+        `${baseUrl}/api/instructor/batches/${selectedBatchId}/courses/${selectedCourseId}/modules/${selectedModuleForContent.id}/day-content`,
         contentForm,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
@@ -613,11 +663,17 @@ const ManageModules: React.FC = () => {
                           {module.mcq ? (
                             <div className="space-y-2 max-h-40 overflow-y-auto">
                               <div className="p-2 bg-slate-50 rounded text-sm">
-                                <div className="font-medium line-clamp-2">
-                                  {module.mcq.questions[0]?.question}
-                                </div>
+                                <div
+                                  className="font-medium line-clamp-2"
+                                  dangerouslySetInnerHTML={{
+                                    __html:
+                                      module.mcq.questions[0]?.question || "",
+                                  }}
+                                />
                                 <div className="text-slate-600 text-xs mt-1">
-                                  {module.mcq.questions[0]?.options?.length || 0} options
+                                  {module.mcq.questions[0]?.options?.length ||
+                                    0}{" "}
+                                  options
                                 </div>
                               </div>
                             </div>
@@ -766,18 +822,13 @@ const ManageModules: React.FC = () => {
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Content *
                 </label>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <ReactQuill
-                    theme="snow"
-                    value={contentForm.content}
-                    onChange={(content) =>
-                      setContentForm((prev) => ({ ...prev, content }))
-                    }
-                    modules={quillModules}
-                    formats={quillFormats}
-                    style={{ minHeight: "300px" }}
-                  />
-                </div>
+                <RichTextEditor
+                  content={contentForm.content}
+                  onChange={(content: string) =>
+                    setContentForm((prev) => ({ ...prev, content }))
+                  }
+                  placeholder="Enter day content..."
+                />
               </div>
 
               <div className="flex items-center justify-end space-x-4 pt-6 border-t border-slate-200">
@@ -817,19 +868,13 @@ const ManageModules: React.FC = () => {
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Question *
                 </label>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <ReactQuill
-                    theme="snow"
-                    value={mcqForm.question}
-                    onChange={(question) =>
-                      setMCQForm((prev) => ({ ...prev, question }))
-                    }
-                    modules={quillModules}
-                    formats={quillFormats}
-                    style={{ minHeight: "150px" }}
-                    placeholder="Enter your question here..."
-                  />
-                </div>
+                <RichTextEditor
+                  content={mcqForm.question}
+                  onChange={(question: string) =>
+                    setMCQForm((prev) => ({ ...prev, question }))
+                  }
+                  placeholder="Enter your question here..."
+                />
               </div>
 
               <div>
@@ -884,19 +929,13 @@ const ManageModules: React.FC = () => {
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Explanation (Optional)
                 </label>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <ReactQuill
-                    theme="snow"
-                    value={mcqForm.explanation}
-                    onChange={(explanation) =>
-                      setMCQForm((prev) => ({ ...prev, explanation }))
-                    }
-                    modules={quillModules}
-                    formats={quillFormats}
-                    style={{ minHeight: "100px" }}
-                    placeholder="Provide an explanation for the correct answer..."
-                  />
-                </div>
+                <RichTextEditor
+                  content={mcqForm.explanation}
+                  onChange={(explanation: string) =>
+                    setMCQForm((prev) => ({ ...prev, explanation }))
+                  }
+                  placeholder="Provide an explanation for the correct answer..."
+                />
               </div>
 
               <div className="flex items-center justify-end space-x-4 pt-6 border-t border-slate-200">

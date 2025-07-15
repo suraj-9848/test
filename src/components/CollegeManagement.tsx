@@ -31,8 +31,6 @@ interface CollegeManagementProps {
   type: "college-admins" | "instructors" | "students";
 }
 
-
-
 const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
   const {
     admins,
@@ -435,11 +433,15 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
       )}
 
       {/* Modals */}
-      {/* {isAddModalOpen && (
-        <UserModal isOpen={isAddModalOpen} onClose={closeModals} title={`Add ${type === "college-admins" ? "Admin" : type === "instructors" ? "Instructor" : "Student"}`}>
+      {isAddModalOpen && (
+        <UserModal
+          isOpen={isAddModalOpen}
+          onClose={closeModals}
+          title={`Add ${type === "college-admins" ? "Admin" : type === "instructors" ? "Instructor" : "Student"}`}
+        >
           <UserForm onSubmit={handleSubmitUser} onCancel={closeModals} />
         </UserModal>
-      )} */}
+      )}
 
       {isEditModalOpen && selectedUser && (
         <UserModal

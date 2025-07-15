@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import axios from 'axios';
+import { create } from "zustand";
+import axios from "axios";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || '';
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
 
 export interface Module {
   id: string;
@@ -31,15 +31,17 @@ export interface MCQ {
   module_id: string;
 }
 
+export type QuillDelta = Record<string, unknown>; // Define a type for Quill Delta format
+
 export interface MCQQuestion {
   id: string;
-  question: any; // Quill Delta format
+  question: QuillDelta; // Replace `any` with `QuillDelta`
   options: {
     id: string;
-    text: any; // Quill Delta format
+    text: QuillDelta; // Replace `any` with `QuillDelta`
   }[];
   correctAnswer: string;
-  explanation?: any; // Quill Delta format
+  explanation?: QuillDelta; // Replace `any` with `QuillDelta`
 }
 
 export interface CreateModuleData {
@@ -52,6 +54,7 @@ export interface CreateDayContentData {
   content: string;
   dayNumber?: number;
   title?: string;
+  id?: string; // Added optional id property
 }
 
 export interface CreateMCQData {
@@ -66,20 +69,78 @@ interface ModuleStore {
   error: string | null;
 
   // Module operations
-  fetchModules: (batchId: string, courseId: string, jwt: string) => Promise<void>;
-  createModule: (batchId: string, courseId: string, moduleData: CreateModuleData, jwt: string) => Promise<Module>;
-  updateModule: (batchId: string, courseId: string, moduleId: string, moduleData: Partial<CreateModuleData>, jwt: string) => Promise<Module>;
-  deleteModule: (batchId: string, courseId: string, moduleId: string, jwt: string) => Promise<void>;
+  fetchModules: (
+    batchId: string,
+    courseId: string,
+    jwt: string
+  ) => Promise<void>;
+  createModule: (
+    batchId: string,
+    courseId: string,
+    moduleData: CreateModuleData,
+    jwt: string
+  ) => Promise<Module>;
+  updateModule: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    moduleData: Partial<CreateModuleData>,
+    jwt: string
+  ) => Promise<Module>;
+  deleteModule: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    jwt: string
+  ) => Promise<void>;
 
   // Day Content operations
-  createDayContent: (batchId: string, courseId: string, moduleId: string, dayData: CreateDayContentData, jwt: string) => Promise<DayContent>;
-  updateDayContent: (batchId: string, courseId: string, moduleId: string, dayId: string, dayData: Partial<CreateDayContentData>, jwt: string) => Promise<DayContent>;
-  deleteDayContent: (batchId: string, courseId: string, moduleId: string, dayId: string, jwt: string) => Promise<void>;
+  createDayContent: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    dayData: CreateDayContentData,
+    jwt: string
+  ) => Promise<DayContent>;
+  updateDayContent: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    dayId: string,
+    dayData: Partial<CreateDayContentData>,
+    jwt: string
+  ) => Promise<DayContent>;
+  deleteDayContent: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    dayId: string,
+    jwt: string
+  ) => Promise<void>;
 
   // MCQ operations
-  createMCQ: (batchId: string, courseId: string, moduleId: string, mcqData: CreateMCQData, jwt: string) => Promise<MCQ>;
-  updateMCQ: (batchId: string, courseId: string, moduleId: string, mcqId: string, mcqData: Partial<CreateMCQData>, jwt: string) => Promise<MCQ>;
-  deleteMCQ: (batchId: string, courseId: string, moduleId: string, mcqId: string, jwt: string) => Promise<void>;
+  createMCQ: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    mcqData: CreateMCQData,
+    jwt: string
+  ) => Promise<MCQ>;
+  updateMCQ: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    mcqId: string,
+    mcqData: Partial<CreateMCQData>,
+    jwt: string
+  ) => Promise<MCQ>;
+  deleteMCQ: (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    mcqId: string,
+    jwt: string
+  ) => Promise<void>;
 
   // State management
   setSelectedModule: (module: Module | null) => void;
@@ -87,7 +148,7 @@ interface ModuleStore {
   reset: () => void;
 }
 
-export const useModuleStore = create<ModuleStore>((set, get) => ({
+export const useModuleStore = create<ModuleStore>((set) => ({
   modules: [],
   selectedModule: null,
   loading: false,
@@ -100,14 +161,18 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
       const response = await axios.get(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       set({ modules: response.data.modules || [], loading: false });
-    } catch (error: any) {
-      console.error('Module fetch error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error("Module fetch error:", err.response?.data || err.message);
       set({
-        error: error?.response?.data?.message || 'Failed to fetch modules',
+        error: err?.response?.data?.message || "Failed to fetch modules",
         loading: false,
       });
       throw error;
@@ -115,14 +180,19 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Create module
-  createModule: async (batchId: string, courseId: string, moduleData: CreateModuleData, jwt: string) => {
+  createModule: async (
+    batchId: string,
+    courseId: string,
+    moduleData: CreateModuleData,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       const response = await axios.post(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
         moduleData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const newModule = response.data.module;
@@ -133,10 +203,14 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
       }));
 
       return newModule;
-    } catch (error: any) {
-      console.error('Module create error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error("Module create error:", err.response?.data || err.message);
       set({
-        error: error?.response?.data?.message || 'Failed to create module',
+        error: err?.response?.data?.message || "Failed to create module",
         loading: false,
       });
       throw error;
@@ -144,14 +218,20 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Update module
-  updateModule: async (batchId: string, courseId: string, moduleId: string, moduleData: Partial<CreateModuleData>, jwt: string) => {
+  updateModule: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    moduleData: Partial<CreateModuleData>,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       const response = await axios.put(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}`,
         moduleData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const updatedModule = response.data.module;
@@ -168,10 +248,14 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
       }));
 
       return updatedModule;
-    } catch (error: any) {
-      console.error('Module update error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error("Module update error:", err.response?.data || err.message);
       set({
-        error: error?.response?.data?.message || 'Failed to update module',
+        error: err?.response?.data?.message || "Failed to update module",
         loading: false,
       });
       throw error;
@@ -179,13 +263,18 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Delete module
-  deleteModule: async (batchId: string, courseId: string, moduleId: string, jwt: string) => {
+  deleteModule: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       await axios.delete(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}`,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
 
@@ -195,10 +284,14 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
           state.selectedModule?.id === moduleId ? null : state.selectedModule,
         loading: false,
       }));
-    } catch (error: any) {
-      console.error('Module delete error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error("Module delete error:", err.response?.data || err.message);
       set({
-        error: error?.response?.data?.message || 'Failed to delete module',
+        error: err?.response?.data?.message || "Failed to delete module",
         loading: false,
       });
       throw error;
@@ -206,19 +299,24 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Create day content
-  createDayContent: async (batchId: string, courseId: string, moduleId: string, dayData: CreateDayContentData, jwt: string) => {
+  createDayContent: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    dayData: CreateDayContentData,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       const response = await axios.post(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content`,
         dayData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const newDayContent = response.data.dayContent;
 
-      // Update the module with new day content
       set((state) => ({
         modules: state.modules.map((module) =>
           module.id === moduleId
@@ -228,20 +326,28 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
               }
             : module
         ),
-        selectedModule: state.selectedModule?.id === moduleId 
-          ? {
-              ...state.selectedModule,
-              days: [...(state.selectedModule.days || []), newDayContent],
-            }
-          : state.selectedModule,
+        selectedModule:
+          state.selectedModule?.id === moduleId
+            ? {
+                ...state.selectedModule,
+                days: [...(state.selectedModule.days || []), newDayContent],
+              }
+            : state.selectedModule,
         loading: false,
       }));
 
       return newDayContent;
-    } catch (error: any) {
-      console.error('Day content create error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error(
+        "Day content create error:",
+        err.response?.data || err.message
+      );
       set({
-        error: error?.response?.data?.message || 'Failed to create day content',
+        error: err?.response?.data?.message || "Failed to create day content",
         loading: false,
       });
       throw error;
@@ -249,14 +355,21 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Update day content
-  updateDayContent: async (batchId: string, courseId: string, moduleId: string, dayId: string, dayData: Partial<CreateDayContentData>, jwt: string) => {
+  updateDayContent: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    dayId: string,
+    dayData: Partial<CreateDayContentData>,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       const response = await axios.put(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content/${dayId}`,
         dayData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const updatedDayContent = response.data.dayContent;
@@ -272,22 +385,30 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
               }
             : module
         ),
-        selectedModule: state.selectedModule?.id === moduleId 
-          ? {
-              ...state.selectedModule,
-              days: state.selectedModule.days?.map((day) =>
-                day.id === dayId ? updatedDayContent : day
-              ),
-            }
-          : state.selectedModule,
+        selectedModule:
+          state.selectedModule?.id === moduleId
+            ? {
+                ...state.selectedModule,
+                days: state.selectedModule.days?.map((day) =>
+                  day.id === dayId ? updatedDayContent : day
+                ),
+              }
+            : state.selectedModule,
         loading: false,
       }));
 
       return updatedDayContent;
-    } catch (error: any) {
-      console.error('Day content update error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error(
+        "Day content update error:",
+        err.response?.data || err.message
+      );
       set({
-        error: error?.response?.data?.message || 'Failed to update day content',
+        error: err?.response?.data?.message || "Failed to update day content",
         loading: false,
       });
       throw error;
@@ -295,13 +416,19 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Delete day content
-  deleteDayContent: async (batchId: string, courseId: string, moduleId: string, dayId: string, jwt: string) => {
+  deleteDayContent: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    dayId: string,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       await axios.delete(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content/${dayId}`,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
 
@@ -314,18 +441,28 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
               }
             : module
         ),
-        selectedModule: state.selectedModule?.id === moduleId 
-          ? {
-              ...state.selectedModule,
-              days: state.selectedModule.days?.filter((day) => day.id !== dayId),
-            }
-          : state.selectedModule,
+        selectedModule:
+          state.selectedModule?.id === moduleId
+            ? {
+                ...state.selectedModule,
+                days: state.selectedModule.days?.filter(
+                  (day) => day.id !== dayId
+                ),
+              }
+            : state.selectedModule,
         loading: false,
       }));
-    } catch (error: any) {
-      console.error('Day content delete error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error(
+        "Day content delete error:",
+        err.response?.data || err.message
+      );
       set({
-        error: error?.response?.data?.message || 'Failed to delete day content',
+        error: err?.response?.data?.message || "Failed to delete day content",
         loading: false,
       });
       throw error;
@@ -333,35 +470,44 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Create MCQ
-  createMCQ: async (batchId: string, courseId: string, moduleId: string, mcqData: CreateMCQData, jwt: string) => {
+  createMCQ: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    mcqData: CreateMCQData,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       const response = await axios.post(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq`,
         mcqData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const newMCQ = response.data.mcq;
 
       set((state) => ({
         modules: state.modules.map((module) =>
-          module.id === moduleId
-            ? { ...module, mcq: newMCQ }
-            : module
+          module.id === moduleId ? { ...module, mcq: newMCQ } : module
         ),
-        selectedModule: state.selectedModule?.id === moduleId 
-          ? { ...state.selectedModule, mcq: newMCQ }
-          : state.selectedModule,
+        selectedModule:
+          state.selectedModule?.id === moduleId
+            ? { ...state.selectedModule, mcq: newMCQ }
+            : state.selectedModule,
         loading: false,
       }));
 
       return newMCQ;
-    } catch (error: any) {
-      console.error('MCQ create error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error("MCQ create error:", err.response?.data || err.message);
       set({
-        error: error?.response?.data?.message || 'Failed to create MCQ',
+        error: err?.response?.data?.message || "Failed to create MCQ",
         loading: false,
       });
       throw error;
@@ -369,35 +515,45 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Update MCQ
-  updateMCQ: async (batchId: string, courseId: string, moduleId: string, mcqId: string, mcqData: Partial<CreateMCQData>, jwt: string) => {
+  updateMCQ: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    mcqId: string,
+    mcqData: Partial<CreateMCQData>,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       const response = await axios.put(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq/${mcqId}`,
         mcqData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const updatedMCQ = response.data.mcq;
 
       set((state) => ({
         modules: state.modules.map((module) =>
-          module.id === moduleId
-            ? { ...module, mcq: updatedMCQ }
-            : module
+          module.id === moduleId ? { ...module, mcq: updatedMCQ } : module
         ),
-        selectedModule: state.selectedModule?.id === moduleId 
-          ? { ...state.selectedModule, mcq: updatedMCQ }
-          : state.selectedModule,
+        selectedModule:
+          state.selectedModule?.id === moduleId
+            ? { ...state.selectedModule, mcq: updatedMCQ }
+            : state.selectedModule,
         loading: false,
       }));
 
       return updatedMCQ;
-    } catch (error: any) {
-      console.error('MCQ update error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error("MCQ update error:", err.response?.data || err.message);
       set({
-        error: error?.response?.data?.message || 'Failed to update MCQ',
+        error: err?.response?.data?.message || "Failed to update MCQ",
         loading: false,
       });
       throw error;
@@ -405,31 +561,40 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   },
 
   // Delete MCQ
-  deleteMCQ: async (batchId: string, courseId: string, moduleId: string, mcqId: string, jwt: string) => {
+  deleteMCQ: async (
+    batchId: string,
+    courseId: string,
+    moduleId: string,
+    mcqId: string,
+    jwt: string
+  ) => {
     set({ loading: true, error: null });
     try {
       await axios.delete(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq/${mcqId}`,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
 
       set((state) => ({
         modules: state.modules.map((module) =>
-          module.id === moduleId
-            ? { ...module, mcq: undefined }
-            : module
+          module.id === moduleId ? { ...module, mcq: undefined } : module
         ),
-        selectedModule: state.selectedModule?.id === moduleId 
-          ? { ...state.selectedModule, mcq: undefined }
-          : state.selectedModule,
+        selectedModule:
+          state.selectedModule?.id === moduleId
+            ? { ...state.selectedModule, mcq: undefined }
+            : state.selectedModule,
         loading: false,
       }));
-    } catch (error: any) {
-      console.error('MCQ delete error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
+      console.error("MCQ delete error:", err.response?.data || err.message);
       set({
-        error: error?.response?.data?.message || 'Failed to delete MCQ',
+        error: err?.response?.data?.message || "Failed to delete MCQ",
         loading: false,
       });
       throw error;

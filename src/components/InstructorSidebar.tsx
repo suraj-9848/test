@@ -9,6 +9,16 @@ import {
   FaPlus,
   FaList,
   FaChartBar,
+  FaClipboardCheck,
+  FaChartLine,
+  FaUsers,
+  FaQuestionCircle,
+  FaFileAlt,
+  FaTachometerAlt,
+  FaUsersCog,
+  FaEye,
+  FaPercent,
+  FaUserGraduate,
 } from "react-icons/fa";
 
 interface SidebarProps {
@@ -21,11 +31,14 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
   setActiveSection,
 }) => {
   const [isCoursesExpanded, setIsCoursesExpanded] = useState(true);
+  const [isTestsExpanded, setIsTestsExpanded] = useState(false);
+  const [isAnalyticsExpanded, setIsAnalyticsExpanded] = useState(false);
+  const [isBatchesExpanded, setIsBatchesExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   const courseMenuItems = [
     {
-      key: "courses-overview",
+      key: "all-courses",
       label: "All Courses",
       icon: <FaList className="w-4 h-4" />,
     },
@@ -40,23 +53,94 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
       icon: <FaBook className="w-4 h-4" />,
     },
     {
+      key: "module-content",
+      label: "Module Content",
+      icon: <FaFileAlt className="w-4 h-4" />,
+    },
+    {
+      key: "mcq-management",
+      label: "MCQ Management",
+      icon: <FaQuestionCircle className="w-4 h-4" />,
+    },
+    {
+      key: "course-assignment",
+      label: "Assign Courses",
+      icon: <FaUserGraduate className="w-4 h-4" />,
+    },
+  ];
+
+  const testMenuItems = [
+    {
       key: "manage-tests",
       label: "Manage Tests",
       icon: <FaClipboardList className="w-4 h-4" />,
     },
-  
     {
-      key: "batches",
-      label: "Batches",
+      key: "create-test",
+      label: "Create Test",
+      icon: <FaPlus className="w-4 h-4" />,
+    },
+    {
+      key: "test-questions",
+      label: "Test Questions",
+      icon: <FaQuestionCircle className="w-4 h-4" />,
+    },
+    {
+      key: "test-evaluation",
+      label: "Test Evaluation",
+      icon: <FaClipboardCheck className="w-4 h-4" />,
+    },
+    {
+      key: "test-publishing",
+      label: "Publish Tests",
+      icon: <FaEye className="w-4 h-4" />,
+    },
+  ];
+
+  const analyticsMenuItems = [
+    {
+      key: "student-analytics",
+      label: "Student Analytics",
+      icon: <FaUsers className="w-4 h-4" />,
+    },
+    {
+      key: "progress-analytics",
+      label: "Progress Analytics",
+      icon: <FaChartLine className="w-4 h-4" />,
+    },
+    {
+      key: "test-analytics",
+      label: "Test Analytics",
+      icon: <FaChartBar className="w-4 h-4" />,
+    },
+    {
+      key: "evaluation-statistics",
+      label: "Evaluation Statistics",
+      icon: <FaPercent className="w-4 h-4" />,
+    },
+  ];
+
+  const batchMenuItems = [
+    {
+      key: "create-batch",
+      label: "Create Batch",
       icon: <FaGraduationCap className="w-4 h-4" />,
     },
-
     {
-      key: "Module Content",
-      label: "Module Content",
-      icon: <FaBook className="w-4 h-4" />,
-    }
-
+      key: "batch-management",
+      label: "Manage Batches",
+      icon: <FaGraduationCap className="w-4 h-4" />,
+    },
+    {
+      key: "batch-analytics",
+      label: "Batch Analytics",
+      icon: <FaChartBar className="w-4 h-4" />,
+    },
+    {
+      key: "batch-assignments",
+      label: "Batch Assignments",
+      icon: <FaUsersCog className="w-4 h-4" />,
+    },
   ];
 
   return (
@@ -102,14 +186,14 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                   : "text-slate-700 hover:bg-slate-100 hover:shadow-md"
               }`}
             >
-              <FaChartBar className="w-5 h-5" />
+              <FaTachometerAlt className="w-5 h-5" />
               {!collapsed && (
                 <span className="font-semibold text-lg">Dashboard</span>
               )}
             </button>
           </div>
 
-          {/* Courses Management */}
+          {/* Course Management */}
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
             <button
               onClick={() => setIsCoursesExpanded(!isCoursesExpanded)}
@@ -120,7 +204,7 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
               <div
                 className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
               >
-                <FaGraduationCap className="w-5 h-5 text-slate-700" />
+                <FaBook className="w-5 h-5 text-slate-700" />
                 {!collapsed && (
                   <span className="font-semibold text-lg">
                     Course Management
@@ -138,6 +222,142 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
             {!collapsed && isCoursesExpanded && (
               <div className="space-y-2">
                 {courseMenuItems.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveSection(item.key)}
+                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
+                      activeSection === item.key
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
+                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Test Management */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
+            <button
+              onClick={() => setIsTestsExpanded(!isTestsExpanded)}
+              className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
+                collapsed ? "justify-center" : "justify-between"
+              }`}
+            >
+              <div
+                className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
+              >
+                <FaClipboardList className="w-5 h-5 text-slate-700" />
+                {!collapsed && (
+                  <span className="font-semibold text-lg">Test Management</span>
+                )}
+              </div>
+              {!collapsed &&
+                (isTestsExpanded ? (
+                  <FaChevronDown className="w-4 h-4" />
+                ) : (
+                  <FaChevronRight className="w-4 h-4" />
+                ))}
+            </button>
+
+            {!collapsed && isTestsExpanded && (
+              <div className="space-y-2">
+                {testMenuItems.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveSection(item.key)}
+                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
+                      activeSection === item.key
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
+                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Analytics */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
+            <button
+              onClick={() => setIsAnalyticsExpanded(!isAnalyticsExpanded)}
+              className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
+                collapsed ? "justify-center" : "justify-between"
+              }`}
+            >
+              <div
+                className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
+              >
+                <FaChartLine className="w-5 h-5 text-slate-700" />
+                {!collapsed && (
+                  <span className="font-semibold text-lg">
+                    Analytics & Reports
+                  </span>
+                )}
+              </div>
+              {!collapsed &&
+                (isAnalyticsExpanded ? (
+                  <FaChevronDown className="w-4 h-4" />
+                ) : (
+                  <FaChevronRight className="w-4 h-4" />
+                ))}
+            </button>
+
+            {!collapsed && isAnalyticsExpanded && (
+              <div className="space-y-2">
+                {analyticsMenuItems.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveSection(item.key)}
+                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
+                      activeSection === item.key
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
+                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Batch Management */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
+            <button
+              onClick={() => setIsBatchesExpanded(!isBatchesExpanded)}
+              className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
+                collapsed ? "justify-center" : "justify-between"
+              }`}
+            >
+              <div
+                className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
+              >
+                <FaGraduationCap className="w-5 h-5 text-slate-700" />
+                {!collapsed && (
+                  <span className="font-semibold text-lg">
+                    Batch Management
+                  </span>
+                )}
+              </div>
+              {!collapsed &&
+                (isBatchesExpanded ? (
+                  <FaChevronDown className="w-4 h-4" />
+                ) : (
+                  <FaChevronRight className="w-4 h-4" />
+                ))}
+            </button>
+
+            {!collapsed && isBatchesExpanded && (
+              <div className="space-y-2">
+                {batchMenuItems.map((item) => (
                   <button
                     key={item.key}
                     onClick={() => setActiveSection(item.key)}

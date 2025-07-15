@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { instructorApi } from "../api/instructorApi";
 
 export type CourseStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type ModuleType = "CONTENT" | "QUIZ" | "ASSIGNMENT";
@@ -98,95 +99,11 @@ interface InstructorStoreState {
   deleteQuestion: (id: number) => void;
 }
 
-export const useInstructorStore = create<InstructorStoreState>((set) => ({
-  courses: [
-    {
-      id: 1,
-      title: "Introduction to React",
-      description:
-        "Learn the fundamentals of React.js and build modern web applications.",
-      duration: "8 weeks",
-      level: "BEGINNER",
-      status: "PUBLISHED",
-      thumbnail: "/course-react.jpg",
-      instructor: "Prof. Amit Sharma",
-      enrolled: 156,
-      createdAt: "2024-01-15",
-      updatedAt: "2024-01-20",
-    },
-    {
-      id: 2,
-      title: "Advanced JavaScript Concepts",
-      description:
-        "Deep dive into advanced JavaScript topics and ES6+ features.",
-      duration: "6 weeks",
-      level: "ADVANCED",
-      status: "DRAFT",
-      thumbnail: "/course-js.jpg",
-      instructor: "Prof. Amit Sharma",
-      enrolled: 89,
-      createdAt: "2024-02-01",
-      updatedAt: "2024-02-05",
-    },
-  ],
-  modules: [
-    {
-      id: 1,
-      courseId: 1,
-      title: "Getting Started with React",
-      description: "Introduction to React components and JSX",
-      type: "CONTENT",
-      order: 1,
-      content: "React is a JavaScript library...",
-      videoUrl: "https://example.com/video1",
-      duration: "45 minutes",
-      isPublished: true,
-      createdAt: "2024-01-16",
-    },
-    {
-      id: 2,
-      courseId: 1,
-      title: "React Basics Quiz",
-      description: "Test your knowledge of React basics",
-      type: "QUIZ",
-      order: 2,
-      duration: "15 minutes",
-      isPublished: true,
-      createdAt: "2024-01-17",
-    },
-  ],
-  tests: [
-    {
-      id: 1,
-      courseId: 1,
-      title: "React Fundamentals Test",
-      description: "Comprehensive test covering React basics",
-      duration: 60,
-      totalMarks: 100,
-      passingMarks: 70,
-      questions: [],
-      isPublished: true,
-      createdAt: "2024-01-18",
-    },
-  ],
-  questions: [
-    {
-      id: 1,
-      moduleId: 2,
-      question: "What is JSX?",
-      type: "SINGLE_CHOICE",
-      options: [
-        "JavaScript XML",
-        "JavaScript eXtended",
-        "Java Syntax Extension",
-        "JavaScript eXecution",
-      ],
-      correctAnswers: [0],
-      explanation:
-        "JSX stands for JavaScript XML and allows you to write HTML-like syntax in JavaScript.",
-      points: 10,
-    },
-  ],
+export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
+  courses: [],
+  modules: [],
+  tests: [],
+  questions: [],
 
   courseSearch: "",
   statusFilter: "ALL",
@@ -197,13 +114,59 @@ export const useInstructorStore = create<InstructorStoreState>((set) => ({
   setCourseSearch: (search) => set({ courseSearch: search }),
   setStatusFilter: (status) => set({ statusFilter: status }),
   setLevelFilter: (level) => set({ levelFilter: level }),
-  fetchCourses: () => {
-    // Mock implementation - in a real app this would fetch from an API
+  fetchCourses: async () => {
     set({ isLoading: true, error: null });
-    // Simulate API call
-    setTimeout(() => {
-      set({ isLoading: false });
-    }, 1000);
+    try {
+      const response = await instructorApi.getCourses();
+      const backendCourses = response.courses || [];
+
+      // Get total students count
+      let totalStudents = 0;
+      try {
+        const studentsResponse = await instructorApi.getStudents();
+        totalStudents = (studentsResponse.users || []).length;
+      } catch (err) {
+        console.warn("Failed to get students count:", err);
+      }
+
+      // Transform backend course data to match the store interface
+      const transformedCourses: Course[] = backendCourses.map(
+        (course, index) => {
+          // Distribute students roughly equally across courses for display purposes
+          const estimatedEnrollment =
+            backendCourses.length > 0
+              ? Math.floor(totalStudents / backendCourses.length) +
+                (index < totalStudents % backendCourses.length ? 1 : 0)
+              : 0;
+
+          return {
+            id: parseInt(course.id) || index + 1,
+            title: course.title,
+            description: course.description || "No description available",
+            duration: "8 weeks", // Default since backend doesn't have duration
+            level: "BEGINNER" as const, // Default level
+            status: "PUBLISHED" as CourseStatus, // Default status
+            thumbnail: "/course-placeholder.jpg",
+            instructor: "Instructor", // Default since backend doesn't have instructor name
+            enrolled: estimatedEnrollment,
+            createdAt: new Date().toISOString().split("T")[0],
+            updatedAt: new Date().toISOString().split("T")[0],
+          };
+        }
+      );
+
+      set({
+        courses: transformedCourses,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error("Failed to fetch courses:", error);
+      set({
+        error:
+          error instanceof Error ? error.message : "Failed to fetch courses",
+        isLoading: false,
+      });
+    }
   },
 
   addCourse: (course) =>
@@ -219,25 +182,60 @@ export const useInstructorStore = create<InstructorStoreState>((set) => ({
       ],
     })),
 
-  updateCourse: (id, course) =>
-    set((state) => ({
-      courses: state.courses.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              ...course,
-              updatedAt: new Date().toISOString().split("T")[0],
-            }
-          : c
-      ),
-    })),
+  updateCourse: async (id, course) => {
+    set(() => ({ isLoading: true, error: null }));
+    try {
+      const currentState = get();
+      const targetCourse = currentState.courses.find(
+        (c: Course) => c.id === id
+      );
+      if (!targetCourse) throw new Error("Course not found");
+      const batchId = (targetCourse as { batchId?: string }).batchId;
+      if (!batchId) throw new Error("Batch ID not found for course");
+      const { id, ...coursePayload } = course;
+      console.log("Calling updateCourse API", { batchId, id, coursePayload });
+      await instructorApi.updateCourse(batchId, String(id), coursePayload);
+      set(() => ({
+        courses: currentState.courses.map((c: Course) =>
+          c.id === id
+            ? {
+                ...c,
+                ...course,
+                updatedAt: new Date().toISOString().split("T")[0],
+              }
+            : c
+        ),
+        isLoading: false,
+        error: null,
+      }));
+    } catch (err: unknown) {
+      set(() => ({ isLoading: false, error: (err as Error).message }));
+    }
+  },
 
-  deleteCourse: (id) =>
-    set((state) => ({
-      courses: state.courses.filter((c) => c.id !== id),
-      modules: state.modules.filter((m) => m.courseId !== id),
-      tests: state.tests.filter((t) => t.courseId !== id),
-    })),
+  deleteCourse: async (id) => {
+    set(() => ({ isLoading: true, error: null }));
+    try {
+      const currentState = get();
+      const targetCourse = currentState.courses.find(
+        (c: Course) => c.id === id
+      );
+      if (!targetCourse) throw new Error("Course not found");
+      const batchId = (targetCourse as { batchId?: string }).batchId;
+      if (!batchId) throw new Error("Batch ID not found for course");
+      console.log("Calling deleteCourse API", { batchId, id });
+      await instructorApi.deleteCourse(batchId, String(id));
+      set(() => ({
+        courses: currentState.courses.filter((c: Course) => c.id !== id),
+        modules: currentState.modules.filter((m) => m.courseId !== id),
+        tests: currentState.tests.filter((t) => t.courseId !== id),
+        isLoading: false,
+        error: null,
+      }));
+    } catch (err: unknown) {
+      set(() => ({ isLoading: false, error: (err as Error).message }));
+    }
+  },
 
   addModule: (module) =>
     set((state) => ({

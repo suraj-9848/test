@@ -14,7 +14,6 @@ export interface User {
   userRole: "student" | "admin" | "college_admin" | "instructor";
 }
 
-
 export interface Organization {
   id: string;
   name: string;
@@ -49,6 +48,12 @@ export interface UpdateOrgRequest {
   name?: string;
   description?: string;
   address?: string;
+}
+
+export interface BulkCreateErrorDetail {
+  user: CreateUserRequest;
+  error: string;
+  field?: string;
 }
 
 // Helper function to get auth headers
@@ -98,7 +103,7 @@ export const organizationApi = {
     return handleApiResponse(response);
   },
 
-  // Delete organization - using route parameter as per backend
+  // Delete organization
   delete: async (orgId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -111,7 +116,7 @@ export const organizationApi = {
     return handleApiResponse(response);
   },
 
-  // Update organization - using route parameter as per backend
+  // Update organization
   update: async (
     orgId: string,
     data: UpdateOrgRequest
@@ -147,7 +152,7 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
-  // Update college admin - using route parameter as per backend
+  // Update college admin
   updateCollegeAdmin: async (
     userId: string,
     data: UpdateUserRequest
@@ -164,7 +169,7 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
-  // Delete college admin - using route parameter as per backend
+  // Delete college admin
   deleteCollegeAdmin: async (userId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -193,7 +198,7 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
-  // Update instructor - using route parameter as per backend
+  // Update instructor
   updateInstructor: async (
     userId: string,
     data: UpdateUserRequest
@@ -210,7 +215,7 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
-  // Delete instructor - using route parameter as per backend
+  // Delete instructor
   deleteInstructor: async (userId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -239,7 +244,7 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
-  // Update student - using route parameter as per backend
+  // Update student
   updateStudent: async (
     userId: string,
     data: UpdateUserRequest
@@ -256,7 +261,7 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
-  // Delete student - using route parameter as per backend
+  // Delete student
   deleteStudent: async (userId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -300,6 +305,70 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
+  // Bulk create users
+  bulkCreateUsers: async (
+    users: CreateUserRequest[]
+  ): Promise<{
+    message: string;
+    created: number;
+    errors: number;
+    createdUsers: User[];
+    errorDetails: BulkCreateErrorDetail[];
+  }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(
+      `${BACKEND_BASE_URL}/api/admin/bulk-create-users`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ users }),
+      }
+    );
+    return handleApiResponse(response);
+  },
+
+  // Bulk delete users
+  bulkDeleteUsers: async (
+    userIds: string[]
+  ): Promise<{
+    message: string;
+    deletedCount: number;
+  }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(
+      `${BACKEND_BASE_URL}/api/admin/bulk-delete-users`,
+      {
+        method: "DELETE",
+        headers,
+        body: JSON.stringify({ userIds }),
+      }
+    );
+    return handleApiResponse(response);
+  },
+
+  // Get user statistics
+  getUserStats: async (): Promise<{
+    message: string;
+    stats: {
+      totalUsers: number;
+      students: number;
+      instructors: number;
+      collegeAdmins: number;
+      breakdown: {
+        students: string;
+        instructors: string;
+        collegeAdmins: string;
+      };
+    };
+  }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${BACKEND_BASE_URL}/api/admin/user-stats`, {
+      method: "GET",
+      headers,
+    });
+    return handleApiResponse(response);
+  },
+
   // Create user with role
   createUser: async (
     data: CreateUserRequest,
@@ -311,22 +380,6 @@ export const userApi = {
       headers,
       body: JSON.stringify({ ...data, role }),
     });
-    return handleApiResponse(response);
-  },
-
-  // Delete user by ID and role
-  deleteUser: async (
-    userId: string,
-    role: UserRole
-  ): Promise<{ message: string }> => {
-    const headers = await getAuthHeaders();
-    const response = await fetch(
-      `${BACKEND_BASE_URL}/api/admin/delete-user/${userId}`,
-      {
-        method: "DELETE",
-        headers,
-      }
-    );
     return handleApiResponse(response);
   },
 
@@ -343,6 +396,22 @@ export const userApi = {
         method: "PUT",
         headers,
         body: JSON.stringify({ ...data, role }),
+      }
+    );
+    return handleApiResponse(response);
+  },
+
+  // Delete user by ID and role
+  deleteUser: async (
+    userId: string,
+    role: UserRole
+  ): Promise<{ message: string }> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(
+      `${BACKEND_BASE_URL}/api/admin/delete-user/${userId}`,
+      {
+        method: "DELETE",
+        headers,
       }
     );
     return handleApiResponse(response);

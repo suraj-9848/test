@@ -2,29 +2,21 @@ import { useSession } from "next-auth/react";
 import React, { useState, useEffect } from "react";
 import { useBatchStore } from "@/store/batchStore";
 import axios from "axios";
+import type { Batch } from "@/store/batchStore";
 
 const CreateBatch: React.FC = () => {
   const { data: session } = useSession();
-  // Define a type for a batch and for the batches state
-  type Batch = {
-    id: number;
-    name: string;
-    description: string;
-    org_id: string;
-    [key: string]: any;
-  };
-  type BatchesState = Batch[] | { batches: Batch[] };
 
-  const { batches, fetchBatches, addBatch, updateBatch, deleteBatch } = useBatchStore() as {
-    batches: BatchesState;
-    fetchBatches: (jwt: string) => void;
-    addBatch: (form: any, jwt: string) => Promise<void>;
-    updateBatch: (form: any, jwt: string) => Promise<void>;
-    deleteBatch: (id: number, jwt: string) => Promise<void>;
-  };
+  const { batches, fetchBatches, addBatch, updateBatch, deleteBatch } =
+    useBatchStore();
   const [userOrgId, setUserOrgId] = useState<string>("");
-  const [form, setForm] = useState({ name: "", description: "", org_id: "" });
-  const [error, setError] = useState("");
+  const [form, setForm] = useState<Batch>({
+    id: 0,
+    name: "",
+    description: "",
+    org_id: "",
+  });
+  const [error, setError] = useState<string>("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [backendJwt, setBackendJwt] = useState<string>("");
 
@@ -33,7 +25,7 @@ const CreateBatch: React.FC = () => {
     const fetchProfile = async () => {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
-        const googleIdToken = (session as any)?.id_token;
+        const googleIdToken = (session as { id_token?: string })?.id_token;
         if (!googleIdToken) {
           setError("No Google ID token found");
           return;
@@ -57,7 +49,7 @@ const CreateBatch: React.FC = () => {
         const orgId = res.data?.user?.org_id || "";
         setUserOrgId(orgId);
         setForm((f) => ({ ...f, org_id: orgId }));
-      } catch (err) {
+      } catch {
         setError("Failed to fetch user profile");
       }
     };
@@ -65,14 +57,15 @@ const CreateBatch: React.FC = () => {
   }, [session]);
 
   // Always reset form with current org_id
-  const resetForm = () => setForm({ name: "", description: "", org_id: userOrgId });
+  const resetForm = () =>
+    setForm({ id: 0, name: "", description: "", org_id: userOrgId });
 
   // Fetch batches after JWT is set
   useEffect(() => {
     if (backendJwt) {
       fetchBatches(backendJwt);
     }
-  }, [backendJwt]);
+  }, [backendJwt, fetchBatches]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,13 +82,14 @@ const CreateBatch: React.FC = () => {
       resetForm();
       setEditingId(null);
       setError("");
-    } catch (err: any) {
+    } catch {
       setError("Failed to create/update batch");
     }
   };
 
-  const handleEdit = (batch: any) => {
+  const handleEdit = (batch: Batch) => {
     setForm({
+      id: batch.id,
       name: batch.name,
       description: batch.description,
       org_id: batch.org_id,
@@ -113,16 +107,16 @@ const CreateBatch: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       await deleteBatch(id, backendJwt);
-    } catch (err) {
+    } catch {
       setError("Failed to delete batch");
     }
   };
 
-  const batchList = Array.isArray(batches)
+  const batchList: Batch[] = Array.isArray(batches)
     ? batches
-    : (batches && Array.isArray(batches.batches))
-      ? batches.batches
-      : [];
+    : batches && Array.isArray((batches as { batches: Batch[] }).batches)
+    ? (batches as { batches: Batch[] }).batches
+    : [];
 
   return (
     <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-lg p-8 max-w-xl mx-auto">
@@ -137,9 +131,7 @@ const CreateBatch: React.FC = () => {
           <input
             className="border border-slate-200 px-4 py-3 rounded-xl w-full focus:ring-2 focus:ring-blue-500 bg-white/80 transition"
             value={form.name}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, name: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             required
           />
         </div>
@@ -197,36 +189,38 @@ const CreateBatch: React.FC = () => {
               No batches created yet.
             </div>
           )}
-          {batchList.sort((a, b) => a.name.localeCompare(b.name)).map((batch, idx) => (
-            <div
-              key={batch.id ?? idx}
-              className="flex items-center justify-between py-4"
-            >
-              <div>
-                <div className="font-medium text-slate-900">{batch.name}</div>
-                <div className="text-slate-500 text-sm">
-                  {batch.description}
+          {batchList
+            .sort((a: Batch, b: Batch) => a.name.localeCompare(b.name))
+            .map((batch: Batch, idx: number) => (
+              <div
+                key={batch.id ?? idx}
+                className="flex items-center justify-between py-4"
+              >
+                <div>
+                  <div className="font-medium text-slate-900">{batch.name}</div>
+                  <div className="text-slate-500 text-sm">
+                    {batch.description}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Org: {batch.org_id}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-400">
-                  Org: {batch.org_id}
+                <div className="flex gap-2">
+                  <button
+                    className="px-3 py-1 rounded-lg text-blue-600 hover:bg-blue-50 font-medium"
+                    onClick={() => handleEdit(batch)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="px-3 py-1 rounded-lg text-red-600 hover:bg-red-50 font-medium"
+                    onClick={() => handleDelete(batch.id)}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  className="px-3 py-1 rounded-lg text-blue-600 hover:bg-blue-50 font-medium"
-                  onClick={() => handleEdit(batch)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="px-3 py-1 rounded-lg text-red-600 hover:bg-red-50 font-medium"
-                  onClick={() => handleDelete(batch.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
     </div>

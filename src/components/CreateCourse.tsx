@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaBook, FaSave, FaTimes } from "react-icons/fa";
 import { useCourseStore, CreateCourseData } from "@/store/courseStore";
 import { useSession } from "next-auth/react";
-import axios from "axios";
+import { instructorApi } from "@/api/instructorApi";
 
 const CreateCourse: React.FC = () => {
   const { data: session } = useSession();
@@ -14,66 +14,53 @@ const CreateCourse: React.FC = () => {
     logo: "",
     start_date: "",
     end_date: "",
-    batch_id: "",
+    batch_ids: [], // Changed from batch_id to batch_ids
     is_public: false,
     instructor_name: "", // Will be set from user profile
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [backendJwt, setBackendJwt] = useState<string>("");
-  const [userOrgId, setUserOrgId] = useState<string>("");
 
-  // Fetch user profile and get JWT
+  // Fetch user profile and set instructor name
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
-        const googleIdToken = (session as any)?.id_token;
+        const googleIdToken = (session as { id_token?: string })?.id_token;
         if (!googleIdToken) {
           console.error("No Google ID token found");
           return;
         }
 
-        const loginRes = await axios.post(
-          `${baseUrl}/api/auth/admin-login`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${googleIdToken}` },
-            withCredentials: true,
-          }
-        );
-        const backendJwt = loginRes.data.token;
-        setBackendJwt(backendJwt);
-
-        const res = await axios.get(`${baseUrl}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${backendJwt}` },
-          withCredentials: true,
-        });
-        
-        const user = res.data?.user;
-        const orgId = user?.org_id || "";
-        const instructorName = user?.name || user?.email || "";
-        
-        setUserOrgId(orgId);
-        setFormData(prev => ({
+        const user = await instructorApi.getCurrentUser();
+        setFormData((prev) => ({
           ...prev,
-          instructor_name: instructorName
+          instructor_name: user.username || user.email || "Unknown",
         }));
-      } catch (err) {
-        console.error("Failed to fetch user profile:", err);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
       }
     };
-    
-    if (session) fetchProfile();
+
+    if (session && session.user) {
+      console.log("Session found, fetching user profile...");
+      fetchProfile();
+    } else {
+      console.log("No session found, skipping profile fetch");
+    }
   }, [session]);
 
-  // Fetch batches after JWT is set
+  // Fetch batches when component mounts
   useEffect(() => {
-    if (backendJwt) {
-      fetchBatches(backendJwt);
+    if (session && session.user) {
+      console.log("Session found, fetching batches...");
+      fetchBatches().catch((err) => {
+        console.error("Failed to fetch batches:", err);
+      });
+    } else {
+      console.log("No session found, skipping batch fetch");
     }
-  }, [backendJwt, fetchBatches]);
+  }, [session, fetchBatches]);
 
   // Clear error when component unmounts or when error changes
   useEffect(() => {
@@ -87,52 +74,45 @@ const CreateCourse: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
     if (!formData.title.trim()) newErrors.title = "Course title is required";
     if (!formData.start_date) newErrors.start_date = "Start date is required";
     if (!formData.end_date) newErrors.end_date = "End date is required";
-    if (!formData.batch_id) newErrors.batch_id = "Batch is required";
+    if (!formData.batch_ids || formData.batch_ids.length === 0)
+      newErrors.batch_ids = "At least one batch is required";
     if (!formData.instructor_name.trim())
       newErrors.instructor_name = "Instructor name is required";
-
-    // Validate date logic
     if (formData.start_date && formData.end_date) {
       if (new Date(formData.start_date) >= new Date(formData.end_date)) {
         newErrors.end_date = "End date must be after start date";
       }
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-    if (!backendJwt) {
-      console.error("No authentication token available");
-      return;
-    }
-
     setSubmitting(true);
     try {
-      await createCourse(formData.batch_id, formData, backendJwt);
-
-      // Reset form on success
+      await createCourse(formData);
       setFormData({
         title: "",
         logo: "",
         start_date: "",
         end_date: "",
-        batch_id: "",
+        batch_ids: [],
         is_public: false,
-        instructor_name: formData.instructor_name, // Keep instructor name
+        instructor_name: formData.instructor_name,
       });
-
       alert("Course created successfully!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to create course:", err);
+
+      // Show detailed error to user
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      alert(`Failed to create course: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }
@@ -147,14 +127,23 @@ const CreateCourse: React.FC = () => {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : value,
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
 
     // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handleBatchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
+    setFormData((prev) => ({ ...prev, batch_ids: selectedOptions }));
+    if (errors.batch_ids) {
+      setErrors((prev) => ({ ...prev, batch_ids: "" }));
     }
   };
 
@@ -164,7 +153,7 @@ const CreateCourse: React.FC = () => {
       logo: "",
       start_date: "",
       end_date: "",
-      batch_id: "",
+      batch_ids: [],
       is_public: false,
       instructor_name: formData.instructor_name, // Keep instructor name
     });
@@ -292,30 +281,31 @@ const CreateCourse: React.FC = () => {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Select Batch *
+                  Select Batches *
                 </label>
                 <select
-                  name="batch_id"
-                  value={formData.batch_id}
-                  onChange={handleInputChange}
+                  name="batch_ids"
+                  multiple
+                  value={formData.batch_ids}
+                  onChange={handleBatchChange}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200 ${
-                    errors.batch_id
+                    errors.batch_ids
                       ? "border-red-300 focus:ring-red-500"
                       : "border-slate-200"
                   }`}
-                  disabled={loading || submitting || !backendJwt}
+                  disabled={loading || submitting}
+                  style={{ minHeight: "100px" }}
                 >
-                  <option value="">
-                    {loading ? "Loading batches..." : "Select a batch"}
-                  </option>
                   {batches.map((batch) => (
                     <option key={batch.id} value={batch.id}>
                       {batch.name}
                     </option>
                   ))}
                 </select>
-                {errors.batch_id && (
-                  <p className="mt-1 text-sm text-red-600">{errors.batch_id}</p>
+                {errors.batch_ids && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.batch_ids}
+                  </p>
                 )}
               </div>
 
@@ -373,7 +363,7 @@ const CreateCourse: React.FC = () => {
             <button
               type="submit"
               className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={submitting || loading || !backendJwt}
+              disabled={submitting || loading}
             >
               <FaSave className="w-4 h-4" />
               <span>{submitting ? "Creating..." : "Create Course"}</span>

@@ -25,7 +25,6 @@ const OrganizationManagement: React.FC = () => {
     addOrganization,
     deleteOrganization,
     editOrganization,
-    error,
   } = useOrganizationStore();
 
   const { showToast } = useToast();
@@ -42,20 +41,13 @@ const OrganizationManagement: React.FC = () => {
     const loadOrganizations = async () => {
       try {
         await fetchOrganizations();
-      } catch (error: any) {
-        console.log(error);
+      } catch (err) {
+        console.log(err);
         showToast("error", "Failed to load organizations");
       }
     };
     loadOrganizations();
   }, [fetchOrganizations, showToast]);
-
-  // Show error toast when error state changes
-  useEffect(() => {
-    if (error) {
-      showToast("error", error);
-    }
-  }, [error, showToast]);
 
   const filteredOrganizations = useMemo(() => {
     return organizations.filter((org) => {
@@ -82,7 +74,9 @@ const OrganizationManagement: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleSubmitOrganization = async (orgData: any) => {
+  const handleSubmitOrganization = async (
+    orgData: Omit<Organization, "id" | "createdAt" | "updatedAt">
+  ) => {
     try {
       if (selectedOrganization) {
         // Edit mode
@@ -96,8 +90,8 @@ const OrganizationManagement: React.FC = () => {
         setIsAddModalOpen(false);
       }
       setSelectedOrganization(null);
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.log(err);
       // Error is already handled by the store and shown via toast
     }
   };
@@ -111,6 +105,7 @@ const OrganizationManagement: React.FC = () => {
         setSelectedOrganization(null);
       } catch (error) {
         // Error is already handled by the store and shown via toast
+        console.log(error);
       }
     }
   };

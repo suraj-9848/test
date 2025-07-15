@@ -1,6 +1,17 @@
 import { create } from "zustand";
 import axios from "axios";
+import { instructorApi } from "@/api/instructorApi";
+
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+
+// Debug log the base URL
+console.log("Backend base URL:", baseUrl);
+
+if (!baseUrl) {
+  console.error(
+    "NEXT_PUBLIC_BACKEND_BASE_URL is not set in environment variables"
+  );
+}
 
 export interface Course {
   id: string;
@@ -8,7 +19,7 @@ export interface Course {
   logo?: string;
   start_date: string;
   end_date: string;
-  batch_id: string;
+  batches?: Batch[]; // Changed from batch_id to batches
   is_public: boolean;
   instructor_name: string;
   created_at?: string;
@@ -44,7 +55,7 @@ export interface CreateCourseData {
   logo?: string;
   start_date: string;
   end_date: string;
-  batch_id: string;
+  batch_ids: string[]; // Changed from batch_id to batch_ids
   is_public: boolean;
   instructor_name: string;
   modules?: {
@@ -64,7 +75,7 @@ export interface UpdateCourseData {
   logo?: string;
   start_date?: string;
   end_date?: string;
-  batch_id?: string;
+  batch_ids?: string[]; // Changed from batch_id to batch_ids
   is_public?: boolean;
   instructor_name?: string;
 }
@@ -82,23 +93,27 @@ interface CourseStore {
   error: string | null;
 
   // Batch operations
-  fetchBatches: (jwt: string) => Promise<void>;
+  fetchBatches: () => Promise<void>;
 
   // Course operations
-  createCourse: (
+  createCourse: (courseData: CreateCourseData) => Promise<Course>;
+  fetchAllCoursesInBatch: (batchId: string, jwt: string) => Promise<void>;
+  fetchCourse: (
     batchId: string,
-    courseData: CreateCourseData,
+    courseId: string,
     jwt: string
   ) => Promise<Course>;
-  fetchAllCoursesInBatch: (batchId: string, jwt: string) => Promise<void>;
-  fetchCourse: (batchId: string, courseId: string, jwt: string) => Promise<Course>;
   updateCourse: (
     batchId: string,
     courseId: string,
     updateData: UpdateCourseData,
     jwt: string
   ) => Promise<Course>;
-  deleteCourse: (batchId: string, courseId: string, jwt: string) => Promise<void>;
+  deleteCourse: (
+    batchId: string,
+    courseId: string,
+    jwt: string
+  ) => Promise<void>;
   updateCoursePublicStatus: (
     batchId: string,
     courseId: string,
@@ -118,7 +133,7 @@ interface CourseStore {
   reset: () => void;
 }
 
-export const useCourseStore = create<CourseStore>((set, get) => ({
+export const useCourseStore = create<CourseStore>((set) => ({
   courses: [],
   batches: [],
   selectedCourse: null,
@@ -126,16 +141,21 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   error: null,
 
   // Fetch all batches
-  fetchBatches: async (jwt: string) => {
+  fetchBatches: async () => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.get(`${baseUrl}/api/instructor/batches`, {
-        headers: { Authorization: `Bearer ${jwt}` }
-      });
-      set({ batches: response.data.batches || [], loading: false });
-    } catch (error: any) {
+      const response = await instructorApi.getBatches();
+      set({ batches: response.batches || [], loading: false });
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
       set({
-        error: error?.response?.data?.message || "Failed to fetch batches",
+        error:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to fetch batches",
         loading: false,
       });
       throw error;
@@ -143,30 +163,22 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   },
 
   // Create course in a specific batch
-  createCourse: async (batchId: string, courseData: CreateCourseData, jwt: string) => {
+  createCourse: async (courseData: CreateCourseData) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post(
-        `${baseUrl}/api/instructor/batches/${batchId}/courses`,
-        courseData,
-        {
-          headers: { Authorization: `Bearer ${jwt}` }
-        }
-      );
-      const newCourse = response.data.course;
-
+      const response = await instructorApi.createCourse(courseData);
       set((state) => ({
-        courses: [...state.courses, newCourse],
+        courses: [response.course, ...state.courses],
         loading: false,
+        error: null,
       }));
-
-      return newCourse;
-    } catch (error: any) {
+      return response.course;
+    } catch (err: unknown) {
       set({
-        error: error?.response?.data?.message || "Failed to create course",
         loading: false,
+        error: (err as Error).message || "Failed to create course",
       });
-      throw error;
+      throw err;
     }
   },
 
@@ -174,53 +186,25 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   fetchAllCoursesInBatch: async (batchId: string, jwt: string) => {
     set({ loading: true, error: null });
     try {
-      console.log('Fetching courses for batch:', batchId); // Debug log
-      console.log('Using JWT token:', jwt ? 'Token present' : 'No token'); // Debug log
-      console.log('Base URL:', baseUrl); // Debug log
-      
       const response = await axios.get(
         `${baseUrl}/api/instructor/batches/${batchId}/courses`,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
-      console.log('Courses response:', response.data); // Debug log
-      
-      // Handle different response structures
       const courses = response.data.courses || response.data || [];
       set({ courses: Array.isArray(courses) ? courses : [], loading: false });
-    } catch (error: any) {
-      console.error('Course fetch error - Full error object:', error);
-      console.error('Error response:', error.response);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error message:', error.message);
-      console.error('Error code:', error.code);
-      
-      let errorMessage = 'Failed to fetch courses';
-      
-      if (error.response) {
-        // Server responded with error status
-        console.log('Server error response:', error.response.status, error.response.data);
-        errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
-      } else if (error.request) {
-        // Request was made but no response received
-        console.log('No response received:', error.request);
-        errorMessage = 'Network error: No response from server';
-      } else {
-        // Something else happened
-        console.log('Request setup error:', error.message);
-        errorMessage = error.message || 'Unknown error occurred';
-      }
-      
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
       set({
-        error: errorMessage,
+        error: err?.response?.data?.message || "Failed to fetch courses",
         loading: false,
-        courses: [], // Set empty array on error
+        courses: [],
       });
-      
-      // Log the final error message
-      console.warn('Final error message:', errorMessage);
+      throw error;
     }
   },
 
@@ -231,16 +215,20 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       const response = await axios.get(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}`,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const course = response.data.course;
 
       set({ selectedCourse: course, loading: false });
       return course;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
       set({
-        error: error?.response?.data?.message || "Failed to fetch course",
+        error: err?.response?.data?.message || "Failed to fetch course",
         loading: false,
       });
       throw error;
@@ -260,7 +248,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}`,
         updateData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const updatedCourse = response.data.course;
@@ -277,9 +265,13 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       }));
 
       return updatedCourse;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
       set({
-        error: error?.response?.data?.message || "Failed to update course",
+        error: err?.response?.data?.message || "Failed to update course",
         loading: false,
       });
       throw error;
@@ -293,7 +285,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       await axios.delete(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}`,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
 
@@ -303,9 +295,13 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
           state.selectedCourse?.id === courseId ? null : state.selectedCourse,
         loading: false,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
       set({
-        error: error?.response?.data?.message || "Failed to delete course",
+        error: err?.response?.data?.message || "Failed to delete course",
         loading: false,
       });
       throw error;
@@ -325,7 +321,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/public`,
         { is_public: isPublic },
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       const updatedCourse = response.data.course;
@@ -342,10 +338,14 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       }));
 
       return updatedCourse;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
       set({
         error:
-          error?.response?.data?.message ||
+          err?.response?.data?.message ||
           "Failed to update course public status",
         loading: false,
       });
@@ -366,15 +366,18 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/assign-student`,
         assignData,
         {
-          headers: { Authorization: `Bearer ${jwt}` }
+          headers: { Authorization: `Bearer ${jwt}` },
         }
       );
       set({ loading: false });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+      };
       set({
         error:
-          error?.response?.data?.message ||
-          "Failed to assign course to student",
+          err?.response?.data?.message || "Failed to assign course to student",
         loading: false,
       });
       throw error;

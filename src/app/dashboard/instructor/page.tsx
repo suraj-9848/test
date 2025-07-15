@@ -1,59 +1,93 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-import InstructorSidebar from '../../../components/InstructorSidebar';
-import CoursesOverview from "../../../components/CoursesOverview";
+import InstructorSidebar from "../../../components/InstructorSidebar";
+import AllCourses from "../../../components/AllCourses";
 import CreateCourse from "../../../components/CreateCourse";
 import ManageModules from "../../../components/ManageModules";
-import ModuleContent from '../../../components/ModuleContent';
-import CreateBatch from '../../../components/CreateBatch';
-
+import MCQManagement from "../../../components/MCQManagement";
+import BatchManagement from "../../../components/BatchManagement";
+import TestManagement from "../../../components/TestManagement";
+import TestQuestionManagement from "../../../components/TestQuestionManagement";
+import TestEvaluation from "../../../components/TestEvaluation";
+import TestPublishing from "../../../components/TestPublishing";
+import CourseAssignment from "../../../components/CourseAssignment";
+import TestAnalytics from "../../../components/TestAnalytics";
+import StudentAnalytics from "../../../components/StudentAnalytics";
+import ProgressAnalytics from "../../../components/ProgressAnalytics";
+import EvaluationStatistics from "../../../components/EvaluationStatistics";
+import CreateBatch from "@/components/CreateBatch";
 
 const InstructorDashboard: React.FC = () => {
   const { status } = useSession();
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState("dashboard");
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/api/auth/signin');
+    if (status === "unauthenticated") {
+      router.push("/api/auth/signin");
     }
   }, [status, router]);
 
   const renderContent = () => {
     switch (activeSection) {
-      case "dashboard":
-        return <CoursesOverview />;
-      case "courses-overview":
-        return <CoursesOverview />;
+      
+      // Course Management
+      case "all-courses":
+        return <AllCourses />;
+      case "courses-overview": // Legacy support
+        return <AllCourses />;
       case "create-course":
         return <CreateCourse />;
       case "manage-modules":
         return <ManageModules />;
-      case "Module Content":
-        return (
-          <ModuleContent
-            onClose={() => setActiveSection("manage-modules")}
-          />
-        );
-      case "batches":
-        return <CreateBatch />;
+      case "mcq-management":
+        return <MCQManagement />;
+      case "course-assignment":
+        return <CourseAssignment />;
+      
+      // Test Management
       case "manage-tests":
-        return (
-          <div className="p-8">
-            <h1 className="text-2xl font-bold">Manage Tests - Coming Soon</h1>
-          </div>
-        );
-     
+        return <TestManagement />;
+      case "create-test":
+        return <TestManagement />; // Create test is part of test management
+      case "test-questions":
+        return <TestQuestionManagement />;
+      case "test-evaluation":
+        return <TestEvaluation />;
+      case "test-publishing":
+        return <TestPublishing />;
+      
+      // Analytics & Reports
+      case "student-analytics":
+        return <StudentAnalytics />;
+      case "progress-analytics":
+        return <ProgressAnalytics />;
+      case "test-analytics":
+        return <TestAnalytics />;
+      case "evaluation-statistics":
+        return <EvaluationStatistics />;
+      
+      // Batch Management
+      case "batch-management":
+      case "create-batch":
+        return <CreateBatch />;
+      case "batches": // Legacy support
+        return <BatchManagement />;
+      case "batch-analytics":
+        return <StudentAnalytics />; // Can be extended for batch-specific analytics
+      case "batch-assignments":
+        return <CourseAssignment />; // Course assignment handles batch assignments too
+      
       default:
-        return <CoursesOverview />;
+        return <AllCourses />;
     }
   };
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
@@ -61,11 +95,14 @@ const InstructorDashboard: React.FC = () => {
     );
   }
 
-  if (status === 'unauthenticated') return null;
+  if (status === "unauthenticated") return null;
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <InstructorSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <InstructorSidebar
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      />
       <div className="flex-1 overflow-auto">{renderContent()}</div>
     </div>
   );

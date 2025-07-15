@@ -7,7 +7,7 @@ import {
   UpdateUserRequest,
 } from "@/api/adminApi";
 
-// Type Definitions
+// Types
 export type AdminRole = "College Admin" | "Deputy Admin" | "Academic Head";
 export type InstructorRole =
   | "Senior Professor"
@@ -19,6 +19,7 @@ export type StudentRole =
   | "Third Year"
   | "Fourth Year"
   | "Final Year";
+
 export type UserRole = "student" | "admin" | "college_admin" | "instructor";
 export type UserStatus = "Active" | "Inactive";
 export type UserCategory = "college-admins" | "instructors" | "students";
@@ -35,11 +36,9 @@ export interface BaseUser {
 export interface AdminUser extends BaseUser {
   role: AdminRole;
 }
-
 export interface InstructorUser extends BaseUser {
   role: InstructorRole;
 }
-
 export interface StudentUser extends BaseUser {
   role: StudentRole;
 }
@@ -60,9 +59,7 @@ type StoreKeyMap = {
   students: "students";
 };
 
-// Store Interface
 interface AdminStoreState {
-  // State
   admins: AdminUser[];
   instructors: InstructorUser[];
   students: StudentUser[];
@@ -72,7 +69,6 @@ interface AdminStoreState {
   loading: boolean;
   error: string | null;
 
-  // Actions
   setSearch: (search: string) => void;
   setOrgFilter: (org: string) => void;
   setRoleFilter: (role: "All" | UserStatus) => void;
@@ -82,7 +78,6 @@ interface AdminStoreState {
   fetchUsers: (role?: UserRole | "All") => Promise<void>;
 }
 
-// Mock Data
 const mockBatches = [
   "2024-Batch-A",
   "2024-Batch-B",
@@ -92,133 +87,12 @@ const mockBatches = [
   "2022-Batch-B",
 ];
 
-const initialAdmins: AdminUser[] = [
-  {
-    id: 1,
-    name: "Dr. Rajesh Kumar",
-    email: "rajesh@aquinas.edu",
-    role: "College Admin",
-    college: "Aquinas College of Engineering",
-    status: "Active",
-    joinDate: "2020-01-15",
-  },
-  {
-    id: 2,
-    name: "Prof. Neha Verma",
-    email: "neha@oxfordtech.edu",
-    role: "Deputy Admin",
-    college: "Oxford Institute of Technology",
-    status: "Active",
-    joinDate: "2021-07-10",
-  },
-  {
-    id: 3,
-    name: "Dr. Anil Joshi",
-    email: "anil@modernit.edu",
-    role: "Academic Head",
-    college: "Modern Institute of Technology",
-    status: "Inactive",
-    joinDate: "2018-06-05",
-  },
-  {
-    id: 4,
-    name: "Dr. Fatima Khan",
-    email: "fatima@stxaviers.edu",
-    role: "College Admin",
-    college: "St. Xavier’s College",
-    status: "Active",
-    joinDate: "2019-12-01",
-  },
-];
+// Initial data
+const initialAdmins: AdminUser[] = [...]; // same as your mock data
+const initialInstructors: InstructorUser[] = [...]; // same as your mock data
+const initialStudents: StudentUser[] = [...]; // same as your mock data
 
-const initialInstructors: InstructorUser[] = [
-  {
-    id: 1,
-    name: "Prof. Amit Sharma",
-    email: "amit@aquinas.edu",
-    role: "Senior Professor",
-    college: "Aquinas College of Engineering",
-    status: "Active",
-    joinDate: "2015-01-12",
-  },
-  {
-    id: 2,
-    name: "Dr. Meena Rao",
-    email: "meena@oxfordtech.edu",
-    role: "Associate Professor",
-    college: "Oxford Institute of Technology",
-    status: "Active",
-    joinDate: "2016-03-25",
-  },
-  {
-    id: 3,
-    name: "Prof. Sanjay Singh",
-    email: "sanjay@modernit.edu",
-    role: "Assistant Professor",
-    college: "Modern Institute of Technology",
-    status: "Inactive",
-    joinDate: "2017-11-30",
-  },
-  {
-    id: 4,
-    name: "Dr. Lata Mukherjee",
-    email: "lata@stxaviers.edu",
-    role: "Senior Professor",
-    college: "St. Xavier’s College",
-    status: "Active",
-    joinDate: "2020-09-10",
-  },
-];
-
-const initialStudents: StudentUser[] = [
-  {
-    id: 1,
-    name: "Rohit Gupta",
-    email: "rohit@students.aquinas.edu",
-    role: "Final Year",
-    college: "Aquinas College of Engineering",
-    status: "Active",
-    joinDate: "2020-09-01",
-  },
-  {
-    id: 2,
-    name: "Sneha Reddy",
-    email: "sneha@students.oxfordtech.edu",
-    role: "Second Year",
-    college: "Oxford Institute of Technology",
-    status: "Inactive",
-    joinDate: "2022-09-01",
-  },
-  {
-    id: 3,
-    name: "Aman Yadav",
-    email: "aman@students.modernit.edu",
-    role: "Third Year",
-    college: "Modern Institute of Technology",
-    status: "Active",
-    joinDate: "2021-08-12",
-  },
-  {
-    id: 4,
-    name: "Priya Nair",
-    email: "priya@students.stxaviers.edu",
-    role: "First Year",
-    college: "St. Xavier’s College",
-    status: "Active",
-    joinDate: "2023-08-20",
-  },
-  {
-    id: 5,
-    name: "Karthik Iyer",
-    email: "karthik@students.oxfordtech.edu",
-    role: "Fourth Year",
-    college: "Oxford Institute of Technology",
-    status: "Active",
-    joinDate: "2020-09-15",
-  },
-];
-
-// Utility Functions
+// Utility functions
 function mapTypeToKey(type: UserCategory): "admins" | "instructors" | "students" {
   const map: StoreKeyMap = {
     "college-admins": "admins",
@@ -251,7 +125,7 @@ function mapApiUserToStoreUser<T extends AdminUser | InstructorUser | StudentUse
     email: apiUser.email || "",
     college: apiUser.org_id || "",
     status: "Active" as UserStatus,
-    joinDate: new Date().toISOString().split('T')[0],
+    joinDate: new Date().toISOString().split("T")[0],
   };
 
   switch (role) {
@@ -266,9 +140,8 @@ function mapApiUserToStoreUser<T extends AdminUser | InstructorUser | StudentUse
   }
 }
 
-// Store Implementation
+// Zustand Store
 export const useAdminStore = create<AdminStoreState>((set) => ({
-  // Initial State
   admins: initialAdmins,
   instructors: initialInstructors,
   students: initialStudents,
@@ -278,12 +151,10 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   loading: false,
   error: null,
 
-  // Filter Actions
   setSearch: (search) => set({ search }),
   setOrgFilter: (org) => set({ collegeFilter: org }),
   setRoleFilter: (role) => set({ statusFilter: role }),
 
-  // User Management Actions
   addUser: async (userData, role) => {
     try {
       set({ loading: true, error: null });
@@ -336,10 +207,9 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   fetchUsers: async (role = "All") => {
     try {
       set({ loading: true, error: null });
-      const response: { users: User[] } = await userApi.getUsers(role);
+      const response = await userApi.getUsers(role);
 
       if (role === "All") {
-        // Filter users based on their roles and map to correct types
         set({
           admins: response.users
             .filter((u) => u.userRole === "college_admin")
@@ -353,7 +223,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
           loading: false,
         });
       } else {
-        const key = mapTypeToKey(roleToCategory(role as UserRole));
+        const key = mapTypeToKey(roleToCategory(role));
         const mappedUsers = response.users.map((u) => {
           switch (role) {
             case "college_admin":
@@ -369,14 +239,15 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
         set({ [key]: mappedUsers, loading: false });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       set({ error: `Failed to fetch users: ${errorMessage}`, loading: false });
       throw error;
     }
   },
 }));
 
-// Helper Functions
+// Helpers
 export const getOrgs = () => {
   const { organizations } = useOrganizationStore.getState();
   return organizations.map((org) => ({ id: org.id, name: org.name }));

@@ -15,11 +15,11 @@ interface OrganizationStoreState {
   search: string;
   loading: boolean;
   error: string | null;
-  
+
   setSearch: (search: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  
+
   // API functions
   fetchOrganizations: () => Promise<void>;
   addOrganization: (org: CreateOrgRequest) => Promise<void>;
@@ -27,9 +27,9 @@ interface OrganizationStoreState {
   editOrganization: (id: string, org: UpdateOrgRequest) => Promise<void>;
 }
 
-export const useOrganizationStore = create<OrganizationStoreState>((set, get) => ({
+export const useOrganizationStore = create<OrganizationStoreState>((set) => ({
   organizations: [],
-  search: '',
+  search: "",
   loading: false,
   error: null,
 
@@ -43,7 +43,10 @@ export const useOrganizationStore = create<OrganizationStoreState>((set, get) =>
       const response = await organizationApi.getAll();
       set({ organizations: response.orgs, loading: false });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch organizations';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch organizations";
       set({ error: errorMessage, loading: false });
       throw error;
     }
@@ -58,7 +61,10 @@ export const useOrganizationStore = create<OrganizationStoreState>((set, get) =>
         loading: false,
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create organization';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to create organization";
       set({ error: errorMessage, loading: false });
       throw error;
     }
@@ -73,7 +79,10 @@ export const useOrganizationStore = create<OrganizationStoreState>((set, get) =>
         loading: false,
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete organization';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete organization";
       set({ error: errorMessage, loading: false });
       throw error;
     }
@@ -84,15 +93,18 @@ export const useOrganizationStore = create<OrganizationStoreState>((set, get) =>
       set({ loading: true, error: null });
       const response = await organizationApi.update(id, orgData);
       set((state) => ({
-        organizations: state.organizations.map((org) => 
+        organizations: state.organizations.map((org) =>
           org.id === id ? response.org : org
         ),
         loading: false,
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update organization';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update organization";
       set({ error: errorMessage, loading: false });
       throw error;
     }
   },
-})); 
+}));
