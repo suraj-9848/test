@@ -72,7 +72,7 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
     const getUsers = async () => {
       try {
         await fetchUsers(userRole);
-      } catch (err) {
+      } catch {
         showToast("error", "Failed to fetch users");
       }
     };
@@ -109,7 +109,8 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
         user.email.toLowerCase().includes(search.toLowerCase());
       const matchesCollege =
         collegeFilter === "All Organizations" || user.college === collegeFilter;
-      const matchesStatus = statusFilter === "All" || user.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "All" || user.status === statusFilter;
       return matchesSearch && matchesCollege && matchesStatus;
     });
   }, [users, search, collegeFilter, statusFilter]);
@@ -179,7 +180,9 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
   };
 
   // Handle submit user
-  const handleSubmitUser = async (userData: UpdateUserRequest | CreateUserRequest) => {
+  const handleSubmitUser = async (
+    userData: UpdateUserRequest | CreateUserRequest
+  ) => {
     try {
       if (selectedUser && isEditModalOpen) {
         // Edit mode
@@ -238,7 +241,9 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
           </div>
           <div>
             <h2 className="text-3xl font-bold text-gray-800">{getTitle()}</h2>
-            <p className="text-gray-600">Manage and monitor {type.replace("-", " ")}</p>
+            <p className="text-gray-600">
+              Manage and monitor {type.replace("-", " ")}
+            </p>
           </div>
         </div>
         <button
@@ -252,7 +257,12 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
             <FaPlus className="w-4 h-4" />
           )}
           <span className="font-medium">
-            Add New {type === "college-admins" ? "Admin" : type === "instructors" ? "Instructor" : "Student"}
+            Add New{" "}
+            {type === "college-admins"
+              ? "Admin"
+              : type === "instructors"
+              ? "Instructor"
+              : "Student"}
           </span>
         </button>
       </div>
@@ -262,7 +272,9 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
             <div className="flex items-center border rounded-lg overflow-hidden">
               <FaSearch className="w-5 h-5 text-gray-400 ml-3" />
               <input
@@ -277,7 +289,9 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
 
           {/* College Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">College/Organization</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              College/Organization
+            </label>
             <div className="relative">
               <select
                 className="block appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -311,12 +325,16 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
 
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
             <div className="relative">
               <select
                 className="block appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={statusFilter}
-                onChange={(e) => setRoleFilter(e.target.value as "All" | UserStatus)}
+                onChange={(e) =>
+                  setRoleFilter(e.target.value as "All" | UserStatus)
+                }
               >
                 <option value="All" className="text-gray-900">
                   All
@@ -357,7 +375,9 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center space-x-3">
             <FaSpinner className="w-8 h-8 text-blue-500 animate-spin" />
-            <span className="text-lg font-medium text-gray-600">Loading {type.replace("-", " ")}...</span>
+            <span className="text-lg font-medium text-gray-600">
+              Loading {type.replace("-", " ")}...
+            </span>
           </div>
         </div>
       ) : (
@@ -366,7 +386,16 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-blue-50 to-purple-50">
                 <tr>
-                  {["#", "Name", "Email", "Role", "College", "Join Date", "Status", "Actions"].map((heading) => (
+                  {[
+                    "#",
+                    "Name",
+                    "Email",
+                    "Role",
+                    "College",
+                    "Join Date",
+                    "Status",
+                    "Actions",
+                  ].map((heading) => (
                     <th
                       key={heading}
                       className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
@@ -378,24 +407,39 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user, index) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{index + 1}</td>
+                  <tr
+                    key={user.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {index + 1}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">{user.name.charAt(0)}</span>
+                          <span className="text-white text-xs font-bold">
+                            {user.name.charAt(0)}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium text-gray-900">{user.name}</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {user.name}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {user.email}
+                    </td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 text-xs font-medium bg-gray-200 text-gray-800 rounded-full">
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{user.college}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{user.joinDate}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {user.college}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {user.joinDate}
+                    </td>
                     <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
                     <td className="px-6 py-4 flex gap-2">
                       <button
@@ -421,11 +465,21 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
           {filteredUsers.length === 0 && !loading && (
             <div className="text-center py-12">
               <FaUsers className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No {type.replace("-", " ")} found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No {type.replace("-", " ")} found
+              </h3>
               <p className="text-gray-500">
-                {search || collegeFilter !== "All Organizations" || statusFilter !== "All"
+                {search ||
+                collegeFilter !== "All Organizations" ||
+                statusFilter !== "All"
                   ? "Try adjusting your search or filter criteria."
-                  : `Get started by adding your first ${type === "college-admins" ? "admin" : type === "instructors" ? "instructor" : "student"}.`}
+                  : `Get started by adding your first ${
+                      type === "college-admins"
+                        ? "admin"
+                        : type === "instructors"
+                        ? "instructor"
+                        : "student"
+                    }.`}
               </p>
             </div>
           )}
@@ -437,9 +491,26 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
         <UserModal
           isOpen={isAddModalOpen}
           onClose={closeModals}
-          title={`Add ${type === "college-admins" ? "Admin" : type === "instructors" ? "Instructor" : "Student"}`}
+          title={`Add ${
+            type === "college-admins"
+              ? "Admin"
+              : type === "instructors"
+              ? "Instructor"
+              : "Student"
+          }`}
         >
-          <UserForm onSubmit={handleSubmitUser} onCancel={closeModals} />
+          <UserForm
+            onSubmit={(userData) => {
+              // Ensure password is never null for type compatibility
+              const safeUserData = {
+                ...userData,
+                password: userData.password === null ? undefined : userData.password,
+              };
+              handleSubmitUser(safeUserData);
+            }}
+            onCancel={closeModals}
+            isEdit={false}
+          />
         </UserModal>
       )}
 
@@ -447,7 +518,13 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
         <UserModal
           isOpen={isEditModalOpen}
           onClose={closeModals}
-          title={`Edit ${type === "college-admins" ? "Admin" : type === "instructors" ? "Instructor" : "Student"}`}
+          title={`Edit ${
+            type === "college-admins"
+              ? "Admin"
+              : type === "instructors"
+              ? "Instructor"
+              : "Student"
+          }`}
         >
           <UserForm
             user={selectedUser}
@@ -456,7 +533,8 @@ const CollegeManagement: React.FC<CollegeManagementProps> = ({ type }) => {
               const safeUserData = {
                 ...userData,
                 email: userData.email ?? "",
-                password: userData.password === null ? undefined : userData.password,
+                password:
+                  userData.password === null ? undefined : userData.password,
               };
               handleSubmitUser(safeUserData);
             }}

@@ -1,11 +1,6 @@
 import { create } from "zustand";
 import { useOrganizationStore } from "./organizationStore";
-import {
-  userApi,
-  User as ApiUser,
-  CreateUserRequest,
-  UpdateUserRequest,
-} from "@/api/adminApi";
+import { userApi, CreateUserRequest, UpdateUserRequest } from "@/api/adminApi";
 
 // Types
 export type AdminRole = "College Admin" | "Deputy Admin" | "Academic Head";
@@ -74,7 +69,11 @@ interface AdminStoreState {
   setRoleFilter: (role: "All" | UserStatus) => void;
   addUser: (userData: CreateUserRequest, role: UserRole) => Promise<void>;
   deleteUser: (id: string, role: UserRole) => Promise<void>;
-  editUser: (id: string, userData: UpdateUserRequest, role: UserRole) => Promise<void>;
+  editUser: (
+    id: string,
+    userData: UpdateUserRequest,
+    role: UserRole
+  ) => Promise<void>;
   fetchUsers: (role?: UserRole | "All") => Promise<void>;
 }
 
@@ -88,12 +87,14 @@ const mockBatches = [
 ];
 
 // Initial data
-const initialAdmins: AdminUser[] = [...]; // same as your mock data
-const initialInstructors: InstructorUser[] = [...]; // same as your mock data
-const initialStudents: StudentUser[] = [...]; // same as your mock data
+const initialAdmins: AdminUser[] = [];
+const initialInstructors: InstructorUser[] = [];
+const initialStudents: StudentUser[] = [];
 
 // Utility functions
-function mapTypeToKey(type: UserCategory): "admins" | "instructors" | "students" {
+function mapTypeToKey(
+  type: UserCategory
+): "admins" | "instructors" | "students" {
   const map: StoreKeyMap = {
     "college-admins": "admins",
     instructors: "instructors",
@@ -115,10 +116,9 @@ function roleToCategory(role: UserRole): UserCategory {
   }
 }
 
-function mapApiUserToStoreUser<T extends AdminUser | InstructorUser | StudentUser>(
-  apiUser: User,
-  role: UserRole
-): T {
+function mapApiUserToStoreUser<
+  T extends AdminUser | InstructorUser | StudentUser
+>(apiUser: User, role: UserRole): T {
   const baseUser = {
     id: Number(apiUser.id),
     name: apiUser.username,
@@ -162,7 +162,10 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
       const key = mapTypeToKey(roleToCategory(role));
       const mappedUser = mapApiUserToStoreUser(response.user, role);
       set((state) => ({
-        [key]: [...(state[key] as any[]), mappedUser],
+        [key]: [
+          ...(state[key] as (AdminUser | InstructorUser | StudentUser)[]),
+          mappedUser,
+        ],
         loading: false,
       }));
     } catch (error) {
@@ -174,10 +177,12 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   deleteUser: async (id, role) => {
     try {
       set({ loading: true, error: null });
-      await userApi.deleteUser(id, role);
+      await userApi.deleteUser(id);
       const key = mapTypeToKey(roleToCategory(role));
       set((state) => ({
-        [key]: (state[key] as any[]).filter((user) => String(user.id) !== id),
+        [key]: (
+          state[key] as (AdminUser | InstructorUser | StudentUser)[]
+        ).filter((user) => String(user.id) !== id),
         loading: false,
       }));
     } catch (error) {
@@ -193,8 +198,8 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
       const key = mapTypeToKey(roleToCategory(role));
       const mappedUser = mapApiUserToStoreUser(response.user, role);
       set((state) => ({
-        [key]: (state[key] as any[]).map((user) =>
-          String(user.id) === id ? mappedUser : user
+        [key]: (state[key] as (AdminUser | InstructorUser | StudentUser)[]).map(
+          (user) => (String(user.id) === id ? mappedUser : user)
         ),
         loading: false,
       }));

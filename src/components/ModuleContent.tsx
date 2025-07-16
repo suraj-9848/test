@@ -2,20 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import axios from "axios";
-import {
-  FaFileExport,
-  FaQuestionCircle,
-  FaPlus,
-  FaEdit,
-  FaTrash,
-  FaTimes,
-  FaBook,
-  FaChevronDown,
-} from "react-icons/fa";
 import { useModuleStore } from "@/store/moduleStore";
 import { useCourseStore } from "@/store/courseStore";
 import type {
-  Module,
   CreateDayContentData,
   CreateMCQData,
   MCQQuestion,
@@ -195,7 +184,7 @@ const SafeRichTextEditor: React.FC<{
             className="px-2 py-1 hover:bg-slate-200 rounded text-sm font-mono bg-slate-100"
             title="Code Block"
           >
-            </>
+            {"</>"}
           </button>
           <button
             type="button"
@@ -330,7 +319,7 @@ const DayContentModal: React.FC<{
   show: boolean;
   content: boolean;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent): Promise<void>;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
   formData: CreateDayContentData;
   setFormData: React.Dispatch<React.SetStateAction<CreateDayContentData>>;
   editingDay: CreateDayContentData | null;
@@ -479,7 +468,7 @@ const MCQModal: React.FC<{
   const updateQuestion = (
     index: number,
     field: keyof MCQQuestion,
-    value: any
+    value: QuillDelta | string | { id: string; text: QuillDelta }[]
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -490,7 +479,7 @@ const MCQModal: React.FC<{
   };
 
   const removeQuestion = (index: number) => {
-    setFormData((prev) => ({
+    setFormData((prev: CreateMCQData) => ({
       ...prev,
       questions: prev.questions.filter((_, i) => i !== index),
     }));
@@ -524,17 +513,23 @@ const MCQModal: React.FC<{
   const deltaToHtml = (
     delta: QuillDelta | string | { ops: { insert: string }[] } | undefined
   ): string => {
-    if (!delta) return '';
-    if (typeof delta === 'string') return delta; // Handle plain HTML from SafeRichTextEditor
-    if ('ops' in delta) {
-      return delta.ops.map(op => op.insert).join('');
+    if (!delta) return "";
+    if (typeof delta === "string") return delta; // Handle plain HTML from SafeRichTextEditor
+    if (
+      typeof delta === "object" &&
+      "ops" in delta &&
+      Array.isArray((delta as { ops: { insert: string }[] }).ops)
+    ) {
+      return (delta as { ops: { insert: string }[] }).ops
+        .map((op: { insert: string }) => op.insert)
+        .join("");
     }
-    return '';
+    return "";
   };
 
   // Modified htmlToDelta to store HTML directly or as Quill delta
   const htmlToDelta = (html: string): QuillDelta => {
-    return { ops: [{ insert: html }]; // Store HTML as a single insert operation
+    return { ops: [{ insert: html }] }; // Store HTML as a single insert operation
   };
 
   if (!show) return null;
@@ -576,7 +571,8 @@ const MCQModal: React.FC<{
                 setFormData((prev) => ({
                   ...prev,
                   passingScore: parseInt(e.target.value) || 70,
-                })}
+                }))
+              }
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               min="0"
               max="100"
@@ -724,8 +720,9 @@ const MCQModal: React.FC<{
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
                           </button>
                         )}
                       </div>
@@ -792,13 +789,8 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
     loading: moduleLoading,
   } = useModuleStore();
 
-  const {
-    courses,
-    batches,
-    loading: courseLoading,
-    fetchBatches,
-    fetchAllCoursesInBatch,
-  } = useCourseStore();
+  const { courses, batches, fetchBatches, fetchAllCoursesInBatch } =
+    useCourseStore();
 
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
@@ -807,7 +799,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
   const [backendJwt, setBackendJwt] = useState<string>("");
   const [showContentModal, setShowContentModal] = useState(false);
   const [showMCQModal, setShowMCQModal] = useState(false);
-  const [editingDay, setEditingDay] = useState<CreateDayContentData | null>(null);
+  const [editingDay, setEditingDay] = useState<CreateDayContentData | null>(
+    null
+  );
   const [dayContentForm, setDayContentForm] = useState<CreateDayContentData>({
     content: "",
     dayNumber: 1,
@@ -821,23 +815,29 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
   const deltaToHtml = (
     delta: QuillDelta | string | { ops: { insert: string }[] } | undefined
   ): string => {
-    if (!delta) return '';
-    if (typeof delta === 'string') return delta; // Handle plain HTML from SafeRichTextEditor
-    if ('ops' in delta) {
-      return delta.ops.map(op => op.insert).join('');
+    if (!delta) return "";
+    if (typeof delta === "string") return delta; // Handle plain HTML from SafeRichTextEditor
+    if (
+      typeof delta === "object" &&
+      "ops" in delta &&
+      Array.isArray((delta as { ops: { insert: string }[] }).ops)
+    ) {
+      return (delta as { ops: { insert: string }[] }).ops
+        .map((op: { insert: string }) => op.insert)
+        .join("");
     }
-    return '';
+    return "";
   };
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const baseUrl = process.env.REACT_APP_BACKEND_BASE_URL || "";
-        const googleIdToken = (session as any).id_token;
+        const googleIdToken = (session as { id_token?: string }).id_token;
         if (!googleIdToken) return;
 
         const response = await axios({
-          method: 'post',
+          method: "post",
           url: `${baseUrl}/api/auth/login`,
           headers: { Authorization: `Bearer ${googleIdToken}` },
           withCredentials: true,
@@ -1010,7 +1010,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
       return;
     }
 
-    if (window.confirm('Confirm delete MCQ?')) {
+    if (window.confirm("Confirm delete MCQ?")) {
       try {
         await deleteMCQ(
           selectedBatchId,
@@ -1029,22 +1029,20 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
     <div className="container">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div class="flex items-center">
+        <div className="flex items-center">
           <div className="bg-blue-500 p-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              class="h-6 text-white w-6"
+              className="h-6 text-white w-6"
             >
-              <path
-                stroke="none"
-                stroke-width="2"
-                fill="currentColor"
-              />
+              <path stroke="none" strokeWidth="2" fill="currentColor" />
             </svg>
           </div>
           <div className="ml-2">
             <h3 className="text-lg font-bold">Manage Module</h3>
-            <p className="text-sm text-gray-500">Manage your module content and MCQs.</p>
+            <p className="text-sm text-gray-500">
+              Manage your module content and MCQs.
+            </p>
           </div>
         </div>
         <button
@@ -1052,16 +1050,16 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           className="text-gray-500 p-2 hover:bg-gray-200"
         >
           <svg
-            class="h-6 w-6"
+            className="h-6 w-6"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
             <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
               d="M6 18L18 6M6 6L18 12"
             />
           </svg>
@@ -1071,7 +1069,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
       {/* Selection Controls */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
-          <label class="block mb-1">Batch:</label>
+          <label className="block mb-1">Batch:</label>
           <select
             value={selectedBatchId}
             onChange={(e) => setSelectedBatchId(e.target.value)}
@@ -1079,12 +1077,14 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           >
             <option value="">Select batch...</option>
             {batches.map((batch) => (
-              <option key={batch.id} value={batch.id}>{batch.name}</option>
+              <option key={batch.id} value={batch.id}>
+                {batch.name}
+              </option>
             ))}
           </select>
         </div>
         <div>
-          <label class="block mb-1">Course:</label>
+          <label className="block mb-1">Course:</label>
           <select
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
@@ -1093,12 +1093,14 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           >
             <option value="">Select course...</option>
             {courses.map((course) => (
-              <option key={course.id} value={course.id}>{course.title}</option>
+              <option key={course.id} value={course.id}>
+                {course.title}
+              </option>
             ))}
           </select>
         </div>
         <div>
-          <label class="block mb-1">Module:</label>
+          <label className="block mb-1">Module:</label>
           <select
             value={selectedModuleId}
             onChange={(e) => setSelectedModuleId(e.target.value)}
@@ -1107,7 +1109,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           >
             <option value="">Select module...</option>
             {modules.map((module) => (
-              <option key={module.id} value={module.id}>{module.title}</option>
+              <option key={module.id} value={module.id}>
+                {module.title}
+              </option>
             ))}
           </select>
         </div>
@@ -1118,20 +1122,26 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
         <div>
           <div className="flex">
             <button
-              className={`p-2 ${activeTab === 'content' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-              onClick={() => setActiveTab('content')}
+              className={`p-2 ${
+                activeTab === "content"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200"
+              }`}
+              onClick={() => setActiveTab("content")}
             >
               Content
             </button>
             <button
-              className={`p-2 ${activeTab === 'mcq' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-              onClick={() => setActiveTab('mcq')}
+              className={`p-2 ${
+                activeTab === "mcq" ? "bg-blue-500 text-white" : "bg-gray-200"
+              }`}
+              onClick={() => setActiveTab("mcq")}
             >
               MCQ
             </button>
           </div>
 
-          {activeTab === 'content' && (
+          {activeTab === "content" && (
             <div>
               <button
                 onClick={() => {
@@ -1144,7 +1154,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
               </button>
               {selectedModule.days?.map((day) => (
                 <div key={day.id} className="border p-2 mb-2 rounded">
-                  <h4>Day {day.dayNumber}: {day.title}</h4>
+                  <h4>
+                    Day {day.dayNumber}: {day.title}
+                  </h4>
                   <div dangerouslySetInnerHTML={{ __html: day.content }} />
                   <button
                     onClick={() => handleEditDay(day)}
@@ -1163,7 +1175,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
             </div>
           )}
 
-          {activeTab === 'mcq' && (
+          {activeTab === "mcq" && (
             <div>
               {!selectedModule.mcq && (
                 <button
@@ -1177,10 +1189,13 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
                 <div>
                   {selectedModule.mcq.questions.map((q, i) => (
                     <div key={q.id} className="border p-2 mb-2 rounded">
-                      <p>Question {i + 1}: {deltaToHtml(q.question)}</p>
+                      <p>
+                        Question {i + 1}: {deltaToHtml(q.question)}
+                      </p>
                       {q.options.map((opt, optIdx) => (
                         <div key={opt.id}>
-                          {String.fromCharCode(65 + optIdx)}: {deltaToHtml(opt.text)}
+                          {String.fromCharCode(65 + optIdx)}:{" "}
+                          {deltaToHtml(opt.text)}
                         </div>
                       ))}
                     </div>
@@ -1201,6 +1216,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
       {/* Modals */}
       <DayContentModal
         show={showContentModal}
+        content={true}
         onClose={() => {
           setShowContentModal(false);
           resetDayContentForm();

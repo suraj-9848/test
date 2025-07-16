@@ -20,7 +20,7 @@ import StudentAnalytics from "../../../components/StudentAnalytics";
 import ProgressAnalytics from "../../../components/ProgressAnalytics";
 import EvaluationStatistics from "../../../components/EvaluationStatistics";
 import CreateBatch from "@/components/CreateBatch";
-
+import BatchAssign from "@/components/BatchAssign";
 const InstructorDashboard: React.FC = () => {
   const { status } = useSession();
   const router = useRouter();
@@ -80,8 +80,8 @@ const InstructorDashboard: React.FC = () => {
       case "batch-analytics":
         return <StudentAnalytics />; // Can be extended for batch-specific analytics
       case "batch-assignments":
-        return <CourseAssignment />; // Course assignment handles batch assignments too
-      
+        return <BatchAssign />;
+
       default:
         return <AllCourses />;
     }

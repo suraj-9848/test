@@ -1,5 +1,9 @@
-import { create } from 'zustand';
-import { organizationApi, Organization as ApiOrganization, CreateOrgRequest, UpdateOrgRequest } from '@/api/adminApi';
+import { create } from "zustand";
+import {
+  organizationApi,
+  CreateOrgRequest,
+  UpdateOrgRequest,
+} from "@/api/adminApi";
 
 export interface Organization {
   id: string;

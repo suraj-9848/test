@@ -401,11 +401,8 @@ export const userApi = {
     return handleApiResponse(response);
   },
 
-  // Delete user by ID and role
-  deleteUser: async (
-    userId: string,
-    role: UserRole
-  ): Promise<{ message: string }> => {
+  // Delete user by ID
+  deleteUser: async (userId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
       `${BACKEND_BASE_URL}/api/admin/delete-user/${userId}`,
