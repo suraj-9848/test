@@ -9,14 +9,12 @@ import {
   FaPlus,
   FaList,
   FaChartBar,
-  FaClipboardCheck,
   FaChartLine,
   FaUsers,
   FaQuestionCircle,
   FaFileAlt,
   FaTachometerAlt,
   FaUsersCog,
-  FaEye,
   FaPercent,
   FaUserGraduate,
 } from "react-icons/fa";
@@ -71,29 +69,14 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
 
   const testMenuItems = [
     {
-      key: "manage-tests",
-      label: "Manage Tests",
-      icon: <FaClipboardList className="w-4 h-4" />,
-    },
-    {
       key: "create-test",
       label: "Create Test",
       icon: <FaPlus className="w-4 h-4" />,
     },
     {
-      key: "test-questions",
-      label: "Test Questions",
-      icon: <FaQuestionCircle className="w-4 h-4" />,
-    },
-    {
-      key: "test-evaluation",
-      label: "Test Evaluation",
-      icon: <FaClipboardCheck className="w-4 h-4" />,
-    },
-    {
-      key: "test-publishing",
-      label: "Publish Tests",
-      icon: <FaEye className="w-4 h-4" />,
+      key: "manage-test", // changed from "manage-tests" to match dashboard
+      label: "Manage Tests",
+      icon: <FaClipboardList className="w-4 h-4" />,
     },
   ];
 
@@ -272,11 +255,20 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                     className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
                       activeSection === item.key
                         ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
+                        : item.key === "create-test"
+                        ? "bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold shadow-md border-2 border-green-500 hover:scale-105"
                         : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
                     }`}
                   >
                     {item.icon}
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium flex items-center">
+                      {item.label}
+                      {item.key === "create-test" && (
+                        <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-600 text-white font-semibold">
+                          New
+                        </span>
+                      )}
+                    </span>
                   </button>
                 ))}
               </div>

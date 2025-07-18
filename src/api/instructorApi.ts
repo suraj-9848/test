@@ -242,22 +242,44 @@ export const instructorApi = {
     courseData: CreateCourseData
   ): Promise<CourseResponse> => {
     const headers = await getAuthHeaders();
-    const requestBody = {
-      ...courseData,
+    // Use the first batch_id for route (API only supports one at a time)
+    const batchId =
+      Array.isArray(courseData.batch_ids) && courseData.batch_ids.length > 0
+        ? courseData.batch_ids[0]
+        : null;
+    if (!batchId) {
+      throw new Error("No batch selected for course creation");
+    }
+    const minimalRequestBody = {
+      title: courseData.title,
+      logo: courseData.logo || "",
+      start_date: courseData.start_date,
+      end_date: courseData.end_date,
+      is_public: courseData.is_public,
+      instructor_name: courseData.instructor_name,
+      description: courseData.description || "Course description",
+      modules: courseData.modules || [],
+      batch_id: batchId, // Add batch_id to request body
     };
-    // Debug log the request
+    const url = `${API_BASE_URL}/api/instructor/batches/${batchId}/courses`;
     console.log("=== INSTRUCTOR API DEBUG ===");
-    console.log("URL:", `${API_BASE_URL}/api/instructor/courses`);
+    console.log("URL:", url);
     console.log("Headers:", headers);
-    console.log("Body:", JSON.stringify(requestBody, null, 2));
-    const response = await fetch(`${API_BASE_URL}/api/instructor/courses`, {
+    console.log("Body:", JSON.stringify(minimalRequestBody, null, 2));
+    const response = await fetch(url, {
       method: "POST",
       headers,
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(minimalRequestBody),
     });
     if (!response.ok) {
       const errorText = await response.text();
       console.error("API Error Response:", response.status, errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        alert(`Course creation failed: ${errorJson.message || errorText}`);
+      } catch {
+        alert(`Course creation failed: ${errorText}`);
+      }
       let error;
       try {
         error = JSON.parse(errorText);

@@ -10,12 +10,11 @@ import CreateCourse from "../../../components/CreateCourse";
 import ManageModules from "../../../components/ManageModules";
 import MCQManagement from "../../../components/MCQManagement";
 import BatchManagement from "../../../components/BatchManagement";
-import TestManagement from "../../../components/TestManagement";
-import TestQuestionManagement from "../../../components/TestQuestionManagement";
-import TestEvaluation from "../../../components/TestEvaluation";
-import TestPublishing from "../../../components/TestPublishing";
+import CreateTest from "../../../components/CreateTest";
+import ManageTest from "../../../components/ManageTest";
+import TestAnalytics from "@/components/TestAnalytics";
+
 import CourseAssignment from "../../../components/CourseAssignment";
-import TestAnalytics from "../../../components/TestAnalytics";
 import StudentAnalytics from "../../../components/StudentAnalytics";
 import ProgressAnalytics from "../../../components/ProgressAnalytics";
 import EvaluationStatistics from "../../../components/EvaluationStatistics";
@@ -50,16 +49,14 @@ const InstructorDashboard: React.FC = () => {
         return <CourseAssignment />;
       
       // Test Management
-      case "manage-tests":
-        return <TestManagement />;
       case "create-test":
-        return <TestManagement />; // Create test is part of test management
-      case "test-questions":
-        return <TestQuestionManagement />;
-      case "test-evaluation":
-        return <TestEvaluation />;
-      case "test-publishing":
-        return <TestPublishing />;
+        return <CreateTest />;
+      case "manage-test":
+        return <ManageTest />;
+      // case "test-questions":
+      //   return <TestQuestionManagement />;
+     
+      
       
       // Analytics & Reports
       case "student-analytics":
@@ -68,6 +65,7 @@ const InstructorDashboard: React.FC = () => {
         return <ProgressAnalytics />;
       case "test-analytics":
         return <TestAnalytics />;
+    
       case "evaluation-statistics":
         return <EvaluationStatistics />;
       
