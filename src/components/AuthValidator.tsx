@@ -28,7 +28,7 @@ export default function AuthValidationWrapper({
 
       if (!resp.valid || role === "student") {
         await signOut({ redirect: false });
-        window.location.href = "https://lms.nirudhyog.com/";
+        router.push("https://lms.nirudhyog.com/");
       }
       else {
         router.push(`/dashboard/${role}`);
