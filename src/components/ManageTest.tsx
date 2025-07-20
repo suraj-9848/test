@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+import { debounce } from "lodash";
 import {
   fetchTests,
   updateTest,
@@ -46,6 +47,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
     const quillContainerId = useRef<string>(
       `quill-editor-${Math.random().toString(36).substr(2, 9)}`
     );
+    const isUpdatingContent = useRef(false); // Flag to prevent recursive updates
 
     useEffect(() => {
       const container = containerRef.current;
@@ -71,16 +73,11 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           ],
           keyboard: {
             bindings: {
-              // Only override Tab to insert spaces, let Enter/Shift+Enter use Quill's default behavior
               tab: {
-                key: 9, // Tab key
-                handler: function (
-                  range: { index: number; length: number },
-                  context: { quill: Quill }
-                ): boolean {
-                  // Insert 4 spaces for Tab
-                  context.quill.insertText(range.index, "    ");
-                  context.quill.setSelection(range.index + 4, 0);
+                key: 9,
+                handler: function (range: { index: number; length: number }) {
+                  quillInstance.insertText(range.index, "    ");
+                  quillInstance.setSelection(range.index + 4, 0);
                   return true;
                 },
               },
@@ -95,58 +92,60 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
       // Set initial content if provided
       if (initialContent) {
         quillInstance.setContents(
-          quillInstance.clipboard.convert(
-            initialContent ? { html: initialContent } : { html: "" }
-          )
+          quillInstance.clipboard.convert({ html: initialContent })
         );
-        // Focus the editor
         quillInstance.focus();
       }
 
-      // Handle content changes
+      // Handle content changes with debouncing
       if (onChange) {
+        const debouncedOnChange = debounce((html: string) => {
+          if (!isUpdatingContent.current) {
+            onChange(html);
+          }
+        }, 300);
         quillInstance.on("text-change", () => {
-          onChange(quillInstance.root.innerHTML);
+          debouncedOnChange(quillInstance.root.innerHTML);
         });
+
+        // Cleanup event listener
+        return () => {
+          quillInstance.off("text-change");
+          debouncedOnChange.cancel();
+        };
       }
 
       // Ensure focus on mount
       quillInstance.focus();
 
       return () => {
-        // Cleanup: Remove event listeners and Quill instance
         if (quillRef.current) {
           quillRef.current.off("text-change");
           quillRef.current = null;
         }
-        // Remove the editor div
         if (container) {
           while (container.firstChild) {
             container.removeChild(container.firstChild);
           }
         }
       };
-      // Add initialContent and onChange to dependencies for correctness
-    }, [initialContent, onChange]);
+    }, [onChange]);
 
     // Update content when initialContent changes
     useEffect(() => {
-      if (quillRef.current && initialContent !== undefined) {
-        // Only update if content is different to avoid resetting cursor
+      if (quillRef.current && initialContent !== undefined && !isUpdatingContent.current) {
         const currentHtml = quillRef.current.root.innerHTML;
-        // Remove whitespace for comparison
         const normalize = (str: string) => str.replace(/\s+/g, "").trim();
         if (normalize(currentHtml) !== normalize(initialContent)) {
-          // Try to preserve selection if possible
+          isUpdatingContent.current = true;
           const selection = quillRef.current.getSelection();
           quillRef.current.setContents(
-            quillRef.current.clipboard.convert(
-              initialContent ? { html: initialContent } : { html: "" }
-            )
+            quillRef.current.clipboard.convert({ html: initialContent || "" })
           );
           if (selection) {
             quillRef.current.setSelection(selection);
           }
+          isUpdatingContent.current = false;
         }
       }
     }, [initialContent]);
@@ -154,19 +153,19 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
     // Expose getContent and setContent to parent
     useImperativeHandle(ref, () => ({
       getContent: () => {
-        if (quillRef.current) {
-          return quillRef.current.root.innerHTML;
-        }
-        return "";
+        return quillRef.current ? quillRef.current.root.innerHTML : "";
       },
       setContent: (content: string) => {
-        if (quillRef.current) {
+        if (quillRef.current && !isUpdatingContent.current) {
+          isUpdatingContent.current = true;
+          const selection = quillRef.current.getSelection();
           quillRef.current.setContents(
-            quillRef.current.clipboard.convert(
-              content ? { html: content } : { html: "" }
-            )
+            quillRef.current.clipboard.convert({ html: content || "" })
           );
-          // Focus the editor
+          if (selection) {
+            quillRef.current.setSelection(selection);
+          }
+          isUpdatingContent.current = false;
           quillRef.current.focus();
         }
       },
