@@ -1,8 +1,13 @@
+
 import React, { useEffect, useState } from "react";
 import { createTest } from "../api/testApi";
 import { instructorApi, Course, Batch } from "../api/instructorApi";
 
-const CreateTest: React.FC = () => {
+interface CreateTestProps {
+  setActiveSection?: (section: string) => void;
+}
+
+const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedBatch, setSelectedBatch] = useState("");
@@ -124,6 +129,10 @@ const CreateTest: React.FC = () => {
         showCorrectAnswers: false,
         maxAttempts: 1,
       });
+      // Redirect to Manage Test if setActiveSection is provided
+      if (setActiveSection) {
+        setTimeout(() => setActiveSection("manage-test"), 800); // short delay for UX
+      }
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       else setError("Failed to create test");

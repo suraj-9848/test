@@ -33,7 +33,6 @@ const InstructorDashboard: React.FC = () => {
 
   const renderContent = () => {
     switch (activeSection) {
-      
       // Course Management
       case "all-courses":
         return <AllCourses />;
@@ -47,17 +46,15 @@ const InstructorDashboard: React.FC = () => {
         return <MCQManagement />;
       case "course-assignment":
         return <CourseAssignment />;
-      
+
       // Test Management
       case "create-test":
-        return <CreateTest />;
+        return <CreateTest setActiveSection={setActiveSection} />;
       case "manage-test":
         return <ManageTest />;
       // case "test-questions":
       //   return <TestQuestionManagement />;
-     
-      
-      
+
       // Analytics & Reports
       case "student-analytics":
         return <StudentAnalytics />;
@@ -65,10 +62,10 @@ const InstructorDashboard: React.FC = () => {
         return <ProgressAnalytics />;
       case "test-analytics":
         return <TestAnalytics />;
-    
+
       case "evaluation-statistics":
         return <EvaluationStatistics />;
-      
+
       // Batch Management
       case "batch-management":
       case "create-batch":

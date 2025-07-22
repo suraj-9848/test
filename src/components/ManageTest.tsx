@@ -1,15 +1,7 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
-import Quill from "quill";
-import "quill/dist/quill.snow.css";
-import { debounce } from "lodash";
+import React, { useEffect, useState, useRef } from "react";
+import RichTextEditor, { RichTextEditorHandle } from "./RichTextEditor";
 import {
   fetchTests,
   updateTest,
@@ -28,155 +20,6 @@ import {
   Question,
 } from "../api/instructorApi";
 
-// Define the ref type for the RichTextEditor component
-export type RichTextEditorHandle = {
-  getContent: () => string;
-  setContent: (content: string) => void;
-};
-
-// Define props for RichTextEditor
-interface RichTextEditorProps {
-  initialContent?: string;
-  onChange?: (html: string) => void;
-}
-
-const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
-  ({ initialContent, onChange }, ref) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const quillRef = useRef<Quill | null>(null);
-    const quillContainerId = useRef<string>(
-      `quill-editor-${Math.random().toString(36).substr(2, 9)}`
-    );
-    const isUpdatingContent = useRef(false); // Flag to prevent recursive updates
-
-    useEffect(() => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      // Create a dedicated div for Quill
-      const editorDiv = document.createElement("div");
-      editorDiv.id = quillContainerId.current;
-      editorDiv.style.height = "300px";
-      editorDiv.style.border = "1px solid #ccc";
-      editorDiv.style.borderRadius = "4px";
-      container.appendChild(editorDiv);
-
-      // Initialize Quill
-      const quillInstance = new Quill(editorDiv, {
-        theme: "snow",
-        modules: {
-          toolbar: [
-            ["blockquote", "code-block"],
-            ["bold", "italic", "underline", "strike"],
-            [{ list: "ordered" }, { list: "bullet" }],
-            ["clean"],
-          ],
-          keyboard: {
-            bindings: {
-              tab: {
-                key: 9,
-                handler: function (range: { index: number; length: number }) {
-                  quillInstance.insertText(range.index, "    ");
-                  quillInstance.setSelection(range.index + 4, 0);
-                  return true;
-                },
-              },
-            },
-          },
-        },
-        placeholder: "Write your question here...",
-      });
-
-      quillRef.current = quillInstance;
-
-      // Set initial content if provided
-      if (initialContent) {
-        quillInstance.setContents(
-          quillInstance.clipboard.convert({ html: initialContent })
-        );
-        quillInstance.focus();
-      }
-
-      // Handle content changes with debouncing
-      if (onChange) {
-        const debouncedOnChange = debounce((html: string) => {
-          if (!isUpdatingContent.current) {
-            onChange(html);
-          }
-        }, 300);
-        quillInstance.on("text-change", () => {
-          debouncedOnChange(quillInstance.root.innerHTML);
-        });
-
-        // Cleanup event listener
-        return () => {
-          quillInstance.off("text-change");
-          debouncedOnChange.cancel();
-        };
-      }
-
-      // Ensure focus on mount
-      quillInstance.focus();
-
-      return () => {
-        if (quillRef.current) {
-          quillRef.current.off("text-change");
-          quillRef.current = null;
-        }
-        if (container) {
-          while (container.firstChild) {
-            container.removeChild(container.firstChild);
-          }
-        }
-      };
-    }, [onChange]);
-
-    // Update content when initialContent changes
-    useEffect(() => {
-      if (quillRef.current && initialContent !== undefined && !isUpdatingContent.current) {
-        const currentHtml = quillRef.current.root.innerHTML;
-        const normalize = (str: string) => str.replace(/\s+/g, "").trim();
-        if (normalize(currentHtml) !== normalize(initialContent)) {
-          isUpdatingContent.current = true;
-          const selection = quillRef.current.getSelection();
-          quillRef.current.setContents(
-            quillRef.current.clipboard.convert({ html: initialContent || "" })
-          );
-          if (selection) {
-            quillRef.current.setSelection(selection);
-          }
-          isUpdatingContent.current = false;
-        }
-      }
-    }, [initialContent]);
-
-    // Expose getContent and setContent to parent
-    useImperativeHandle(ref, () => ({
-      getContent: () => {
-        return quillRef.current ? quillRef.current.root.innerHTML : "";
-      },
-      setContent: (content: string) => {
-        if (quillRef.current && !isUpdatingContent.current) {
-          isUpdatingContent.current = true;
-          const selection = quillRef.current.getSelection();
-          quillRef.current.setContents(
-            quillRef.current.clipboard.convert({ html: content || "" })
-          );
-          if (selection) {
-            quillRef.current.setSelection(selection);
-          }
-          isUpdatingContent.current = false;
-          quillRef.current.focus();
-        }
-      },
-    }));
-
-    return <div ref={containerRef} />;
-  }
-);
-
-RichTextEditor.displayName = "RichTextEditor";
-
 const ManageTest: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -186,6 +29,16 @@ const ManageTest: React.FC = () => {
   const [selectedTestId, setSelectedTestId] = useState<string>("");
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editMaxMarks, setEditMaxMarks] = useState<number>(1);
+  const [editPassingMarks, setEditPassingMarks] = useState<number>(0);
+  const [editDuration, setEditDuration] = useState<number>(1);
+  const [editStartDate, setEditStartDate] = useState<string>("");
+  const [editEndDate, setEditEndDate] = useState<string>("");
+  const [editShuffleQuestions, setEditShuffleQuestions] =
+    useState<boolean>(false);
+  const [editShowResults, setEditShowResults] = useState<boolean>(false);
+  const [editShowCorrectAnswers, setEditShowCorrectAnswers] =
+    useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -207,7 +60,6 @@ const ManageTest: React.FC = () => {
   const editorRef = useRef<RichTextEditorHandle>(null);
 
   useEffect(() => {
-    setLoading(true);
     instructorApi
       .getBatches()
       .then((res) => {
@@ -285,11 +137,47 @@ const ManageTest: React.FC = () => {
     }
   }, [selectedBatch, selectedCourse]);
 
+  // Helper to convert UTC ISO string to local datetime-local string
+  function utcToLocalDatetimeInput(isoString: string | undefined): string {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    // Get local date/time in YYYY-MM-DDTHH:mm format
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const yyyy = date.getFullYear();
+    const mm = pad(date.getMonth() + 1);
+    const dd = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  }
+
+  // Helper to convert local datetime-local string to UTC ISO string
+  function localDatetimeInputToUTC(localString: string): string {
+    if (!localString) return "";
+    // localString is in 'YYYY-MM-DDTHH:mm' format
+    const localDate = new Date(localString);
+    return localDate.toISOString();
+  }
+
   const handleSelectTest = (testId: string) => {
     const test = tests.find((t) => t.id === testId);
     setSelectedTestId(testId);
     setEditTitle(test?.title || "");
     setEditDescription(test?.description || "");
+    setEditMaxMarks(typeof test?.maxMarks === "number" ? test.maxMarks : 1);
+    setEditPassingMarks(
+      typeof test?.passingMarks === "number" ? test.passingMarks : 0
+    );
+    setEditDuration(
+      typeof test?.durationInMinutes === "number" ? test.durationInMinutes : 1
+    );
+    setEditStartDate(
+      test?.startDate ? utcToLocalDatetimeInput(test.startDate) : ""
+    );
+    setEditEndDate(test?.endDate ? utcToLocalDatetimeInput(test.endDate) : "");
+    setEditShuffleQuestions(!!test?.shuffleQuestions);
+    setEditShowResults(!!test?.showResults);
+    setEditShowCorrectAnswers(!!test?.showCorrectAnswers);
     setError("");
     setSuccess("");
   };
@@ -305,17 +193,32 @@ const ManageTest: React.FC = () => {
       await updateTest(selectedBatch, selectedCourse, selectedTestId, {
         title: editTitle,
         description: editDescription,
-        maxMarks: selectedTest.maxMarks,
-        passingMarks: selectedTest.passingMarks,
-        durationInMinutes: selectedTest.durationInMinutes,
-        startDate: selectedTest.startDate,
-        endDate: selectedTest.endDate,
+        maxMarks: editMaxMarks,
+        passingMarks: editPassingMarks,
+        durationInMinutes: editDuration,
+        startDate: editStartDate ? localDatetimeInputToUTC(editStartDate) : "",
+        endDate: editEndDate ? localDatetimeInputToUTC(editEndDate) : "",
+        shuffleQuestions: editShuffleQuestions,
+        showResults: editShowResults,
+        showCorrectAnswers: editShowCorrectAnswers,
       });
       setSuccess("Test updated successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
         Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
       );
+      // Close the edit dialog and reset fields
+      setSelectedTestId("");
+      setEditTitle("");
+      setEditDescription("");
+      setEditMaxMarks(1);
+      setEditPassingMarks(0);
+      setEditDuration(1);
+      setEditStartDate("");
+      setEditEndDate("");
+      setEditShuffleQuestions(false);
+      setEditShowResults(false);
+      setEditShowCorrectAnswers(false);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -425,7 +328,6 @@ const ManageTest: React.FC = () => {
       setEditingQuestionId("");
       editorRef.current?.setContent("");
     } catch (err: unknown) {
-      console.log("Error adding/updating question:", err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -460,15 +362,16 @@ const ManageTest: React.FC = () => {
     editorRef.current?.setContent(q.question_text || "");
   };
 
-  const handleTypeChange = (type: "MCQ" | "DESCRIPTIVE" | "CODE") => {
-    setQuestionForm((f) => ({
-      ...f,
-      type,
-      question_text: "",
-      options: type === "MCQ" ? [{ text: "", correct: false }] : [],
-    }));
-    editorRef.current?.setContent("");
-  };
+  // Only MCQ type allowed, so handleTypeChange is not needed
+  // const handleTypeChange = (type: "MCQ" | "DESCRIPTIVE" | "CODE") => {
+  //   setQuestionForm((f) => ({
+  //     ...f,
+  //     type,
+  //     question_text: "",
+  //     options: type === "MCQ" ? [{ text: "", correct: false }] : [],
+  //   }));
+  //   editorRef.current?.setContent("");
+  // };
 
   const handleDeleteQuestion = async (qid: string) => {
     setLoading(true);
@@ -506,9 +409,8 @@ const ManageTest: React.FC = () => {
     value: string | boolean
   ) => {
     setQuestionForm((prev) => {
-      const options = prev.options.map((opt, i) =>
-        i === idx ? { ...opt, [field]: value } : opt
-      );
+      const options = [...prev.options];
+      options[idx] = { ...options[idx], [field]: value };
       return { ...prev, options };
     });
   };
@@ -536,20 +438,25 @@ const ManageTest: React.FC = () => {
       const testQuestions = Array.isArray(res.data?.questions)
         ? res.data.questions
         : [];
+      // Debug log
+      console.log("[DEBUG] testQuestions before publish:", testQuestions);
       if (testQuestions.length === 0) {
         setError("Cannot publish: Test must have at least one question.");
         setLoading(false);
         return;
       }
-      if (
-        testQuestions.some(
-          (q: { type: string; options?: { correct: boolean }[] }) =>
-            q.type === "MCQ" &&
-            (!q.options || q.options.filter((o) => o.correct).length === 0)
-        )
-      ) {
+      // Find MCQ questions with no correct answer
+      const mcqWithNoCorrect = testQuestions.filter(
+        (q: { type: string; options?: { correct: boolean }[] }) =>
+          q.type === "MCQ" &&
+          (!q.options || q.options.filter((o) => o.correct).length === 0)
+      );
+      if (mcqWithNoCorrect.length > 0) {
         setError(
-          "Cannot publish: All MCQ questions must have at least one correct answer."
+          "Cannot publish: All MCQ questions must have at least one correct answer. Debug: Offending question(s): " +
+            mcqWithNoCorrect
+              .map((q: Question) => q.question_text || q.id)
+              .join(", ")
         );
         setLoading(false);
         return;
@@ -623,20 +530,98 @@ const ManageTest: React.FC = () => {
           <h3 className="text-xl font-semibold mb-4 text-gray-800">
             Edit Test
           </h3>
-          <div className="grid grid-cols-1 gap-4">
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Test Title"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Test Description"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Test Title"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Test Description"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                value={editMaxMarks ?? ""}
+                min={1}
+                onChange={(e) => setEditMaxMarks(Number(e.target.value))}
+                placeholder="Max Marks"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                value={editPassingMarks ?? ""}
+                min={0}
+                onChange={(e) => setEditPassingMarks(Number(e.target.value))}
+                placeholder="Passing Marks"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                value={editDuration ?? ""}
+                min={1}
+                onChange={(e) => setEditDuration(Number(e.target.value))}
+                placeholder="Duration (minutes)"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex flex-col gap-4">
+              <input
+                type="datetime-local"
+                value={editStartDate}
+                onChange={(e) => setEditStartDate(e.target.value)}
+                placeholder="Start Date"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                step="60"
+              />
+              <input
+                type="datetime-local"
+                value={editEndDate}
+                onChange={(e) => setEditEndDate(e.target.value)}
+                placeholder="End Date"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                step="60"
+              />
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editShuffleQuestions}
+                  onChange={(e) => setEditShuffleQuestions(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Shuffle Questions</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editShowResults}
+                  onChange={(e) => setEditShowResults(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">
+                  Show Results After Submission
+                </span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editShowCorrectAnswers}
+                  onChange={(e) => setEditShowCorrectAnswers(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">
+                  Show Correct Answers After Submission
+                </span>
+              </label>
+              {/* Max Attempts removed: not supported by backend or types */}
+            </div>
+          </div>
+          <div className="mt-4">
             <button
               onClick={handleUpdateTest}
               disabled={loading}
@@ -795,25 +780,14 @@ const ManageTest: React.FC = () => {
                 }}
               />
             </div>
-            <input type="hidden" required value={questionForm.question_text} />
-            <div className="flex gap-6 mb-4">
-              {(
-                ["MCQ", "DESCRIPTIVE", "CODE"] as Array<
-                  "MCQ" | "DESCRIPTIVE" | "CODE"
-                >
-              ).map((type) => (
-                <label key={type} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="type"
-                    checked={questionForm.type === type}
-                    onChange={() => handleTypeChange(type)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-700">{type}</span>
-                </label>
-              ))}
-            </div>
+            <input
+              type="hidden"
+              value={questionForm.question_text}
+              required
+              readOnly
+            />
+            {/* Only MCQ type allowed, so hide type selection */}
+            <input type="hidden" name="type" value="MCQ" />
             {questionForm.type === "MCQ" && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
