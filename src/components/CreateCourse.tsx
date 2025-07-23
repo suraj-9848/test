@@ -21,7 +21,6 @@ const CreateCourse: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [backendJwt, setBackendJwt] = useState<string>("");
   
 
   // Fetch user profile and get JWT
@@ -350,13 +349,18 @@ const CreateCourse: React.FC = () => {
                     const formDataObj = new FormData();
                     formDataObj.append("logo", file); 
                     try {
+                      const googleIdToken = (session as { id_token?: string })?.id_token;
+                      if (!googleIdToken) {
+                        console.error("No Google ID token found");
+                        return;
+                      }
                       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:5000";
                       const res = await fetch(`${baseUrl}/api/courseProgress/upload-logo`, {
                         method: "POST",
                         body: formDataObj,
                         headers: {
                           // Add JWT auth only if needed
-                          Authorization: `Bearer ${backendJwt}`, // only if backend requires auth
+                          Authorization: `Bearer ${googleIdToken}`, // only if backend requires auth
                         },
                       });
                      if (!res || typeof res.status !== "number") {
