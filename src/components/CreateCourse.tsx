@@ -21,8 +21,10 @@ const CreateCourse: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [backendJwt, setBackendJwt] = useState<string>("");
+  
 
-  // Fetch user profile and set instructor name
+  // Fetch user profile and get JWT
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -86,6 +88,7 @@ const CreateCourse: React.FC = () => {
         newErrors.end_date = "End date must be after start date";
       }
     }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -105,6 +108,7 @@ const CreateCourse: React.FC = () => {
         is_public: false,
         instructor_name: formData.instructor_name,
       });
+
       alert("Course created successfully!");
     } catch (err: unknown) {
       console.error("Failed to create course:", err);
@@ -331,6 +335,55 @@ const CreateCourse: React.FC = () => {
                     {errors.instructor_name}
                   </p>
                 )}
+              </div>
+              <div>
+                <label className="course-logo-upload flex items-center space-x-2 block text-sm font-semibold text-slate-700">
+                  Course Logo 
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    const formDataObj = new FormData();
+                    formDataObj.append("logo", file); 
+                    try {
+                      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:5000";
+                      const res = await fetch(`${baseUrl}/api/courseProgress/upload-logo`, {
+                        method: "POST",
+                        body: formDataObj,
+                        headers: {
+                          // Add JWT auth only if needed
+                          Authorization: `Bearer ${backendJwt}`, // only if backend requires auth
+                        },
+                      });
+                     if (!res || typeof res.status !== "number") {
+                        console.error("Unexpected upload response:", res);
+                        throw new Error("Upload response is invalid");
+                      }
+                      if (![200, 201].includes(res.status)) {
+                        const errorText = await res.text?.();
+                        console.error("Upload failed with status:", res.status, "| Response:", errorText);
+                        throw new Error("Upload failed");
+                      }
+                      const data = await res.json();
+                      console.log("Uploaded!", data);
+
+                      // Save the uploaded logo URL to form state
+                      setFormData((prev) => ({
+                        ...prev,
+                        logo: data.logoUrl, // or adjust to whatever field your backend returns
+                      }));
+
+                    } catch (err) {
+                      console.error("Upload Error", err);
+                    }
+                  }}
+                  className="text-sm text-slate-700 bg-white/80 border border-slate-300 rounded-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 max-w-[220px]"
+                  disabled={submitting}
+                />
               </div>
 
               <div>
