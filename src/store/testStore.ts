@@ -143,14 +143,15 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await instructorApi.createTest(
+        batchId ?? "",
         courseId,
-        testData,
-        batchId
+        testData
       );
       const currentTests = get().tests;
       set({
-        tests: [...currentTests, response.test],
+        tests: [...currentTests, ...(response.tests ?? [])],
         isLoading: false,
+        error: null,
       });
     } catch (error) {
       set({
@@ -181,11 +182,8 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
       );
       set({
         tests: updatedTests,
-        selectedTest:
-          get().selectedTest?.id === testId
-            ? response.test
-            : get().selectedTest,
         isLoading: false,
+        error: null,
       });
     } catch (error) {
       set({

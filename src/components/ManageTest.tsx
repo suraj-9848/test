@@ -23,6 +23,18 @@ import {
 const ManageTest: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  type UpdateTestPayload = {
+    title: string;
+    description: string;
+    maxMarks: number;
+    passingMarks: number;
+    durationInMinutes: number;
+    startDate: string;
+    endDate: string;
+    shuffleQuestions: boolean;
+    showResults: boolean;
+    showCorrectAnswers: boolean;
+  };
   const [selectedBatch, setSelectedBatch] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [tests, setTests] = useState<Test[]>([]);
@@ -141,7 +153,6 @@ const ManageTest: React.FC = () => {
   function utcToLocalDatetimeInput(isoString: string | undefined): string {
     if (!isoString) return "";
     const date = new Date(isoString);
-    // Get local date/time in YYYY-MM-DDTHH:mm format
     const pad = (n: number) => n.toString().padStart(2, "0");
     const yyyy = date.getFullYear();
     const mm = pad(date.getMonth() + 1);
@@ -154,7 +165,6 @@ const ManageTest: React.FC = () => {
   // Helper to convert local datetime-local string to UTC ISO string
   function localDatetimeInputToUTC(localString: string): string {
     if (!localString) return "";
-    // localString is in 'YYYY-MM-DDTHH:mm' format
     const localDate = new Date(localString);
     return localDate.toISOString();
   }
@@ -190,24 +200,48 @@ const ManageTest: React.FC = () => {
     try {
       const selectedTest = tests.find((t) => t.id === selectedTestId);
       if (!selectedTest) throw new Error("Selected test not found");
-      await updateTest(selectedBatch, selectedCourse, selectedTestId, {
-        title: editTitle,
-        description: editDescription,
-        maxMarks: editMaxMarks,
-        passingMarks: editPassingMarks,
-        durationInMinutes: editDuration,
-        startDate: editStartDate ? localDatetimeInputToUTC(editStartDate) : "",
-        endDate: editEndDate ? localDatetimeInputToUTC(editEndDate) : "",
-        shuffleQuestions: editShuffleQuestions,
-        showResults: editShowResults,
-        showCorrectAnswers: editShowCorrectAnswers,
-      });
+      const isPublished = selectedTest.status === "PUBLISHED";
+      let payload: UpdateTestPayload;
+      if (isPublished) {
+        if (!editStartDate || !editEndDate) {
+          throw new Error(
+            "Both start and end date/time are required for published tests."
+          );
+        }
+        const startDateISO = localDatetimeInputToUTC(editStartDate) || "";
+        const endDateISO = localDatetimeInputToUTC(editEndDate) || "";
+        payload = {
+          title: selectedTest?.title || "",
+          description: selectedTest?.description || "",
+          maxMarks: selectedTest?.maxMarks ?? 1,
+          passingMarks: selectedTest?.passingMarks ?? 0,
+          durationInMinutes: selectedTest?.durationInMinutes ?? 1,
+          startDate: startDateISO,
+          endDate: endDateISO,
+          shuffleQuestions: selectedTest?.shuffleQuestions ?? false,
+          showResults: selectedTest?.showResults ?? false,
+          showCorrectAnswers: selectedTest?.showCorrectAnswers ?? false,
+        };
+      } else {
+        payload = {
+          title: editTitle,
+          description: editDescription,
+          maxMarks: editMaxMarks,
+          passingMarks: editPassingMarks,
+          durationInMinutes: editDuration,
+          startDate: localDatetimeInputToUTC(editStartDate || ""),
+          endDate: localDatetimeInputToUTC(editEndDate || ""),
+          shuffleQuestions: editShuffleQuestions,
+          showResults: editShowResults,
+          showCorrectAnswers: editShowCorrectAnswers,
+        };
+      }
+      await updateTest(selectedBatch, selectedCourse, selectedTestId, payload);
       setSuccess("Test updated successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
         Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
       );
-      // Close the edit dialog and reset fields
       setSelectedTestId("");
       setEditTitle("");
       setEditDescription("");
@@ -362,17 +396,6 @@ const ManageTest: React.FC = () => {
     editorRef.current?.setContent(q.question_text || "");
   };
 
-  // Only MCQ type allowed, so handleTypeChange is not needed
-  // const handleTypeChange = (type: "MCQ" | "DESCRIPTIVE" | "CODE") => {
-  //   setQuestionForm((f) => ({
-  //     ...f,
-  //     type,
-  //     question_text: "",
-  //     options: type === "MCQ" ? [{ text: "", correct: false }] : [],
-  //   }));
-  //   editorRef.current?.setContent("");
-  // };
-
   const handleDeleteQuestion = async (qid: string) => {
     setLoading(true);
     setError("");
@@ -438,14 +461,12 @@ const ManageTest: React.FC = () => {
       const testQuestions = Array.isArray(res.data?.questions)
         ? res.data.questions
         : [];
-      // Debug log
       console.log("[DEBUG] testQuestions before publish:", testQuestions);
       if (testQuestions.length === 0) {
         setError("Cannot publish: Test must have at least one question.");
         setLoading(false);
         return;
       }
-      // Find MCQ questions with no correct answer
       const mcqWithNoCorrect = testQuestions.filter(
         (q: { type: string; options?: { correct: boolean }[] }) =>
           q.type === "MCQ" &&
@@ -525,113 +546,152 @@ const ManageTest: React.FC = () => {
         </div>
       </div>
 
-      {selectedTestId && (
-        <div className="mb-8 p-6 bg-gray-50 rounded-lg">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">
-            Edit Test
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-4">
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Test Title"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Test Description"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                value={editMaxMarks ?? ""}
-                min={1}
-                onChange={(e) => setEditMaxMarks(Number(e.target.value))}
-                placeholder="Max Marks"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                value={editPassingMarks ?? ""}
-                min={0}
-                onChange={(e) => setEditPassingMarks(Number(e.target.value))}
-                placeholder="Passing Marks"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                value={editDuration ?? ""}
-                min={1}
-                onChange={(e) => setEditDuration(Number(e.target.value))}
-                placeholder="Duration (minutes)"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
+      {selectedTestId &&
+        (() => {
+          const test = tests.find((t) => t.id === selectedTestId);
+          const isPublished = test?.status === "PUBLISHED";
+          return (
+            <div className="mb-8 p-6 bg-gray-50 rounded-lg">
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                Edit Test
+              </h3>
+              {isPublished ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4">
+                    <input
+                      type="datetime-local"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      placeholder="Start Date"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      step="60"
+                      required
+                    />
+                    <input
+                      type="datetime-local"
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      placeholder="End Date"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      step="60"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4">
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      placeholder="Test Title"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder="Test Description"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="number"
+                      value={editMaxMarks ?? ""}
+                      min={1}
+                      onChange={(e) => setEditMaxMarks(Number(e.target.value))}
+                      placeholder="Max Marks"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                    <input
+                      type="number"
+                      value={editPassingMarks ?? ""}
+                      min={0}
+                      onChange={(e) =>
+                        setEditPassingMarks(Number(e.target.value))
+                      }
+                      placeholder="Passing Marks"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                    <input
+                      type="number"
+                      value={editDuration ?? ""}
+                      min={1}
+                      onChange={(e) => setEditDuration(Number(e.target.value))}
+                      placeholder="Duration (minutes)"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    <input
+                      type="datetime-local"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      placeholder="Start Date"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      step="60"
+                    />
+                    <input
+                      type="datetime-local"
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      placeholder="End Date"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      step="60"
+                    />
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editShuffleQuestions}
+                        onChange={(e) =>
+                          setEditShuffleQuestions(e.target.checked)
+                        }
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">Shuffle Questions</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editShowResults}
+                        onChange={(e) => setEditShowResults(e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">
+                        Show Results After Submission
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editShowCorrectAnswers}
+                        onChange={(e) =>
+                          setEditShowCorrectAnswers(e.target.checked)
+                        }
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">
+                        Show Correct Answers After Submission
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+              <div className="mt-4">
+                <button
+                  onClick={handleUpdateTest}
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+                >
+                  Update Test
+                </button>
+              </div>
             </div>
-            <div className="flex flex-col gap-4">
-              <input
-                type="datetime-local"
-                value={editStartDate}
-                onChange={(e) => setEditStartDate(e.target.value)}
-                placeholder="Start Date"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                step="60"
-              />
-              <input
-                type="datetime-local"
-                value={editEndDate}
-                onChange={(e) => setEditEndDate(e.target.value)}
-                placeholder="End Date"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                step="60"
-              />
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={editShuffleQuestions}
-                  onChange={(e) => setEditShuffleQuestions(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Shuffle Questions</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={editShowResults}
-                  onChange={(e) => setEditShowResults(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">
-                  Show Results After Submission
-                </span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={editShowCorrectAnswers}
-                  onChange={(e) => setEditShowCorrectAnswers(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">
-                  Show Correct Answers After Submission
-                </span>
-              </label>
-              {/* Max Attempts removed: not supported by backend or types */}
-            </div>
-          </div>
-          <div className="mt-4">
-            <button
-              onClick={handleUpdateTest}
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
-            >
-              Update Test
-            </button>
-          </div>
-        </div>
-      )}
+          );
+        })()}
 
       {!showQuestionManager ? (
         <div className="space-y-6">
@@ -682,8 +742,7 @@ const ManageTest: React.FC = () => {
                   <div className="flex gap-3 mt-4 md:mt-0">
                     <button
                       onClick={() => handleSelectTest(test.id)}
-                      disabled={test.status === "PUBLISHED"}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
                       Edit
                     </button>
@@ -786,7 +845,6 @@ const ManageTest: React.FC = () => {
               required
               readOnly
             />
-            {/* Only MCQ type allowed, so hide type selection */}
             <input type="hidden" name="type" value="MCQ" />
             {questionForm.type === "MCQ" && (
               <div className="mb-4">

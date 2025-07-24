@@ -293,26 +293,29 @@ export const instructorApi = {
 
   // Test Management
   createTest: async (
-    courseId: string,
-    testData: CreateTestRequest,
-    batchId?: string
-  ): Promise<{ test: Test }> => {
+    batchId: string,
+    courseIds: string[] | string,
+    testData: CreateTestRequest
+  ): Promise<{ tests: Test[] }> => {
     const headers = await getAuthHeaders();
-    const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
+    const actualBatchId = batchId || "batch-2024";
+    // Always send courseIds as array for multi-course support
+    const payload = {
+      ...testData,
+      courseIds: Array.isArray(courseIds) ? courseIds : [courseIds],
+    };
     const response = await fetch(
-      `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests`,
+      `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/bulk/tests`,
       {
         method: "POST",
         headers,
-        body: JSON.stringify(testData),
+        body: JSON.stringify(payload),
       }
     );
-
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to create test");
     }
-
     return response.json();
   },
 

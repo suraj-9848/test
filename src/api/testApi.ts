@@ -59,16 +59,21 @@ import type { CreateTestRequest, CreateQuestionRequest } from "./instructorApi";
 
 export async function createTest(
   batchId: string,
-  courseId: string,
+  courseIds: string[] | string,
   data: CreateTestRequest
 ) {
   const headers = await getAuthHeaders();
+  // Always send courseIds as array for multi-course support
+  const payload = {
+    ...data,
+    courseIds: Array.isArray(courseIds) ? courseIds : [courseIds],
+  };
   const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
+    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/bulk/tests`,
     {
       method: "POST",
       headers,
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     }
   );
   if (!res.ok) throw new Error("Failed to create test");

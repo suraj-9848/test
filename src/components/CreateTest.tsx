@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { createTest } from "../api/testApi";
 import { instructorApi, Course, Batch } from "../api/instructorApi";
@@ -11,7 +10,7 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedBatch, setSelectedBatch] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -23,7 +22,7 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
     shuffleQuestions: false,
     showResults: true,
     showCorrectAnswers: false,
-    maxAttempts: 1, // FIELD for backend
+    maxAttempts: 1,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -40,10 +39,9 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
     if (selectedBatch) {
       instructorApi
         .getCourses()
-        .then((res: { courses: import("../api/instructorApi").Course[] }) => {
+        .then((res: { courses: Course[] }) => {
           const batchIdStr = String(selectedBatch);
           const filtered = res.courses.filter((course) => {
-            // Accept possible batch_id, batchId, or batch.id fields
             const batch_id = (course as { batch_id?: string }).batch_id;
             const batchId = (course as { batchId?: string }).batchId;
             const batch = (course as { batch?: { id?: string } }).batch;
@@ -61,22 +59,22 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
         });
     } else {
       setCourses([]);
-      setSelectedCourse("");
+      setSelectedCourses([]);
     }
   }, [selectedBatch]);
 
-  // Change Start/End Date to support date+time
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, type, value } = e.target;
-    if (type === "checkbox") {
+    if (type === "checkbox" && name !== "courseCheckbox") {
       setForm({
         ...form,
         [name]: (e.target as HTMLInputElement).checked,
       });
-    } else if (name === "numberOfAttempts" || name === "maxAttempts") {
-      // Always store as a number, fallback to 1 if empty or invalid
+    } else if (name === "maxAttempts") {
       const num = value === "" ? 1 : Math.max(1, Number(value));
       setForm({
         ...form,
@@ -90,12 +88,19 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
     }
   };
 
+  const handleCourseCheckbox = (courseId: string) => {
+    setSelectedCourses((prev) =>
+      prev.includes(courseId)
+        ? prev.filter((id) => id !== courseId)
+        : [...prev, courseId]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setSuccess("");
-    // Validate required fields
     if (
       !form.title ||
       !form.maxMarks ||
@@ -105,17 +110,18 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
       !form.endDate ||
       !form.maxAttempts ||
       isNaN(form.maxAttempts) ||
-      form.maxAttempts < 1
+      form.maxAttempts < 1 ||
+      selectedCourses.length === 0
     ) {
       setError(
-        "Please fill all required fields, including number of attempts."
+        "Please fill all required fields, including number of attempts and select at least one course."
       );
       setLoading(false);
       return;
     }
     try {
-      await createTest(selectedBatch, selectedCourse, form);
-      setSuccess("Test created successfully!");
+      await createTest(selectedBatch, selectedCourses, form);
+      setSuccess("Test(s) created successfully!");
       setForm({
         title: "",
         description: "",
@@ -129,9 +135,9 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
         showCorrectAnswers: false,
         maxAttempts: 1,
       });
-      // Redirect to Manage Test if setActiveSection is provided
+      setSelectedCourses([]);
       if (setActiveSection) {
-        setTimeout(() => setActiveSection("manage-test"), 800); // short delay for UX
+        setTimeout(() => setActiveSection("manage-test"), 800);
       }
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
@@ -168,30 +174,37 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-700">
-              Course
+              Courses (Select one or more)
             </label>
-            <select
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              required
-              disabled={!selectedBatch}
-              className="w-full px-4 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-            >
-              <option value="">Select Course</option>
+            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50 p-3">
               {courses.length === 0 && selectedBatch && (
-                <option value="" disabled>
+                <span className="text-slate-400 text-sm">
                   No courses available for this batch
-                </option>
+                </span>
               )}
               {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
+                <label
+                  key={course.id}
+                  className="inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    name="courseCheckbox"
+                    checked={selectedCourses.includes(course.id)}
+                    onChange={() => handleCourseCheckbox(course.id)}
+                    disabled={!selectedBatch}
+                    className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-slate-700 text-sm">{course.title}</span>
+                </label>
               ))}
-            </select>
+            </div>
+            <span className="text-xs text-slate-500">
+              Check to select one or more courses
+            </span>
           </div>
         </div>
-        {selectedBatch && selectedCourse && (
+        {selectedBatch && selectedCourses.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold mb-2 text-slate-700">
