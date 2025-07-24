@@ -128,7 +128,7 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
 
   return (
     <div
-      className={`h-screen bg-gradient-to-br from-slate-50 to-slate-100 shadow-2xl border-r border-slate-200 transition-all duration-300 ease-in-out
+      className={`h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-slate-100 shadow-2xl border-r border-slate-200 transition-all duration-300 ease-in-out
         ${collapsed ? "w-20" : "w-80"} flex flex-col`}
     >
       {/* Header */}

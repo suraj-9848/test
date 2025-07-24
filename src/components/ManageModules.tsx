@@ -240,6 +240,16 @@ const ManageModules: React.FC = () => {
     setEditingModule(null);
   };
 
+  // Update the order when the create modal opens and modules array changes
+  useEffect(() => {
+    if (showCreateModal && !editingModule) {
+      setModuleForm(prev => ({
+        ...prev,
+        order: modules.length + 1
+      }));
+    }
+  }, [showCreateModal, modules.length, editingModule]);
+
   const resetContentForm = () => {
     setContentForm({
       dayNumber: 1,
@@ -338,7 +348,7 @@ const ManageModules: React.FC = () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
       await axios.post(
-        `${baseUrl}/api/instructor/batches/${selectedBatchId}/courses/${selectedCourseId}/modules/${selectedModuleForMCQ.id}/mcq`,
+        `${baseUrl}/api/instructor/courses/${selectedCourseId}/modules/${selectedModuleForMCQ.id}/mcq`,
         mcqForm,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
@@ -384,12 +394,23 @@ const ManageModules: React.FC = () => {
   };
 
   // Handle adding content to module
-  const handleAddContent = (module: Module) => {
+  const handleAddContent = async (module: Module) => {
     setSelectedModuleForContent(module);
+    
+    // Calculate next day number from existing module data
+    let nextDayNumber = 1;
+    if (module.days && module.days.length > 0) {
+      // Find the highest day number and add 1
+      const maxDayNumber = Math.max(...module.days.map(day => day.dayNumber));
+      nextDayNumber = maxDayNumber + 1;
+    }
+    
+    // Set the form with the calculated next day number
     setContentForm({
-      dayNumber: (module.days?.length || 0) + 1,
+      dayNumber: nextDayNumber,
       content: "",
     });
+    
     setShowContentModal(true);
   };
 
@@ -629,7 +650,9 @@ const ManageModules: React.FC = () => {
                           </h5>
                           {module.days && module.days.length > 0 ? (
                             <div className="space-y-2 max-h-40 overflow-y-auto">
-                              {module.days.map((day) => (
+                              {module.days
+                                .sort((a, b) => a.dayNumber - b.dayNumber)
+                                .map((day) => (
                                 <div
                                   key={day.id}
                                   className="p-2 bg-slate-50 rounded text-sm"
@@ -771,7 +794,7 @@ const ManageModules: React.FC = () => {
                   }}
                   className="px-6 py-3 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-all duration-200"
                 >
-                  Cancel
+                  Done
                 </button>
                 <button
                   type="submit"
@@ -883,7 +906,7 @@ const ManageModules: React.FC = () => {
                 </label>
                 <div className="space-y-3">
                   {mcqForm.options.map((option, index) => (
-                    <div key={index} className="flex items-center space-x-3">
+                    <div key={`option-${index}-${option.substring(0, 20)}`} className="flex items-center space-x-3">
                       <input
                         type="radio"
                         name="correctAnswer"

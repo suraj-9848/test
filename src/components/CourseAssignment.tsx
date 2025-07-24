@@ -80,13 +80,12 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
     setSuccess("");
 
     try {
-      await instructorApi.assignCoursesToStudents(
+      const result = await instructorApi.assignCoursesToStudents(
         selectedCourses,
         selectedStudents
       );
-      setSuccess(
-        `Successfully assigned ${selectedCourses.length} course(s) to ${selectedStudents.length} student(s)`
-      );
+      
+      setSuccess(result.message);
       setSelectedCourses([]);
       setSelectedStudents([]);
 
@@ -95,7 +94,9 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
         fetchStudentAssignments(studentId);
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to assign courses");
+      const errorMessage = err instanceof Error ? err.message : "Failed to assign courses";
+      console.error("Course assignment error:", errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

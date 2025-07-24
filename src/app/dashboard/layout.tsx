@@ -1,3 +1,5 @@
+"use client";
+
 import AuthValidationWrapper from "@/components/AuthValidator";
 import Navbar from "@/components/Navbar";
 
@@ -8,13 +10,10 @@ export default function Layout({
 }>) {
   return (
     <div className="flex flex-col">
-  
-        <Navbar/>
-        <AuthValidationWrapper>
+      <Navbar />
+      <AuthValidationWrapper>
         {children}
-        </AuthValidationWrapper>
-      
+      </AuthValidationWrapper>
     </div>
-       
   );
 }

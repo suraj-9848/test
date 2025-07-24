@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { FaBook, FaSave, FaTimes } from "react-icons/fa";
+import { FaSave } from "react-icons/fa";
 import { useCourseStore, CreateCourseData } from "@/store/courseStore";
 import { useSession } from "next-auth/react";
 import { instructorApi } from "@/api/instructorApi";
 
-const CreateCourse: React.FC = () => {
+interface CreateCourseProps {
+  onCancel?: () => void;
+  onSuccess?: () => void;
+}
+
+const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
   const { data: session } = useSession();
   const { batches, loading, error, fetchBatches, createCourse, clearError } =
     useCourseStore();
@@ -78,8 +83,8 @@ const CreateCourse: React.FC = () => {
     if (!formData.title.trim()) newErrors.title = "Course title is required";
     if (!formData.start_date) newErrors.start_date = "Start date is required";
     if (!formData.end_date) newErrors.end_date = "End date is required";
-    if (!formData.batch_ids || formData.batch_ids.length === 0)
-      newErrors.batch_ids = "At least one batch is required";
+    if (!formData.is_public && (!formData.batch_ids || formData.batch_ids.length === 0))
+      newErrors.batch_ids = "At least one batch is required for private courses";
     if (!formData.instructor_name.trim())
       newErrors.instructor_name = "Instructor name is required";
     if (formData.start_date && formData.end_date) {
@@ -107,8 +112,13 @@ const CreateCourse: React.FC = () => {
         is_public: false,
         instructor_name: formData.instructor_name,
       });
-
-      alert("Course created successfully!");
+      
+      // Call success callback if provided (for dashboard usage)
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        alert("Course created successfully!");
+      }
     } catch (err: unknown) {
       console.error("Failed to create course:", err);
 
@@ -151,282 +161,160 @@ const CreateCourse: React.FC = () => {
   };
 
   const handleCancel = () => {
-    setFormData({
-      title: "",
-      logo: "",
-      start_date: "",
-      end_date: "",
-      batch_ids: [],
-      is_public: false,
-      instructor_name: formData.instructor_name, // Keep instructor name
-    });
-    setErrors({});
+    // Call cancel callback if provided (for dashboard usage)
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   return (
-    <div className="p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center space-x-4 mb-8">
-        <div className="w-14 h-14 bg-gradient-to-br from-emerald-600 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-          <FaBook className="w-7 h-7 text-white" />
+    <div className="flex items-center justify-center min-h-screen bg-slate-100">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden w-full max-w-3xl">
+        {/* Tab-like Header */}
+        <div className="flex border-b border-slate-200">
+          <button
+            className="flex-1 px-6 py-4 text-sm font-medium transition-colors bg-purple-50 text-purple-700 border-b-2 border-purple-600 cursor-default"
+            style={{ outline: "none" }}
+            tabIndex={-1}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Create Course</span>
+            </div>
+          </button>
         </div>
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
-            Create New Course
-          </h1>
-          <p className="text-slate-600 mt-1">
-            Build and structure your course content
-          </p>
-        </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="max-w-4xl mb-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-            {error}
-          </div>
-        </div>
-      )}
-
-      {/* Form */}
-      <div className="max-w-4xl">
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white/70 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-lg p-8"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column */}
-            <div className="space-y-6">
+        {/* Form Content */}
+        <div className="p-6">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Course Title *
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Course Title *</label>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200 ${
-                    errors.title
-                      ? "border-red-300 focus:ring-red-500"
-                      : "border-slate-200"
-                  }`}
+                  className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200 ${errors.title ? "border-red-300 focus:ring-red-500" : ""}`}
                   placeholder="Enter course title"
                   disabled={submitting}
                 />
-                {errors.title && (
-                  <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-                )}
+                {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
               </div>
-
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Logo URL
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
                 <input
                   type="url"
                   name="logo"
                   value={formData.logo}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200"
                   placeholder="https://example.com/logo.jpg"
                   disabled={submitting}
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Start Date *
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Start Date *</label>
                 <input
                   type="date"
                   name="start_date"
                   value={formData.start_date}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200 ${
-                    errors.start_date
-                      ? "border-red-300 focus:ring-red-500"
-                      : "border-slate-200"
-                  }`}
+                  className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200 ${errors.start_date ? "border-red-300 focus:ring-red-500" : ""}`}
                   disabled={submitting}
                 />
-                {errors.start_date && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.start_date}
-                  </p>
-                )}
+                {errors.start_date && <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>}
               </div>
-
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  End Date *
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">End Date *</label>
                 <input
                   type="date"
                   name="end_date"
                   value={formData.end_date}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200 ${
-                    errors.end_date
-                      ? "border-red-300 focus:ring-red-500"
-                      : "border-slate-200"
-                  }`}
+                  className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200 ${errors.end_date ? "border-red-300 focus:ring-red-500" : ""}`}
                   disabled={submitting}
                 />
-                {errors.end_date && (
-                  <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>
-                )}
+                {errors.end_date && <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>}
               </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Select Batches *
-                </label>
-                <select
-                  name="batch_ids"
-                  multiple
-                  value={formData.batch_ids}
-                  onChange={handleBatchChange}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200 ${
-                    errors.batch_ids
-                      ? "border-red-300 focus:ring-red-500"
-                      : "border-slate-200"
-                  }`}
-                  disabled={loading || submitting}
-                  style={{ minHeight: "100px" }}
-                >
-                  {batches.map((batch) => (
-                    <option key={batch.id} value={batch.id}>
-                      {batch.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.batch_ids && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.batch_ids}
-                  </p>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Select Batches {formData.is_public ? "(optional for public courses)" : "*"}</label>
+                {!formData.is_public && (
+                  <select
+                    name="batch_ids"
+                    multiple
+                    value={formData.batch_ids}
+                    onChange={handleBatchChange}
+                    className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200 ${errors.batch_ids ? "border-red-300 focus:ring-red-500" : ""}`}
+                    disabled={loading || submitting}
+                    style={{ minHeight: "100px" }}
+                  >
+                    {batches.map((batch) => (
+                      <option key={batch.id} value={batch.id}>
+                        {batch.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
+                {errors.batch_ids && <p className="mt-1 text-sm text-red-600">{errors.batch_ids}</p>}
               </div>
-
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Instructor Name *
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Instructor Name *</label>
                 <input
                   type="text"
                   name="instructor_name"
                   value={formData.instructor_name}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200 ${
-                    errors.instructor_name
-                      ? "border-red-300 focus:ring-red-500"
-                      : "border-slate-200"
-                  }`}
+                  className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200 ${errors.instructor_name ? "border-red-300 focus:ring-red-500" : ""}`}
                   placeholder="Enter instructor name"
                   disabled={submitting}
                 />
-                {errors.instructor_name && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.instructor_name}
-                  </p>
-                )}
+                {errors.instructor_name && <p className="mt-1 text-sm text-red-600">{errors.instructor_name}</p>}
               </div>
-              <div>
-                <label className="course-logo-upload flex items-center space-x-2 block text-sm font-semibold text-slate-700">
-                  Course Logo 
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-
-                    const formDataObj = new FormData();
-                    formDataObj.append("logo", file); 
-                    try {
-                      const googleIdToken = (session as { id_token?: string })?.id_token;
-                      if (!googleIdToken) {
-                        console.error("No Google ID token found");
-                        return;
-                      }
-                      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:5000";
-                      const res = await fetch(`${baseUrl}/api/courseProgress/upload-logo`, {
-                        method: "POST",
-                        body: formDataObj,
-                        headers: {
-                          // Add JWT auth only if needed
-                          Authorization: `Bearer ${googleIdToken}`, // only if backend requires auth
-                        },
-                      });
-                     if (!res || typeof res.status !== "number") {
-                        console.error("Unexpected upload response:", res);
-                        throw new Error("Upload response is invalid");
-                      }
-                      if (![200, 201].includes(res.status)) {
-                        const errorText = await res.text?.();
-                        console.error("Upload failed with status:", res.status, "| Response:", errorText);
-                        throw new Error("Upload failed");
-                      }
-                      const data = await res.json();
-                      console.log("Uploaded!", data);
-
-                      // Save the uploaded logo URL to form state
-                      setFormData((prev) => ({
-                        ...prev,
-                        logo: data.logoUrl, // or adjust to whatever field your backend returns
-                      }));
-
-                    } catch (err) {
-                      console.error("Upload Error", err);
-                    }
-                  }}
-                  className="text-sm text-slate-700 bg-white/80 border border-slate-300 rounded-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 max-w-[220px]"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2 text-sm font-semibold text-slate-700">
+              <div className="flex items-center h-full">
+                <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
                   <input
                     type="checkbox"
                     name="is_public"
                     checked={formData.is_public}
                     onChange={handleInputChange}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
                     disabled={submitting}
                   />
                   <span>Make this course public</span>
                 </label>
               </div>
             </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end space-x-4 mt-8 pt-6 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex items-center space-x-2 px-6 py-3 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-all duration-200"
-              disabled={submitting}
-            >
-              <FaTimes className="w-4 h-4" />
-              <span>Cancel</span>
-            </button>
-            <button
-              type="submit"
-              className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={submitting || loading}
-            >
-              <FaSave className="w-4 h-4" />
-              <span>{submitting ? "Creating..." : "Create Course"}</span>
-            </button>
-          </div>
-        </form>
+            {/* Actions */}
+            <div className="flex items-center justify-end space-x-4 pt-4">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={submitting || loading}
+              >
+                <FaSave className="w-4 h-4" />
+                <span>{submitting ? "Creating..." : "Create Course"}</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -212,30 +212,51 @@ const MCQEditor: React.FC<{
   const [passingScore, setPassingScore] = useState(
     existingMCQSet?.passingScore || 60
   );
-  const [questions, setQuestions] = useState<MCQQuestion[]>(
-    existingMCQSet?.questions || []
-  );
+  const [questions, setQuestions] = useState<MCQQuestion[]>([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+
+  // Helper function to generate unique IDs
+  const generateUniqueId = useCallback(() => {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  }, []);
+
+  // Helper function to ensure all questions and options have valid IDs
+  const validateAndFixQuestions = useCallback((questionList: MCQQuestion[]): MCQQuestion[] => {
+    return questionList.map((question) => ({
+      ...question,
+      id: question.id || `question-${generateUniqueId()}`,
+      options: question.options.map((option, oIndex) => ({
+        ...option,
+        id: option.id || `option-${generateUniqueId()}-${oIndex}`,
+      })),
+    }));
+  }, [generateUniqueId]);
 
   // Initialize with existing data if editing
   useEffect(() => {
-    if (isEditing && existingMCQSet) {
+    if (isEditing && existingMCQSet && existingMCQSet.questions) {
       setPassingScore(existingMCQSet.passingScore);
-      setQuestions(existingMCQSet.questions);
+      const validatedQuestions = validateAndFixQuestions(existingMCQSet.questions);
+      setQuestions(validatedQuestions);
+      setActiveQuestionIndex(0);
+    } else {
+      setQuestions([]);
+      setActiveQuestionIndex(0);
     }
-  }, [isEditing, existingMCQSet]);
+  }, [isEditing, existingMCQSet, validateAndFixQuestions]);
 
   const addQuestion = () => {
+    const questionId = generateUniqueId();
     const newQuestion: MCQQuestion = {
-      id: `temp-${Date.now()}`,
+      id: `temp-${questionId}`,
       question: { ops: [{ insert: "" }] },
       options: [
-        { id: `option-${Date.now()}-1`, text: { ops: [{ insert: "" }] } },
-        { id: `option-${Date.now()}-2`, text: { ops: [{ insert: "" }] } },
-        { id: `option-${Date.now()}-3`, text: { ops: [{ insert: "" }] } },
-        { id: `option-${Date.now()}-4`, text: { ops: [{ insert: "" }] } },
+        { id: `option-${questionId}-1`, text: { ops: [{ insert: "" }] } },
+        { id: `option-${questionId}-2`, text: { ops: [{ insert: "" }] } },
+        { id: `option-${questionId}-3`, text: { ops: [{ insert: "" }] } },
+        { id: `option-${questionId}-4`, text: { ops: [{ insert: "" }] } },
       ],
-      correctAnswer: `option-${Date.now()}-1`,
+      correctAnswer: `option-${questionId}-1`,
       explanation: { ops: [{ insert: "" }] },
     };
     setQuestions([...questions, newQuestion]);
@@ -321,7 +342,9 @@ const MCQEditor: React.FC<{
     }
   };
 
-  const activeQuestion = questions[activeQuestionIndex];
+  const activeQuestion = questions.length > 0 && activeQuestionIndex < questions.length 
+    ? questions[activeQuestionIndex] 
+    : null;
 
   return (
     <div className="space-y-6">
@@ -418,7 +441,7 @@ const MCQEditor: React.FC<{
             <div className="space-y-2">
               {questions.map((question, index) => (
                 <div
-                  key={question.id}
+                  key={`question-list-${question.id || `temp-${index}`}`}
                   className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                     activeQuestionIndex === index
                       ? "border-blue-500 bg-blue-50"
@@ -479,7 +502,7 @@ const MCQEditor: React.FC<{
                   <div className="space-y-3">
                     {activeQuestion.options.map((option, optionIndex) => (
                       <div
-                        key={option.id}
+                        key={`active-option-${activeQuestion.id}-${option.id}-${optionIndex}`}
                         className="flex items-start space-x-3"
                       >
                         <button
@@ -577,20 +600,39 @@ const MCQManagement: React.FC = () => {
   // API Helper
   const apiCall = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          Authorization: `Bearer ${backendJwt}`,
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-      });
+      console.log(`Calling API: ${API_BASE_URL}${endpoint}`);
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${backendJwt}`,
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        if (!response.ok) {
+          // Create a more informative error message
+          const errorMessage = `API Error: ${response.status} for ${endpoint}`;
+          // Only log errors for non-404s, as 404s are handled gracefully by specific functions
+          if (response.status !== 404) {
+            console.error(errorMessage);
+          }
+          const error = new Error(errorMessage);
+          (error as unknown as { status?: number }).status = response.status;
+          throw error;
+        }
+
+        const data = await response.json();
+        console.log(`API Response for ${endpoint}:`, data);
+        return data;
+      } catch (err: unknown) {
+        // Only log errors for non-404s, as 404s are handled gracefully by specific functions
+        if ((err as { status?: number }).status !== 404) {
+          console.error(`API Call Failed for ${endpoint}:`, err);
+        }
+        throw err;
       }
-
-      return response.json();
     },
     [API_BASE_URL, backendJwt]
   );
@@ -628,13 +670,32 @@ const MCQManagement: React.FC = () => {
   const fetchMCQSet = useCallback(
     async (batchId: string, courseId: string, moduleId: string) => {
       try {
-        // Backend endpoint: GET /api/instructor/batches/:batchId/courses/:courseId/modules/:moduleId/mcq
+        console.log(`Fetching MCQ for Course ID: ${courseId}, Module ID: ${moduleId}`);
+        // Use direct course route instead of batch-nested route
         const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq`
+          `/api/instructor/courses/${courseId}/modules/${moduleId}/mcq`
         );
+        
+        // Validate and fix any missing IDs
+        if (response && response.questions) {
+          response.questions = response.questions.map((question: MCQQuestion, qIndex: number) => ({
+            ...question,
+            id: question.id || `temp-question-${Date.now()}-${qIndex}`,
+            options: question.options.map((option: MCQOption, oIndex: number) => ({
+              ...option,
+              id: option.id || `temp-option-${Date.now()}-${qIndex}-${oIndex}`,
+            })),
+          }));
+        }
+        
         setMcqSet(response);
-      } catch (err) {
-        console.error("Error fetching MCQ set:", err);
+      } catch (err: unknown) {
+        // Check if it's a 404 (no MCQ for module) - this is normal
+        if ((err as { status?: number }).status === 404) {
+          console.log(`No MCQ found for module ${moduleId} - this is normal`);
+        } else {
+          console.error(`Error fetching MCQ set for Course ${courseId}, Module ${moduleId}:`, err);
+        }
         // Don't set error here, as it's normal to not have an MCQ set yet
         setMcqSet(null);
       }
@@ -645,9 +706,9 @@ const MCQManagement: React.FC = () => {
   const fetchModules = useCallback(
     async (batchId: string, courseId: string) => {
       try {
-        // Backend endpoint: GET /api/instructor/batches/:batchId/courses/:courseId/modules
+        // Use direct course route instead of batch-nested route
         const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses/${courseId}/modules`
+          `/api/instructor/courses/${courseId}/modules`
         );
         setModules(response.modules || response || []);
         if (
@@ -669,10 +730,8 @@ const MCQManagement: React.FC = () => {
   const fetchCourses = useCallback(
     async (batchId: string) => {
       try {
-        // Backend endpoint: GET /api/instructor/batches/:batchId/courses
-        const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses`
-        );
+        // Use direct course route instead of batch-nested route
+        const response = await apiCall(`/api/instructor/courses`);
         setCourses(response.courses || response || []);
         if (
           (response.courses || response) &&
@@ -749,7 +808,7 @@ const MCQManagement: React.FC = () => {
     try {
       setSubmitting(true);
       await apiCall(
-        `/api/instructor/batches/${selectedBatch}/courses/${selectedCourse}/modules/${selectedModule}/mcq`,
+        `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq`,
         {
           method: "POST",
           body: JSON.stringify(mcqData),
@@ -769,7 +828,7 @@ const MCQManagement: React.FC = () => {
     try {
       setSubmitting(true);
       await apiCall(
-        `/api/instructor/batches/${selectedBatch}/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
+        `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
         {
           method: "PUT",
           body: JSON.stringify(mcqData),
@@ -789,7 +848,7 @@ const MCQManagement: React.FC = () => {
     try {
       if (confirm("Are you sure you want to delete this MCQ set?")) {
         await apiCall(
-          `/api/instructor/batches/${selectedBatch}/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
+          `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
           {
             method: "DELETE",
           }
@@ -832,255 +891,203 @@ const MCQManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">MCQ Management</h1>
-            <p className="text-gray-600">
-              Manage Multiple Choice Questions for modules using real backend
-              data
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            {mcqSet ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+    <div className="flex items-center justify-center min-h-screen bg-slate-100">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden w-full max-w-4xl">
+        {/* Tab-like Header */}
+        <div className="flex border-b border-slate-200">
+          <button
+            className="flex-1 px-6 py-4 text-sm font-medium transition-colors bg-purple-50 text-purple-700 border-b-2 border-purple-600 cursor-default"
+            style={{ outline: "none" }}
+            tabIndex={-1}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <FaQuestionCircle className="w-4 h-4" />
+              <span>MCQ Management</span>
+            </div>
+          </button>
+        </div>
+        <div className="p-6 space-y-6">
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Batch</label>
+              <select
+                value={selectedBatch}
+                onChange={(e) => handleBatchChange(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-slate-900"
               >
-                <FaEdit className="w-4 h-4" />
-                <span>Edit MCQ Set</span>
-              </button>
-            ) : (
+                <option value="">Select Batch</option>
+                {batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    {batch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Course</label>
+              <select
+                value={selectedCourse}
+                onChange={(e) => handleCourseChange(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-slate-900"
+                disabled={!selectedBatch}
+              >
+                <option value="">Select Course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Module</label>
+              <select
+                value={selectedModule}
+                onChange={(e) => handleModuleChange(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-slate-900"
+                disabled={!selectedCourse}
+              >
+                <option value="">Select Module</option>
+                {modules.map((module) => (
+                  <option key={module.id} value={module.id}>
+                    {module.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* MCQ Set Display */}
+          {!selectedModule ? (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 text-center">
+              <FaQuestionCircle className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-slate-900 mb-2">Select a Module</h3>
+              <p className="text-slate-600">Please select a batch, course, and module to view MCQ sets.</p>
+            </div>
+          ) : mcqSet ? (
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">MCQ Set for {mcqSet.module.title}</h2>
+                  <p className="text-slate-600">Passing Score: {mcqSet.passingScore}%</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    <FaEdit className="w-4 h-4" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => deleteMCQSet(mcqSet.id)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                  >
+                    <FaTrash className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900">Questions ({mcqSet.questions.length})</h3>
+                {mcqSet.questions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FaQuestionCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-500">No questions added yet.</p>
+                  </div>
+                ) : (
+                  mcqSet.questions.map((question, index) => (
+                    <div
+                      key={`question-${question.id || `temp-${index}`}`}
+                      className="bg-white border border-slate-200 rounded-xl p-4"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-slate-900 mb-2">Question {index + 1}</h4>
+                          <p className="text-slate-700 mb-3">{extractText(question.question)}</p>
+                          <div className="space-y-2">
+                            {question.options.map((option, optIndex) => (
+                              <div
+                                key={`option-${question.id}-${option.id}-${optIndex}`}
+                                className="flex items-center space-x-2"
+                              >
+                                <div
+                                  className={`w-4 h-4 rounded-full flex items-center justify-center ${option.id === question.correctAnswer ? "bg-green-100 border-2 border-green-500" : "bg-slate-100 border-2 border-slate-300"}`}
+                                >
+                                  {option.id === question.correctAnswer && (
+                                    <FaCheck className="w-2 h-2 text-green-600" />
+                                  )}
+                                </div>
+                                <span className="text-slate-700">
+                                  {String.fromCharCode(65 + optIndex)}. {extractText(option.text)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          {question.explanation && (
+                            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                              <p className="text-sm text-blue-800">
+                                <strong>Explanation:</strong> {extractText(question.explanation)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+              <FaQuestionCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No MCQ Set Found</h3>
+              <p className="text-slate-600 mb-4">There are no MCQ sets for this module yet.</p>
               <button
                 onClick={() => setIsCreating(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors mx-auto"
               >
                 <FaPlus className="w-4 h-4" />
                 <span>Create MCQ Set</span>
               </button>
-            )}
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Batch
-            </label>
-            <select
-              value={selectedBatch}
-              onChange={(e) => handleBatchChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select Batch</option>
-              {batches.map((batch) => (
-                <option key={batch.id} value={batch.id}>
-                  {batch.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Course
-            </label>
-            <select
-              value={selectedCourse}
-              onChange={(e) => handleCourseChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={!selectedBatch}
-            >
-              <option value="">Select Course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Module
-            </label>
-            <select
-              value={selectedModule}
-              onChange={(e) => handleModuleChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={!selectedCourse}
-            >
-              <option value="">Select Module</option>
-              {modules.map((module) => (
-                <option key={module.id} value={module.id}>
-                  {module.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* MCQ Set Display */}
-      {!selectedModule ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <div className="text-center">
-            <FaQuestionCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Select a Module
-            </h3>
-            <p className="text-gray-600">
-              Please select a batch, course, and module to view MCQ sets.
-            </p>
-          </div>
-        </div>
-      ) : mcqSet ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                MCQ Set for {mcqSet.module.title}
-              </h2>
-              <p className="text-gray-600">
-                Passing Score: {mcqSet.passingScore}%
-              </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                <FaEdit className="w-4 h-4" />
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={() => deleteMCQSet(mcqSet.id)}
-                className="flex items-center space-x-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                <FaTrash className="w-4 h-4" />
-                <span>Delete</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">
-              Questions ({mcqSet.questions.length})
-            </h3>
-            {mcqSet.questions.length === 0 ? (
-              <div className="text-center py-8">
-                <FaQuestionCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No questions added yet.</p>
-              </div>
-            ) : (
-              mcqSet.questions.map((question, index) => (
-                <div
-                  key={question.id}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        Question {index + 1}
-                      </h4>
-                      <p className="text-gray-700 mb-3">
-                        {extractText(question.question)}
-                      </p>
-                      <div className="space-y-2">
-                        {question.options.map((option, optIndex) => (
-                          <div
-                            key={option.id}
-                            className="flex items-center space-x-2"
-                          >
-                            <div
-                              className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                option.id === question.correctAnswer
-                                  ? "bg-green-100 border-2 border-green-500"
-                                  : "bg-gray-100 border-2 border-gray-300"
-                              }`}
-                            >
-                              {option.id === question.correctAnswer && (
-                                <FaCheck className="w-2 h-2 text-green-600" />
-                              )}
-                            </div>
-                            <span className="text-gray-700">
-                              {String.fromCharCode(65 + optIndex)}.{" "}
-                              {extractText(option.text)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      {question.explanation && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                          <p className="text-sm text-blue-800">
-                            <strong>Explanation:</strong>{" "}
-                            {extractText(question.explanation)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+          )}
+        </div>
+        {/* Create/Edit Modal */}
+        {(isCreating || isEditing) && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {isCreating ? "Create MCQ Set" : "Edit MCQ Set"}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setIsCreating(false);
+                      setIsEditing(false);
+                    }}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <FaTimes className="w-5 h-5" />
+                  </button>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <div className="text-center">
-            <FaQuestionCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No MCQ Set Found
-            </h3>
-            <p className="text-gray-600 mb-4">
-              There are no MCQ sets for this module yet.
-            </p>
-            <button
-              onClick={() => setIsCreating(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors mx-auto"
-            >
-              <FaPlus className="w-4 h-4" />
-              <span>Create MCQ Set</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Create/Edit Modal */}
-      {(isCreating || isEditing) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {isCreating ? "Create MCQ Set" : "Edit MCQ Set"}
-                </h2>
-                <button
-                  onClick={() => {
+                <MCQEditor
+                  isEditing={isEditing}
+                  existingMCQSet={mcqSet}
+                  onSave={isEditing ? updateMCQSet : createMCQSet}
+                  onCancel={() => {
                     setIsCreating(false);
                     setIsEditing(false);
                   }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <FaTimes className="w-5 h-5" />
-                </button>
+                  submitting={submitting}
+                />
               </div>
-
-              <MCQEditor
-                isEditing={isEditing}
-                existingMCQSet={mcqSet}
-                onSave={isEditing ? updateMCQSet : createMCQSet}
-                onCancel={() => {
-                  setIsCreating(false);
-                  setIsEditing(false);
-                }}
-                submitting={submitting}
-              />
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

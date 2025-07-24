@@ -159,12 +159,12 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     set({ loading: true, error: null });
     try {
       const response = await axios.get(
-        `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
+        `${baseUrl}/api/instructor/courses/${courseId}/modules`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
         }
       );
-      set({ modules: response.data.modules || [], loading: false });
+      set({ modules: response.data || [], loading: false });
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string }; status?: number };
@@ -189,13 +189,13 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     set({ loading: true, error: null });
     try {
       const response = await axios.post(
-        `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
+        `${baseUrl}/api/instructor/courses/${courseId}/modules`,
         moduleData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
         }
       );
-      const newModule = response.data.module;
+      const newModule = response.data;
 
       set((state) => ({
         modules: [...state.modules, newModule],
@@ -228,13 +228,13 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     set({ loading: true, error: null });
     try {
       const response = await axios.put(
-        `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}`,
+        `${baseUrl}/api/instructor/courses/${courseId}/modules/${moduleId}`,
         moduleData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
         }
       );
-      const updatedModule = response.data.module;
+      const updatedModule = response.data;
 
       set((state) => ({
         modules: state.modules.map((module) =>
@@ -272,7 +272,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     set({ loading: true, error: null });
     try {
       await axios.delete(
-        `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}`,
+        `${baseUrl}/api/instructor/courses/${courseId}/modules/${moduleId}`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
         }
