@@ -74,7 +74,7 @@ interface InstructorStoreState {
   setCourseSearch: (search: string) => void;
   setStatusFilter: (status: CourseStatus | "ALL") => void;
   setLevelFilter: (
-    level: "ALL" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+    level: "ALL" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
   ) => void;
   fetchCourses: () => void;
 
@@ -152,7 +152,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
             createdAt: new Date().toISOString().split("T")[0],
             updatedAt: new Date().toISOString().split("T")[0],
           };
-        }
+        },
       );
 
       set({
@@ -187,7 +187,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
     try {
       const currentState = get();
       const targetCourse = currentState.courses.find(
-        (c: Course) => c.id === id
+        (c: Course) => c.id === id,
       );
       if (!targetCourse) throw new Error("Course not found");
       const batchId = (targetCourse as { batchId?: string }).batchId;
@@ -203,7 +203,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
                 ...course,
                 updatedAt: new Date().toISOString().split("T")[0],
               }
-            : c
+            : c,
         ),
         isLoading: false,
         error: null,
@@ -218,7 +218,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
     try {
       const currentState = get();
       const targetCourse = currentState.courses.find(
-        (c: Course) => c.id === id
+        (c: Course) => c.id === id,
       );
       if (!targetCourse) throw new Error("Course not found");
       const batchId = (targetCourse as { batchId?: string }).batchId;
@@ -252,7 +252,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
   updateModule: (id, module) =>
     set((state) => ({
       modules: state.modules.map((m) =>
-        m.id === id ? { ...m, ...module } : m
+        m.id === id ? { ...m, ...module } : m,
       ),
     })),
 
@@ -292,7 +292,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
   updateQuestion: (id, question) =>
     set((state) => ({
       questions: state.questions.map((q) =>
-        q.id === id ? { ...q, ...question } : q
+        q.id === id ? { ...q, ...question } : q,
       ),
     })),
 

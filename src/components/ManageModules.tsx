@@ -148,7 +148,7 @@ const ManageModules: React.FC = () => {
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [backendJwt, setBackendJwt] = useState<string>("");
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Content Management States
@@ -193,7 +193,7 @@ const ManageModules: React.FC = () => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         const backendJwt = loginRes.data.token;
         setBackendJwt(backendJwt);
@@ -296,14 +296,14 @@ const ManageModules: React.FC = () => {
           selectedCourseId,
           editingModule.id,
           moduleForm,
-          backendJwt
+          backendJwt,
         );
       } else {
         await createModule(
           selectedBatchId,
           selectedCourseId,
           moduleForm,
-          backendJwt
+          backendJwt,
         );
       }
 
@@ -326,7 +326,7 @@ const ManageModules: React.FC = () => {
         contentForm,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
-        }
+        },
       );
 
       // Refresh modules to get updated content
@@ -352,7 +352,7 @@ const ManageModules: React.FC = () => {
         mcqForm,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
-        }
+        },
       );
 
       // Refresh modules to get updated MCQ
@@ -385,7 +385,7 @@ const ManageModules: React.FC = () => {
           selectedBatchId,
           selectedCourseId,
           moduleId,
-          backendJwt
+          backendJwt,
         );
       } catch (error) {
         console.error("Error deleting module:", error);
@@ -525,8 +525,8 @@ const ManageModules: React.FC = () => {
               {!selectedBatchId
                 ? "Select a batch first..."
                 : courseLoading
-                ? "Loading courses..."
-                : "Select a course..."}
+                  ? "Loading courses..."
+                  : "Select a course..."}
             </option>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>
@@ -586,7 +586,7 @@ const ManageModules: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           {getModuleIcon(
                             (module.days?.length || 0) > 0,
-                            !!module.mcq
+                            !!module.mcq,
                           )}
                           <div className="text-sm font-medium text-slate-500">
                             Module {module.order}
@@ -804,8 +804,8 @@ const ManageModules: React.FC = () => {
                   {moduleLoading
                     ? "Saving..."
                     : editingModule
-                    ? "Update Module"
-                    : "Create Module"}
+                      ? "Update Module"
+                      : "Create Module"}
                 </button>
               </div>
             </form>
@@ -936,7 +936,7 @@ const ManageModules: React.FC = () => {
                         }}
                         className="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500"
                         placeholder={`Option ${String.fromCharCode(
-                          65 + index
+                          65 + index,
                         )}`}
                         required
                       />

@@ -9,7 +9,7 @@ console.log("Backend base URL:", baseUrl);
 
 if (!baseUrl) {
   console.error(
-    "NEXT_PUBLIC_BACKEND_BASE_URL is not set in environment variables"
+    "NEXT_PUBLIC_BACKEND_BASE_URL is not set in environment variables",
   );
 }
 
@@ -101,30 +101,30 @@ interface CourseStore {
   fetchCourse: (
     batchId: string,
     courseId: string,
-    jwt: string
+    jwt: string,
   ) => Promise<Course>;
   updateCourse: (
     batchId: string,
     courseId: string,
     updateData: UpdateCourseData,
-    jwt: string
+    jwt: string,
   ) => Promise<Course>;
   deleteCourse: (
     batchId: string,
     courseId: string,
-    jwt: string
+    jwt: string,
   ) => Promise<void>;
   updateCoursePublicStatus: (
     batchId: string,
     courseId: string,
     isPublic: boolean,
-    jwt: string
+    jwt: string,
   ) => Promise<Course>;
   assignCourseToStudent: (
     batchId: string,
     courseId: string,
     assignData: AssignCourseData,
-    jwt: string
+    jwt: string,
   ) => Promise<void>;
 
   // State management
@@ -190,7 +190,7 @@ export const useCourseStore = create<CourseStore>((set) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const courses = response.data.courses || response.data || [];
       set({ courses: Array.isArray(courses) ? courses : [], loading: false });
@@ -216,7 +216,7 @@ export const useCourseStore = create<CourseStore>((set) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const course = response.data.course;
 
@@ -240,7 +240,7 @@ export const useCourseStore = create<CourseStore>((set) => ({
     batchId: string,
     courseId: string,
     updateData: UpdateCourseData,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -249,13 +249,13 @@ export const useCourseStore = create<CourseStore>((set) => ({
         updateData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const updatedCourse = response.data.course;
 
       set((state) => ({
         courses: state.courses.map((course) =>
-          course.id === courseId ? updatedCourse : course
+          course.id === courseId ? updatedCourse : course,
         ),
         selectedCourse:
           state.selectedCourse?.id === courseId
@@ -286,7 +286,7 @@ export const useCourseStore = create<CourseStore>((set) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
 
       set((state) => ({
@@ -313,7 +313,7 @@ export const useCourseStore = create<CourseStore>((set) => ({
     batchId: string,
     courseId: string,
     isPublic: boolean,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -322,13 +322,13 @@ export const useCourseStore = create<CourseStore>((set) => ({
         { is_public: isPublic },
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const updatedCourse = response.data.course;
 
       set((state) => ({
         courses: state.courses.map((course) =>
-          course.id === courseId ? updatedCourse : course
+          course.id === courseId ? updatedCourse : course,
         ),
         selectedCourse:
           state.selectedCourse?.id === courseId
@@ -358,7 +358,7 @@ export const useCourseStore = create<CourseStore>((set) => ({
     batchId: string,
     courseId: string,
     assignData: AssignCourseData,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -367,7 +367,7 @@ export const useCourseStore = create<CourseStore>((set) => ({
         assignData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       set({ loading: false });
     } catch (error: unknown) {

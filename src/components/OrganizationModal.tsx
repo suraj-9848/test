@@ -1,5 +1,5 @@
-import React from 'react';
-import { FaTimes, FaBuilding } from 'react-icons/fa';
+import React from "react";
+import { FaTimes, FaBuilding } from "react-icons/fa";
 
 interface OrganizationModalProps {
   isOpen: boolean;
@@ -8,17 +8,22 @@ interface OrganizationModalProps {
   children: React.ReactNode;
 }
 
-const OrganizationModal: React.FC<OrganizationModalProps> = ({ isOpen, onClose, title, children }) => {
+const OrganizationModal: React.FC<OrganizationModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+}) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
         {/* Header */}
@@ -36,14 +41,12 @@ const OrganizationModal: React.FC<OrganizationModalProps> = ({ isOpen, onClose, 
             <FaTimes className="w-4 h-4" />
           </button>
         </div>
-        
+
         {/* Content */}
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
 };
 
-export default OrganizationModal; 
+export default OrganizationModal;

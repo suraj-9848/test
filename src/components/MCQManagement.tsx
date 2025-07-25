@@ -210,7 +210,7 @@ const MCQEditor: React.FC<{
   submitting: boolean;
 }> = ({ isEditing, existingMCQSet, onSave, onCancel, submitting }) => {
   const [passingScore, setPassingScore] = useState(
-    existingMCQSet?.passingScore || 60
+    existingMCQSet?.passingScore || 60,
   );
   const [questions, setQuestions] = useState<MCQQuestion[]>([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
@@ -274,7 +274,7 @@ const MCQEditor: React.FC<{
   const updateQuestion = (
     index: number,
     field: keyof MCQQuestion,
-    value: QuillDelta | string | MCQOption[]
+    value: QuillDelta | string | MCQOption[],
   ) => {
     const newQuestions = [...questions];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
@@ -288,7 +288,7 @@ const MCQEditor: React.FC<{
   const updateOptionText = (
     questionIndex: number,
     optionIndex: number,
-    html: string
+    html: string,
   ) => {
     const newQuestions = [...questions];
     newQuestions[questionIndex].options[optionIndex].text =
@@ -319,7 +319,7 @@ const MCQEditor: React.FC<{
       }
 
       const validOptions = question.options.filter((opt) =>
-        quillDeltaToText(opt.text).trim()
+        quillDeltaToText(opt.text).trim(),
       );
       if (validOptions.length < 2) {
         alert(`Question ${i + 1} must have at least 2 options.`);
@@ -536,11 +536,11 @@ const MCQEditor: React.FC<{
                               updateOptionText(
                                 activeQuestionIndex,
                                 optionIndex,
-                                html
+                                html,
                               )
                             }
                             placeholder={`Enter option ${String.fromCharCode(
-                              65 + optionIndex
+                              65 + optionIndex,
                             )}...`}
                             minHeight="80px"
                           />
@@ -557,7 +557,7 @@ const MCQEditor: React.FC<{
                   </label>
                   <RichTextEditor
                     content={quillDeltaToHtml(
-                      activeQuestion.explanation || { ops: [{ insert: "" }] }
+                      activeQuestion.explanation || { ops: [{ insert: "" }] },
                     )}
                     onChange={(html) =>
                       updateExplanation(activeQuestionIndex, html)
@@ -654,7 +654,7 @@ const MCQManagement: React.FC = () => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         const jwt = loginRes.data.token;
         setBackendJwt(jwt);
@@ -700,7 +700,7 @@ const MCQManagement: React.FC = () => {
         setMcqSet(null);
       }
     },
-    [apiCall]
+    [apiCall],
   );
 
   const fetchModules = useCallback(
@@ -724,7 +724,7 @@ const MCQManagement: React.FC = () => {
         setError("Failed to load modules");
       }
     },
-    [apiCall, fetchMCQSet]
+    [apiCall, fetchMCQSet],
   );
 
   const fetchCourses = useCallback(
@@ -746,7 +746,7 @@ const MCQManagement: React.FC = () => {
         setError("Failed to load courses");
       }
     },
-    [apiCall, fetchModules]
+    [apiCall, fetchModules],
   );
 
   const fetchBatches = useCallback(async () => {
@@ -812,7 +812,7 @@ const MCQManagement: React.FC = () => {
         {
           method: "POST",
           body: JSON.stringify(mcqData),
-        }
+        },
       );
       await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
       setIsCreating(false);
@@ -832,7 +832,7 @@ const MCQManagement: React.FC = () => {
         {
           method: "PUT",
           body: JSON.stringify(mcqData),
-        }
+        },
       );
       await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
       setIsEditing(false);
@@ -851,7 +851,7 @@ const MCQManagement: React.FC = () => {
           `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
           {
             method: "DELETE",
-          }
+          },
         );
         await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
       }

@@ -95,7 +95,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
         throw err;
       }
     },
-    [API_BASE_URL, backendJwt]
+    [API_BASE_URL, backendJwt],
   );
 
   // Fetch user profile and get JWT
@@ -115,7 +115,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         setBackendJwt(loginRes.data.token);
       } catch (err) {
@@ -132,7 +132,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
       progressData: { report?: unknown[] },
       testsData: unknown[],
       testStats: { testId: string; data: unknown }[],
-      leaderboardData: { data?: unknown[] }
+      leaderboardData: { data?: unknown[] },
     ): Promise<StudentProgress[]> => {
       const students = Array.isArray(progressData.report) ? progressData.report : [];
       const progressMap = new Map<string, any>();
@@ -176,8 +176,8 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
           progress.status === "completed"
             ? 100
             : progress.status === "in-progress"
-            ? Math.min((progress.currentPage || 0) * 10, 90)
-            : 0;
+              ? Math.min((progress.currentPage || 0) * 10, 90)
+              : 0;
 
         const testResults: TestResult[] = (Array.isArray(testsData) ? testsData : []).map((test) => {
           const testData = test as { id: string; title: string; maxMarks?: number };
@@ -232,7 +232,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
         };
       });
     },
-    [courses, selectedCourse]
+    [courses, selectedCourse],
   );
 
   const fetchStudentAnalytics = useCallback(
@@ -270,7 +270,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
         setLoading(false);
       }
     },
-    [apiCall, processStudentData]
+    [apiCall, processStudentData],
   );
 
   const fetchCoursesForBatch = useCallback(
@@ -289,7 +289,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
         setError("Failed to load courses for the selected batch");
       }
     },
-    [apiCall, fetchStudentAnalytics]
+    [apiCall, fetchStudentAnalytics],
   );
 
   const fetchInitialData = useCallback(async () => {

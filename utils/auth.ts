@@ -2,7 +2,7 @@ export async function validateOAuthUser(sessionJwt: string) {
   if (!sessionJwt) {
     return { valid: false, error: "Missing Session, please login again." };
   }
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL ;
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
   try {
     const response = await fetch(`${baseUrl}/api/auth/admin-login`, {
       method: "POST",

@@ -30,17 +30,27 @@ const DashboardLanding = () => {
         {/* Overview Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
           <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200 hover:shadow-lg transition-all duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 mb-1">📘 Courses</h3>
-            <p className="text-sm text-neutral-500">12 curated learning paths</p>
+            <h3 className="text-lg font-semibold text-neutral-800 mb-1">
+              📘 Courses
+            </h3>
+            <p className="text-sm text-neutral-500">
+              12 curated learning paths
+            </p>
           </div>
 
           <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200 hover:shadow-lg transition-all duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 mb-1">👥 Students</h3>
-            <p className="text-sm text-neutral-500">143 active learners enrolled</p>
+            <h3 className="text-lg font-semibold text-neutral-800 mb-1">
+              👥 Students
+            </h3>
+            <p className="text-sm text-neutral-500">
+              143 active learners enrolled
+            </p>
           </div>
 
           <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200 hover:shadow-lg transition-all duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 mb-1">👨‍🏫 Instructors</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 mb-1">
+              👨‍🏫 Instructors
+            </h3>
             <p className="text-sm text-neutral-500">5 experienced mentors</p>
           </div>
         </div>

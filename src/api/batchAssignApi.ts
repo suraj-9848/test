@@ -19,7 +19,7 @@ const getBackendJwt = async () => {
       {
         headers: { Authorization: `Bearer ${googleIdToken}` },
         withCredentials: true,
-      }
+      },
     );
     cachedBackendJwt = loginRes.data.token;
     return cachedBackendJwt;
@@ -50,7 +50,7 @@ export const fetchStudents = async () => {
 // Assign students to a batch
 export const assignStudentsToBatch = async (
   batchId: string,
-  studentIds: string[]
+  studentIds: string[],
 ): Promise<{ success: boolean; message: string }> => {
   const headers = await getAuthHeaders();
   // Debug: log payload and endpoint
@@ -60,7 +60,7 @@ export const assignStudentsToBatch = async (
     const res = await axios.post(
       `${API_URL}/${batchId}/assign-students`,
       { userIds: studentIds },
-      { headers }
+      { headers },
     );
     console.log("Assign response:", res.data);
     return res.data;

@@ -21,20 +21,25 @@ import {
   AdminUser,
   InstructorUser,
   StudentUser,
+  RecruiterUser,
   UserRole,
-  getOrgs,
 } from "@/store/adminStore";
 import { useToast } from "./ToastContext";
 import UserModal from "./UserModal";
 import UserForm from "./UserForm";
 import ConfirmModal from "./ConfirmModal";
-import { CreateUserRequest, UpdateUserRequest, userApi } from "@/api/adminApi";
+import {
+  CreateUserRequest,
+  UpdateUserRequest,
+  userApi,
+  organizationApi,
+} from "@/api/adminApi";
 
 // Union type for all user types
-type CombinedUser = AdminUser | InstructorUser | StudentUser;
+type CombinedUser = AdminUser | InstructorUser | StudentUser | RecruiterUser;
 
 interface UserManagementProps {
-  type?: "college-admins" | "instructors" | "students" | "all";
+  type?: "admins" | "instructors" | "students" | "recruiters" | "all";
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
@@ -42,6 +47,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
     admins,
     instructors,
     students,
+    recruiters,
     search,
     collegeFilter,
     statusFilter,
@@ -83,15 +89,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   // Get all users based on type
   const getAllUsersByType = (): CombinedUser[] => {
     switch (type) {
-      case "college-admins":
+      case "admins":
         return admins;
       case "instructors":
         return instructors;
       case "students":
         return students;
+      case "recruiters":
+        return recruiters;
       case "all":
       default:
-        return [...admins, ...instructors, ...students];
+        return [...admins, ...instructors, ...students, ...recruiters];
     }
   };
 
@@ -102,9 +110,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
     UserManagementProps["type"] & string,
     UserRole | "All"
   > = {
-    "college-admins": "college_admin",
+    admins: "admin",
     instructors: "instructor",
     students: "student",
+    recruiters: "recruiter",
     all: "All",
   };
 
@@ -114,13 +123,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   useEffect(() => {
     const getUsers = async () => {
       try {
-        await fetchUsers(userRole === "All" ? "All" : userRole);
+        // Always fetch all users to ensure all sections have data
+        await fetchUsers("All");
       } catch {
         showToast("error", "Failed to fetch users");
       }
     };
     getUsers();
-  }, [fetchUsers, userRole, showToast]);
+  }, [fetchUsers, showToast]); // Removed userRole dependency to always fetch all users
 
   // Show error toast when error state changes
   useEffect(() => {
@@ -132,7 +142,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   // Handle refresh users
   const handleRefreshUsers = async () => {
     try {
-      await fetchUsers(userRole === "All" ? "All" : userRole);
+      // Always refresh all users to ensure all sections have data
+      await fetchUsers("All");
       showToast("success", "Users refreshed successfully");
     } catch (err) {
       console.error("Failed to refresh users:", err);
@@ -143,14 +154,29 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   // Filtered users
   const filteredUsers = useMemo(() => {
     return allUsers.filter((user) => {
+      // Filter by search text
       const matchesSearch =
         search.trim() === "" ||
-        user.name.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase());
+        (user.name
+          ? user.name.toLowerCase().includes(search.toLowerCase())
+          : false) ||
+        (user.email
+          ? user.email.toLowerCase().includes(search.toLowerCase())
+          : false);
 
-      const matchesOrg =
-        collegeFilter === "All Organizations" || user.college === collegeFilter;
+      // Filter by organization
+      let matchesOrg = collegeFilter === "All Organizations";
+      if (!matchesOrg && user.college) {
+        // Check if the organization name matches or if it's one of the problematic values that should match "Unknown"
+        const invalidOrgs = ["bruuh", "CMRCET", "NaN", "undefined", "null"];
+        const isInvalidOrg = invalidOrgs.includes(user.college);
 
+        matchesOrg =
+          user.college === collegeFilter ||
+          (collegeFilter === "Unknown Organization" && isInvalidOrg);
+      }
+
+      // Filter by status
       const matchesStatus =
         statusFilter === "All" || user.status === statusFilter;
 
@@ -230,7 +256,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
             "error",
             `Invalid format at line ${
               i + 1
-            }. Expected: username,email,org_id,role`
+            }. Expected: username,email,org_id,role`,
           );
           return;
         }
@@ -248,7 +274,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       const result = await userApi.bulkCreateUsers(users);
       showToast(
         "success",
-        `${result.created} users created successfully. ${result.errors} errors.`
+        `${result.created} users created successfully. ${result.errors} errors.`,
       );
 
       if (result.errorDetails.length > 0) {
@@ -271,13 +297,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       headers.join(","),
       ...filteredUsers.map((user) =>
         [
-          user.name,
+          user.name || "Unknown",
           user.email,
           user.role,
           user.college,
           user.status,
           user.joinDate,
-        ].join(",")
+        ].join(","),
       ),
     ].join("\n");
 
@@ -290,38 +316,32 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Get role badge
-  const getRoleBadge = (userRole: string) => {
+  // Get role badge - display actual user roles, not display roles
+  const getRoleBadge = (user: CombinedUser) => {
+    // Use the actual userRole from database instead of the mapped display role
+    const userRole = user.userRole;
+
     const roleConfig = {
-      "First Year": { color: "bg-blue-100 text-blue-800", label: "1st Year" },
-      "Second Year": {
-        color: "bg-green-100 text-green-800",
-        label: "2nd Year",
+      student: {
+        color: "bg-blue-100 text-blue-800",
+        label: "Student",
       },
-      "Third Year": {
-        color: "bg-yellow-100 text-yellow-800",
-        label: "3rd Year",
-      },
-      "Fourth Year": {
-        color: "bg-orange-100 text-orange-800",
-        label: "4th Year",
-      },
-      "Final Year": { color: "bg-red-100 text-red-800", label: "Final Year" },
-      "Senior Professor": {
+      instructor: {
         color: "bg-purple-100 text-purple-800",
-        label: "Sr. Prof",
+        label: "Instructor",
       },
-      "Associate Professor": {
-        color: "bg-indigo-100 text-indigo-800",
-        label: "Assoc. Prof",
+      admin: {
+        color: "bg-red-100 text-red-800",
+        label: "Admin",
       },
-      "Assistant Professor": {
-        color: "bg-pink-100 text-pink-800",
-        label: "Asst. Prof",
+      college_admin: {
+        color: "bg-green-100 text-green-800",
+        label: "College Admin",
       },
-      "College Admin": { color: "bg-gray-100 text-gray-800", label: "Admin" },
-      "Deputy Admin": { color: "bg-gray-100 text-gray-800", label: "Deputy" },
-      "Academic Head": { color: "bg-gray-100 text-gray-800", label: "Head" },
+      recruiter: {
+        color: "bg-orange-100 text-orange-800",
+        label: "Recruiter",
+      },
     };
 
     const config = roleConfig[userRole as keyof typeof roleConfig] || {
@@ -353,12 +373,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   // Get title based on type
   const getTitle = () => {
     switch (type) {
-      case "college-admins":
-        return "College Administrators";
+      case "admins":
+        return "Administrators";
       case "instructors":
         return "Instructors";
       case "students":
         return "Students";
+      case "recruiters":
+        return "Recruiters";
       case "all":
       default:
         return "All Users";
@@ -371,13 +393,56 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   };
 
   // Get college options
-  const collegeOptions = useMemo(() => {
-    const orgs = getOrgs().map((org) => org.name);
-    return ["All Organizations", ...orgs];
-  }, []);
+  const [collegeOptions, setCollegeOptions] = useState<string[]>([
+    "All Organizations",
+  ]);
+
+  // Fetch organizations
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await organizationApi.getAll();
+        console.log("Fetched organizations:", response.orgs);
+
+        // Make sure we have unique org names and filter out invalid values
+        const uniqueOrgs = new Map();
+        response.orgs.forEach((org) => {
+          if (org.id && org.name && org.name.trim() !== "") {
+            // Avoid using problematic keys like 'bruuh', 'CMRCET', 'NaN'
+            if (
+              !["bruuh", "CMRCET", "NaN", "undefined", "null"].includes(
+                org.name,
+              )
+            ) {
+              uniqueOrgs.set(org.id, org.name);
+            } else {
+              console.warn(
+                `Skipping problematic organization name: ${org.name}`,
+              );
+            }
+          }
+        });
+
+        // Convert to array and add "All Organizations" at the beginning
+        const orgOptions = [
+          "All Organizations",
+          ...Array.from(uniqueOrgs.values()),
+        ];
+        console.log("Setting college options:", orgOptions);
+        setCollegeOptions(orgOptions);
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+        showToast("error", "Failed to fetch organizations");
+      }
+    };
+
+    fetchOrganizations();
+  }, [showToast]);
 
   // Handle edit user
   const handleEditUser = (user: CombinedUser) => {
+    console.log("Selected user for edit:", user);
+    console.log("User ID type:", typeof user.id, "Value:", user.id);
     setSelectedUser(user);
     setIsEditModalOpen(true);
   };
@@ -390,26 +455,100 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
   // Handle submit user
   const handleSubmitUser = async (
-    userData: UpdateUserRequest | CreateUserRequest
+    userData: UpdateUserRequest | CreateUserRequest,
   ) => {
     try {
-      const mappedRole =
-        type === "college-admins"
-          ? "college_admin"
-          : type === "instructors"
-          ? "instructor"
-          : type === "students"
-          ? "student"
-          : "student";
+      // Use the role from the form data instead of mapping from page type
+      const formRole = (userData as any).userRole || (userData as any).role;
+
+      // Validate that we have a role
+      if (!formRole) {
+        showToast("error", "Please select a role for the user");
+        return;
+      }
+
+      // Use the actual role from the form, not the page type
+      const mappedRole = formRole as UserRole;
 
       if (selectedUser && isEditModalOpen) {
         // Edit mode
         const updateData: UpdateUserRequest = {
           ...(userData as UpdateUserRequest),
         };
-        await editUser(String(selectedUser.id), updateData, mappedRole);
-        showToast("success", "User updated successfully");
-        setIsEditModalOpen(false);
+
+        // Enhanced validation for user ID before submitting
+        // Important: ensure we're using the original string UUID, not converting it to a number
+        const userId = String(selectedUser.id);
+        console.log(
+          "User ID when submitting edit:",
+          userId,
+          "Original type:",
+          typeof selectedUser.id,
+        );
+
+        if (
+          !userId ||
+          userId === "NaN" ||
+          userId === "undefined" ||
+          userId === "null"
+        ) {
+          showToast("error", "Invalid user ID. Please try again.");
+          console.error("Invalid user ID:", userId);
+          return;
+        }
+
+        // Log details of the update operation
+        console.log(
+          `Submitting edit for user with ID: ${userId}, role: ${mappedRole}`,
+          updateData,
+        );
+        console.log(`User data being updated:`, selectedUser);
+
+        try {
+          // Show loading toast to indicate operation is in progress
+          showToast(
+            "success",
+            `Updating user ${selectedUser.name || "Unknown"}...`,
+          );
+
+          // Call the editUser function with the validated ID and actual role from form
+          await editUser(userId, updateData, mappedRole);
+
+          // If successful, show success toast and close modal
+          showToast(
+            "success",
+            `User ${selectedUser.name || "Unknown"} updated successfully`,
+          );
+          setIsEditModalOpen(false);
+
+          // Refresh the user list to show updated data
+          await fetchUsers(userRole === "All" ? "All" : userRole);
+        } catch (apiError) {
+          console.error("API error updating user:", apiError);
+
+          // Enhanced error handling with more specific messages
+          if (apiError instanceof Error) {
+            if (
+              apiError.message.includes("404") ||
+              apiError.message.includes("not found")
+            ) {
+              showToast(
+                "error",
+                `User not found. The user ID ${userId} may no longer exist.`,
+              );
+            } else if (apiError.message.includes("validation")) {
+              showToast("error", `Validation error: ${apiError.message}`);
+            } else {
+              showToast("error", `Error updating user: ${apiError.message}`);
+            }
+          } else {
+            showToast(
+              "error",
+              "Failed to update user. Please check the user ID and try again.",
+            );
+          }
+          return;
+        }
       } else {
         // Add mode
         const createData: CreateUserRequest = {
@@ -422,7 +561,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       setSelectedUser(null);
     } catch (err) {
       console.error("Error submitting user:", err);
-      // Error is handled by store's toast
+      // Show toast with error message
+      showToast(
+        "error",
+        err instanceof Error ? err.message : "Failed to submit user",
+      );
     }
   };
 
@@ -430,16 +573,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   const handleConfirmDelete = async () => {
     if (selectedUser) {
       try {
-        const mappedRole =
-          type === "college-admins"
-            ? "college_admin"
-            : type === "instructors"
-            ? "instructor"
-            : type === "students"
-            ? "student"
-            : "student";
+        // Use the actual user role from the database instead of mapping from page type
+        const actualRole = selectedUser.userRole;
 
-        await deleteUser(String(selectedUser.id), mappedRole);
+        if (!actualRole) {
+          showToast("error", "Unable to determine user role for deletion");
+          return;
+        }
+
+        await deleteUser(String(selectedUser.id), actualRole);
         showToast("success", "User deleted successfully");
         setIsDeleteModalOpen(false);
         setSelectedUser(null);
@@ -643,64 +785,78 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.has(String(user.id))}
-                        onChange={(e) =>
-                          handleUserSelect(String(user.id), e.target.checked)
-                        }
-                        className="rounded"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.name}
+                {filteredUsers.map((user) => {
+                  // Generate a unique key using name + email if id is invalid
+                  const userKey =
+                    user.id && !isNaN(Number(user.id))
+                      ? `user-${user.id}`
+                      : `user-${user.name || "unknown"}-${
+                          user.email || "noemail"
+                        }`;
+
+                  return (
+                    <tr
+                      key={userKey}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.has(String(user.id))}
+                          onChange={(e) =>
+                            handleUserSelect(String(user.id), e.target.checked)
+                          }
+                          className="rounded"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                            {user.name
+                              ? user.name.charAt(0).toUpperCase()
+                              : "?"}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {user.email}
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {user.name || "Unknown User"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {user.email || "No email"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {getRoleBadge(user.role)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.college}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.joinDate}
-                    </td>
-                    <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <button
-                        className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors"
-                        onClick={() => handleEditUser(user)}
-                        disabled={loading}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors"
-                        onClick={() => handleDeleteUser(user)}
-                        disabled={loading}
-                      >
-                        <FaTrash />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {getRoleBadge(user)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {user.college || "No organization"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {user.joinDate}
+                      </td>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(user.status)}
+                      </td>
+                      <td className="px-6 py-4 flex gap-2">
+                        <button
+                          className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors"
+                          onClick={() => handleEditUser(user)}
+                          disabled={loading}
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors"
+                          onClick={() => handleDeleteUser(user)}
+                          disabled={loading}
+                        >
+                          <FaTrash />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -741,7 +897,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
               };
               // Call the async handler, but ignore the returned promise
               void handleSubmitUser(
-                safeData as UpdateUserRequest | CreateUserRequest
+                safeData as UpdateUserRequest | CreateUserRequest,
               );
             }}
             onCancel={closeModals}
@@ -778,7 +934,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
           onClose={closeModals}
           onConfirm={handleConfirmDelete}
           title="Delete User"
-          message={`Are you sure you want to delete "${selectedUser.name}"? This action cannot be undone.`}
+          message={`Are you sure you want to delete "${
+            selectedUser.name || "this user"
+          }"? This action cannot be undone.`}
           confirmText="Delete"
           cancelText="Cancel"
           loading={loading}

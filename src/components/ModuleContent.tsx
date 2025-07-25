@@ -304,7 +304,7 @@ const DynamicRichTextEditor = dynamic(
         <span className="text-slate-500">Loading editor...</span>
       </div>
     ),
-  }
+  },
 );
 
 interface ModuleContentProps {
@@ -435,8 +435,8 @@ const DayContentModal: React.FC<{
               {loading
                 ? "Saving..."
                 : editingDay
-                ? "Update Day Content"
-                : "Create Day Content"}
+                  ? "Update Day Content"
+                  : "Create Day Content"}
             </button>
           </div>
         </form>
@@ -475,12 +475,12 @@ const MCQModal: React.FC<{
   const updateQuestion = (
     index: number,
     field: keyof MCQQuestion,
-    value: QuillDelta | string | { id: string; text: QuillDelta }[]
+    value: QuillDelta | string | { id: string; text: QuillDelta }[],
   ) => {
     setFormData((prev) => ({
       ...prev,
       questions: prev.questions.map((q, i) =>
-        i === index ? { ...q, [field]: value } : q
+        i === index ? { ...q, [field]: value } : q,
       ),
     }));
   };
@@ -522,7 +522,7 @@ const MCQModal: React.FC<{
   };
 
   const deltaToHtml = (
-    delta: QuillDelta | string | { ops: { insert: string }[] } | undefined
+    delta: QuillDelta | string | { ops: { insert: string }[] } | undefined,
   ): string => {
     if (!delta) return "";
     if (typeof delta === "string") return delta;
@@ -815,7 +815,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
   });
 
   const deltaToHtml = (
-    delta: QuillDelta | string | { ops: { insert: string }[] } | undefined
+    delta: QuillDelta | string | { ops: { insert: string }[] } | undefined,
   ): string => {
     if (!delta) return "";
     if (typeof delta === "string") return delta;
@@ -914,7 +914,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           selectedModuleId,
           editingDay.id,
           dayContentForm,
-          backendJwt
+          backendJwt,
         );
       } else {
         await createDayContent(
@@ -922,7 +922,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           selectedCourseId,
           selectedModuleId,
           dayContentForm,
-          backendJwt
+          backendJwt,
         );
       }
       setShowContentModal(false);
@@ -959,7 +959,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           selectedCourseId,
           selectedModuleId,
           dayId,
-          backendJwt
+          backendJwt,
         );
       } catch (err) {
         console.error("Failed to delete day content:", err);
@@ -986,7 +986,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
         selectedCourseId,
         selectedModuleId,
         mcqForm,
-        backendJwt
+        backendJwt,
       );
       setShowMCQModal(false);
       setMCQForm({
@@ -1016,7 +1016,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           selectedCourseId,
           selectedModuleId,
           selectedModule.mcq.id,
-          backendJwt
+          backendJwt,
         );
       } catch (err) {
         console.error("Failed to delete MCQ:", err);

@@ -9,6 +9,7 @@ import {
   FaChalkboardTeacher,
   FaGraduationCap,
   FaTachometerAlt,
+  FaUserFriends,
 } from "react-icons/fa";
 
 interface SidebarProps {
@@ -22,7 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(
-    "user-management"
+    "user-management",
   );
 
   const menuItems = [
@@ -33,9 +34,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: "User Management",
       icon: FaUsers,
       submenu: [
-        { key: "college-admins", label: "College Admins", icon: FaUserShield },
+        { key: "admins", label: "Admins", icon: FaUserShield },
         { key: "instructors", label: "Instructors", icon: FaChalkboardTeacher },
         { key: "students", label: "Students", icon: FaGraduationCap },
+        { key: "recruiters", label: "Recruiters", icon: FaUserFriends },
       ],
     },
     { key: "organizations", label: "Organizations", icon: FaBuilding },
@@ -83,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => {
                   if (item.submenu) {
                     setExpandedMenu(
-                      expandedMenu === item.key ? null : item.key
+                      expandedMenu === item.key ? null : item.key,
                     );
                   } else {
                     setActiveSection(item.key);

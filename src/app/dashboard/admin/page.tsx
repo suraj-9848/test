@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/AdminSidebar";
 import AdminDashboard from "@/components/AdminDashboard";
 import ComprehensiveUserManagement from "@/components/ComprehensiveUserManagement";
-import CollegeManagement from "@/components/CollegeManagement";
 import OrganizationManagement from "@/components/OrganizationManagement";
 import ManageHiring from "@/components/ManageHiring";
 import PaymentApproval from "@/components/PaymentApproval";
@@ -32,12 +31,14 @@ const Index: React.FC = () => {
         return <AdminDashboard />;
       case "users":
         return <ComprehensiveUserManagement type="all" />;
-      case "college-admins":
-        return <CollegeManagement type="college-admins" />;
+      case "admins":
+        return <ComprehensiveUserManagement type="admins" />;
+      case "recruiters":
+        return <ComprehensiveUserManagement type="recruiters" />;
       case "instructors":
-        return <CollegeManagement type="instructors" />;
+        return <ComprehensiveUserManagement type="instructors" />;
       case "students":
-        return <CollegeManagement type="students" />;
+        return <ComprehensiveUserManagement type="students" />;
       case "organizations":
         return <OrganizationManagement />;
       case "manage-hiring":

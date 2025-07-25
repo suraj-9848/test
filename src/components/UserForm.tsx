@@ -13,17 +13,15 @@ import {
   AdminUser,
   InstructorUser,
   StudentUser,
+  RecruiterUser,
   UserRole,
   UserStatus,
-  getOrgs,
   getBatches,
-  AdminRole,
-  InstructorRole,
-  StudentRole,
 } from "@/store/adminStore";
+import { organizationApi } from "@/api/adminApi";
 
 // Union type for all user types
-type CombinedUser = AdminUser | InstructorUser | StudentUser;
+type CombinedUser = AdminUser | InstructorUser | StudentUser | RecruiterUser;
 
 // Common fields across all user types
 interface BaseUser {
@@ -32,7 +30,7 @@ interface BaseUser {
   college: string;
   batch_id?: string[];
   userRole?: UserRole;
-  role: AdminRole | InstructorRole | StudentRole;
+  role: UserRole;
   status: UserStatus;
 }
 
@@ -44,7 +42,7 @@ interface FormData {
   college: string;
   batch_id: string[];
   userRole: UserRole | "";
-  role: AdminRole | InstructorRole | StudentRole | "";
+  role: UserRole | "";
   status: UserStatus;
 }
 
@@ -92,13 +90,11 @@ const UserForm: React.FC<UserFormProps> = ({
 
   const validateRole = (
     role: string,
-    userRole: UserRole
-  ): AdminRole | InstructorRole | StudentRole | undefined => {
+    userRole: UserRole,
+  ): UserRole | undefined => {
     if (!userRole || !role) return undefined;
     const validRoles = roleOptions[userRole].map((option) => option.value);
-    return validRoles.includes(role)
-      ? (role as AdminRole | InstructorRole | StudentRole)
-      : undefined;
+    return validRoles.includes(role) ? (role as UserRole) : undefined;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -111,9 +107,7 @@ const UserForm: React.FC<UserFormProps> = ({
       college: formData.college || undefined,
       batch_id: formData.userRole === "student" ? formData.batch_id : [],
       userRole: formData.userRole || undefined,
-      role: formData.userRole
-        ? validateRole(formData.role, formData.userRole)
-        : undefined,
+      role: formData.userRole || undefined, // Role is same as userRole
       status: formData.status,
     };
 
@@ -122,14 +116,7 @@ const UserForm: React.FC<UserFormProps> = ({
 
   const handleInputChange = (
     field: keyof FormData,
-    value:
-      | string
-      | string[]
-      | UserRole
-      | AdminRole
-      | InstructorRole
-      | StudentRole
-      | UserStatus
+    value: string | string[] | UserRole | UserStatus,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -158,28 +145,34 @@ const UserForm: React.FC<UserFormProps> = ({
     }
   };
 
-  const organizations = getOrgs();
+  // Get organizations using state to ensure we can fetch fresh data
+  const [organizations, setOrganizations] = useState<
+    { id: string; name: string }[]
+  >([]);
   const batches = getBatches();
 
+  // Fetch organizations on mount
+  useEffect(() => {
+    const fetchOrgs = async () => {
+      try {
+        const response = await organizationApi.getAll();
+        setOrganizations(
+          response.orgs.map((org) => ({ id: org.id, name: org.name })),
+        );
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      }
+    };
+
+    fetchOrgs();
+  }, []);
+
+  // Simple role options with just the 4 main roles
   const roleOptions: Record<UserRole, { value: string; label: string }[]> = {
-    student: [
-      { value: "First Year", label: "First Year" },
-      { value: "Second Year", label: "Second Year" },
-      { value: "Third Year", label: "Third Year" },
-      { value: "Fourth Year", label: "Fourth Year" },
-      { value: "Final Year", label: "Final Year" },
-    ],
-    instructor: [
-      { value: "Senior Professor", label: "Senior Professor" },
-      { value: "Associate Professor", label: "Associate Professor" },
-      { value: "Assistant Professor", label: "Assistant Professor" },
-    ],
-    college_admin: [
-      { value: "College Admin", label: "College Admin" },
-      { value: "Deputy Admin", label: "Deputy Admin" },
-      { value: "Academic Head", label: "Academic Head" },
-    ],
-    admin: [{ value: "Admin", label: "Admin" }],
+    student: [{ value: "student", label: "Student" }],
+    instructor: [{ value: "instructor", label: "Instructor" }],
+    admin: [{ value: "admin", label: "Admin" }],
+    recruiter: [{ value: "recruiter", label: "Recruiter" }],
   };
 
   return (
@@ -249,7 +242,7 @@ const UserForm: React.FC<UserFormProps> = ({
           >
             <option value="">Select Organization</option>
             {organizations.map((org) => (
-              <option key={org.id} value={org.name}>
+              <option key={org.id} value={org.id}>
                 {org.name}
               </option>
             ))}
@@ -275,33 +268,12 @@ const UserForm: React.FC<UserFormProps> = ({
           <option value="">Select Role</option>
           <option value="student">Student</option>
           <option value="instructor">Instructor</option>
-          <option value="college_admin">College Admin</option>
           <option value="admin">Admin</option>
+          <option value="recruiter">Recruiter</option>
         </select>
       </div>
 
-      {/* Specific Role */}
-      {formData.userRole && (
-        <div>
-          <label className="flex items-center space-x-2 text-sm font-medium text-black mb-1">
-            <FaUsers className="w-3 h-3 text-blue-600" />
-            <span>Specific Role *</span>
-          </label>
-          <select
-            value={formData.role}
-            onChange={(e) => handleInputChange("role", e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-black"
-            required
-          >
-            <option value="">Select Specific Role</option>
-            {roleOptions[formData.userRole].map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* No separate "Specific Role" section needed as we're using the same roles */}
 
       {/* Status */}
       <div>

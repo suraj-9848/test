@@ -11,7 +11,7 @@ export interface User {
   password: string | null;
   org_id: string | null;
   batch_id: string[];
-  userRole: "student" | "admin" | "college_admin" | "instructor";
+  userRole: "student" | "admin" | "instructor" | "recruiter";
 }
 
 export interface Organization {
@@ -72,7 +72,7 @@ const handleApiResponse = async (response: Response) => {
     throw new Error(
       errorData.error ||
         errorData.message ||
-        `HTTP error! status: ${response.status}`
+        `HTTP error! status: ${response.status}`,
     );
   }
   return response.json();
@@ -92,7 +92,7 @@ export const organizationApi = {
 
   // Create organization
   create: async (
-    data: CreateOrgRequest
+    data: CreateOrgRequest,
   ): Promise<{ message: string; org: Organization }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(`${BACKEND_BASE_URL}/api/admin/create-org`, {
@@ -111,7 +111,7 @@ export const organizationApi = {
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -119,7 +119,7 @@ export const organizationApi = {
   // Update organization
   update: async (
     orgId: string,
-    data: UpdateOrgRequest
+    data: UpdateOrgRequest,
   ): Promise<{ message: string; org: Organization }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -128,7 +128,7 @@ export const organizationApi = {
         method: "PUT",
         headers,
         body: JSON.stringify(data),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -138,7 +138,7 @@ export const organizationApi = {
 export const userApi = {
   // Create college admin
   createCollegeAdmin: async (
-    data: CreateUserRequest
+    data: CreateUserRequest,
   ): Promise<{ message: string; user: User }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -147,7 +147,7 @@ export const userApi = {
         method: "POST",
         headers,
         body: JSON.stringify(data),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -155,7 +155,7 @@ export const userApi = {
   // Update college admin
   updateCollegeAdmin: async (
     userId: string,
-    data: UpdateUserRequest
+    data: UpdateUserRequest,
   ): Promise<{ message: string; user: User }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -164,7 +164,7 @@ export const userApi = {
         method: "PUT",
         headers,
         body: JSON.stringify(data),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -177,14 +177,14 @@ export const userApi = {
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
     return handleApiResponse(response);
   },
 
   // Create instructor
   createInstructor: async (
-    data: CreateUserRequest
+    data: CreateUserRequest,
   ): Promise<{ message: string; user: User }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -193,7 +193,7 @@ export const userApi = {
         method: "POST",
         headers,
         body: JSON.stringify(data),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -201,7 +201,7 @@ export const userApi = {
   // Update instructor
   updateInstructor: async (
     userId: string,
-    data: UpdateUserRequest
+    data: UpdateUserRequest,
   ): Promise<{ message: string; user: User }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -210,7 +210,7 @@ export const userApi = {
         method: "PUT",
         headers,
         body: JSON.stringify(data),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -223,14 +223,14 @@ export const userApi = {
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
     return handleApiResponse(response);
   },
 
   // Create student
   createStudent: async (
-    data: CreateUserRequest
+    data: CreateUserRequest,
   ): Promise<{ message: string; user: User }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -239,7 +239,7 @@ export const userApi = {
         method: "POST",
         headers,
         body: JSON.stringify(data),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -247,7 +247,7 @@ export const userApi = {
   // Update student
   updateStudent: async (
     userId: string,
-    data: UpdateUserRequest
+    data: UpdateUserRequest,
   ): Promise<{ message: string; user: User }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -256,7 +256,7 @@ export const userApi = {
         method: "PUT",
         headers,
         body: JSON.stringify(data),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -269,14 +269,14 @@ export const userApi = {
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
     return handleApiResponse(response);
   },
 
   // Get all users, optionally filtered by role
   getAllUsers: async (
-    role?: string
+    role?: string,
   ): Promise<{ message: string; users: User[] }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -285,29 +285,55 @@ export const userApi = {
         method: "POST",
         headers,
         body: JSON.stringify(role ? { role } : {}),
-      }
+      },
     );
     return handleApiResponse(response);
   },
 
   // Get users with optional role filter
   getUsers: async (
-    role?: string
+    role?: string,
   ): Promise<{ message: string; users: User[] }> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(
-      `${BACKEND_BASE_URL}/api/admin/get-users${role ? `?role=${role}` : ""}`,
-      {
+    const url = new URL(`${BACKEND_BASE_URL}/api/admin/get-users`);
+
+    // Append role as a query parameter if it's provided and not "All"
+    if (role && role !== "All") {
+      url.searchParams.append("role", role);
+    }
+
+    console.log(`Fetching users with URL: ${url.toString()}`);
+
+    try {
+      const response = await fetch(url.toString(), {
         method: "GET",
         headers,
+      });
+
+      if (!response.ok) {
+        console.error(
+          `Error fetching users: ${response.status} ${response.statusText}`,
+        );
+
+        // If we get a 404, log more details and throw a clear error
+        if (response.status === 404) {
+          console.error(`API endpoint not found: ${url.toString()}`);
+          throw new Error(`API endpoint not found: ${url.toString()}`);
+        }
       }
-    );
-    return handleApiResponse(response);
+
+      const data = await handleApiResponse(response);
+      console.log(`Received ${data.users?.length || 0} users`);
+      return data;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      throw error;
+    }
   },
 
   // Bulk create users
   bulkCreateUsers: async (
-    users: CreateUserRequest[]
+    users: CreateUserRequest[],
   ): Promise<{
     message: string;
     created: number;
@@ -322,14 +348,14 @@ export const userApi = {
         method: "POST",
         headers,
         body: JSON.stringify({ users }),
-      }
+      },
     );
     return handleApiResponse(response);
   },
 
   // Bulk delete users
   bulkDeleteUsers: async (
-    userIds: string[]
+    userIds: string[],
   ): Promise<{
     message: string;
     deletedCount: number;
@@ -341,7 +367,7 @@ export const userApi = {
         method: "DELETE",
         headers,
         body: JSON.stringify({ userIds }),
-      }
+      },
     );
     return handleApiResponse(response);
   },
@@ -372,7 +398,7 @@ export const userApi = {
   // Create user with role
   createUser: async (
     data: CreateUserRequest,
-    role: UserRole
+    role: UserRole,
   ): Promise<{ message: string; user: User }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(`${BACKEND_BASE_URL}/api/admin/create-user`, {
@@ -387,29 +413,68 @@ export const userApi = {
   updateUser: async (
     userId: string,
     data: UpdateUserRequest,
-    role: UserRole
+    role: UserRole,
   ): Promise<{ message: string; user: User }> => {
+    // Validate userId before making the API call
+    if (
+      !userId ||
+      userId === "undefined" ||
+      userId === "null" ||
+      userId === "NaN"
+    ) {
+      console.error(
+        `Invalid user ID detected: ${userId}, type: ${typeof userId}`,
+      );
+      throw new Error(`Invalid user ID: ${userId}`);
+    }
+
+    // Check if it looks like a valid UUID
+    const isUuidFormat =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        userId,
+      );
+    if (!isUuidFormat) {
+      console.warn(
+        `Warning: User ID ${userId} does not match UUID format expected by the backend`,
+      );
+    }
+
     const headers = await getAuthHeaders();
+    console.log("=== FRONTEND ADMIN API UPDATE ===");
+    console.log(`Updating user ${userId} with role ${role}`, data);
+    console.log(
+      "Request URL:",
+      `${BACKEND_BASE_URL}/api/admin/update-user/${userId}`,
+    );
+    console.log("Request body:", JSON.stringify({ ...data, role }));
+    console.log("Request headers:", headers);
+
     const response = await fetch(
       `${BACKEND_BASE_URL}/api/admin/update-user/${userId}`,
       {
         method: "PUT",
         headers,
         body: JSON.stringify({ ...data, role }),
-      }
+      },
     );
     return handleApiResponse(response);
   },
 
-  // Delete user by ID
-  deleteUser: async (userId: string): Promise<{ message: string }> => {
+  // Delete user by ID with unified endpoint
+  deleteUser: async (
+    userId: string,
+    role: UserRole,
+  ): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
+
+    console.log(`Deleting user ${userId} with role ${role}`);
+
     const response = await fetch(
       `${BACKEND_BASE_URL}/api/admin/delete-user/${userId}`,
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
     return handleApiResponse(response);
   },

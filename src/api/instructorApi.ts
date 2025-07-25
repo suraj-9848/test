@@ -30,7 +30,7 @@ const getBackendJwt = async () => {
       {
         headers: { Authorization: `Bearer ${googleIdToken}` },
         withCredentials: true,
-      }
+      },
     );
     cachedBackendJwt = loginRes.data.token;
     return cachedBackendJwt;
@@ -331,7 +331,7 @@ export const instructorApi = {
   },
 
   createCourse: async (
-    courseData: CreateCourseData
+    courseData: CreateCourseData,
   ): Promise<CourseResponse> => {
     const headers = await getAuthHeaders();
     // Use the first batch_id for route (API only supports one at a time)
@@ -413,7 +413,7 @@ export const instructorApi = {
 
   getTestsByCourse: async (
     courseId: string,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ tests: Test[] }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -422,14 +422,14 @@ export const instructorApi = {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
       if (response.status === 404) {
         // Return empty tests array if endpoint doesn't exist
         console.warn(
-          `No tests found for course ${courseId} in batch ${actualBatchId}`
+          `No tests found for course ${courseId} in batch ${actualBatchId}`,
         );
         return { tests: [] };
       }
@@ -442,15 +442,15 @@ export const instructorApi = {
       tests: Array.isArray(data.tests)
         ? data.tests
         : Array.isArray(data)
-        ? data
-        : [],
+          ? data
+          : [],
     };
   },
 
   getTestById: async (
     testId: string,
     courseId: string,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ test: Test }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -459,7 +459,7 @@ export const instructorApi = {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -474,7 +474,7 @@ export const instructorApi = {
     courseId: string,
     testId: string,
     testData: Partial<CreateTestRequest>,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ test: Test }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -484,7 +484,7 @@ export const instructorApi = {
         method: "PUT",
         headers,
         body: JSON.stringify(testData),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -498,7 +498,7 @@ export const instructorApi = {
   publishTest: async (
     testId: string,
     courseId: string,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -507,7 +507,7 @@ export const instructorApi = {
       {
         method: "PATCH",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -521,7 +521,7 @@ export const instructorApi = {
   deleteTest: async (
     courseId: string,
     testId: string,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -530,7 +530,7 @@ export const instructorApi = {
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -544,7 +544,7 @@ export const instructorApi = {
   // Question Management
   addQuestion: async (
     testId: string,
-    questionData: CreateQuestionRequest
+    questionData: CreateQuestionRequest,
   ): Promise<{ question: Question }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -553,7 +553,7 @@ export const instructorApi = {
         method: "POST",
         headers,
         body: JSON.stringify({ questions: [questionData] }),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -567,7 +567,7 @@ export const instructorApi = {
   getQuestions: async (
     courseId: string,
     testId: string,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ questions: Question[] }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -576,7 +576,7 @@ export const instructorApi = {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -592,7 +592,7 @@ export const instructorApi = {
     testId: string,
     questionId: string,
     questionData: Partial<CreateQuestionRequest>,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ question: Question }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -602,7 +602,7 @@ export const instructorApi = {
         method: "PUT",
         headers,
         body: JSON.stringify(questionData),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -617,7 +617,7 @@ export const instructorApi = {
     courseId: string,
     testId: string,
     questionId: string,
-    batchId?: string
+    batchId?: string,
   ): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
@@ -626,7 +626,7 @@ export const instructorApi = {
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -639,7 +639,7 @@ export const instructorApi = {
 
   // Analytics and Statistics
   getTestStatistics: async (
-    testId: string
+    testId: string,
   ): Promise<{ statistics: TestStatistics }> => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -647,7 +647,7 @@ export const instructorApi = {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -665,7 +665,7 @@ export const instructorApi = {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -712,7 +712,7 @@ export const instructorApi = {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!batchesResponse.ok) {
@@ -733,7 +733,7 @@ export const instructorApi = {
           {
             method: "GET",
             headers,
-          }
+          },
         );
 
         if (!coursesResponse.ok) continue;
@@ -749,7 +749,7 @@ export const instructorApi = {
               {
                 method: "GET",
                 headers,
-              }
+              },
             );
 
             if (!progressResponse.ok) continue;
@@ -771,7 +771,7 @@ export const instructorApi = {
           } catch (err) {
             console.warn(
               `Failed to fetch progress for course ${course.id}:`,
-              err
+              err,
             );
           }
         }
@@ -810,7 +810,7 @@ export const instructorApi = {
           {
             method: "GET",
             headers,
-          }
+          },
         );
 
         if (!batchesResponse.ok) {
@@ -832,7 +832,7 @@ export const instructorApi = {
             method: "POST",
             headers,
             body: JSON.stringify({ userId: studentId, courseId }),
-          }
+          },
         );
 
         if (!response.ok) {
@@ -903,12 +903,12 @@ export const instructorApi = {
 
   getStudentCourseAssignments: async (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _studentId: string
+    _studentId: string,
   ): Promise<{ courses: Course[] }> => {
     // This endpoint doesn't exist in the current backend
     // For now, return empty array - this feature needs backend implementation
     console.warn(
-      "getStudentCourseAssignments: Backend endpoint not implemented"
+      "getStudentCourseAssignments: Backend endpoint not implemented",
     );
     return { courses: [] };
   },
@@ -920,7 +920,7 @@ export const instructorApi = {
       {
         method: "DELETE",
         headers,
-      }
+      },
     );
     if (!response.ok) {
       const error = await response.json();
@@ -932,7 +932,7 @@ export const instructorApi = {
   updateCourse: async (
     batchId: string,
     courseId: string,
-    courseData: Partial<Course>
+    courseData: Partial<Course>,
   ) => {
     const headers = await getAuthHeaders();
     const response = await fetch(
@@ -941,7 +941,7 @@ export const instructorApi = {
         method: "PUT",
         headers,
         body: JSON.stringify(courseData),
-      }
+      },
     );
     if (!response.ok) {
       const error = await response.json();

@@ -72,26 +72,26 @@ interface ModuleStore {
   fetchModules: (
     batchId: string,
     courseId: string,
-    jwt: string
+    jwt: string,
   ) => Promise<void>;
   createModule: (
     batchId: string,
     courseId: string,
     moduleData: CreateModuleData,
-    jwt: string
+    jwt: string,
   ) => Promise<Module>;
   updateModule: (
     batchId: string,
     courseId: string,
     moduleId: string,
     moduleData: Partial<CreateModuleData>,
-    jwt: string
+    jwt: string,
   ) => Promise<Module>;
   deleteModule: (
     batchId: string,
     courseId: string,
     moduleId: string,
-    jwt: string
+    jwt: string,
   ) => Promise<void>;
 
   // Day Content operations
@@ -100,7 +100,7 @@ interface ModuleStore {
     courseId: string,
     moduleId: string,
     dayData: CreateDayContentData,
-    jwt: string
+    jwt: string,
   ) => Promise<DayContent>;
   updateDayContent: (
     batchId: string,
@@ -108,14 +108,14 @@ interface ModuleStore {
     moduleId: string,
     dayId: string,
     dayData: Partial<CreateDayContentData>,
-    jwt: string
+    jwt: string,
   ) => Promise<DayContent>;
   deleteDayContent: (
     batchId: string,
     courseId: string,
     moduleId: string,
     dayId: string,
-    jwt: string
+    jwt: string,
   ) => Promise<void>;
 
   // MCQ operations
@@ -124,7 +124,7 @@ interface ModuleStore {
     courseId: string,
     moduleId: string,
     mcqData: CreateMCQData,
-    jwt: string
+    jwt: string,
   ) => Promise<MCQ>;
   updateMCQ: (
     batchId: string,
@@ -132,14 +132,14 @@ interface ModuleStore {
     moduleId: string,
     mcqId: string,
     mcqData: Partial<CreateMCQData>,
-    jwt: string
+    jwt: string,
   ) => Promise<MCQ>;
   deleteMCQ: (
     batchId: string,
     courseId: string,
     moduleId: string,
     mcqId: string,
-    jwt: string
+    jwt: string,
   ) => Promise<void>;
 
   // State management
@@ -162,7 +162,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         `${baseUrl}/api/instructor/courses/${courseId}/modules`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       set({ modules: response.data || [], loading: false });
     } catch (error: unknown) {
@@ -184,7 +184,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     batchId: string,
     courseId: string,
     moduleData: CreateModuleData,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -193,7 +193,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         moduleData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const newModule = response.data;
 
@@ -223,7 +223,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     courseId: string,
     moduleId: string,
     moduleData: Partial<CreateModuleData>,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -232,13 +232,13 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         moduleData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const updatedModule = response.data;
 
       set((state) => ({
         modules: state.modules.map((module) =>
-          module.id === moduleId ? updatedModule : module
+          module.id === moduleId ? updatedModule : module,
         ),
         selectedModule:
           state.selectedModule?.id === moduleId
@@ -267,7 +267,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     batchId: string,
     courseId: string,
     moduleId: string,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -275,7 +275,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         `${baseUrl}/api/instructor/courses/${courseId}/modules/${moduleId}`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
 
       set((state) => ({
@@ -304,7 +304,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     courseId: string,
     moduleId: string,
     dayData: CreateDayContentData,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -313,7 +313,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         dayData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const newDayContent = response.data.dayContent;
 
@@ -324,7 +324,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
                 ...module,
                 days: [...(module.days || []), newDayContent],
               }
-            : module
+            : module,
         ),
         selectedModule:
           state.selectedModule?.id === moduleId
@@ -344,7 +344,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
       };
       console.error(
         "Day content create error:",
-        err.response?.data || err.message
+        err.response?.data || err.message,
       );
       set({
         error: err?.response?.data?.message || "Failed to create day content",
@@ -361,7 +361,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     moduleId: string,
     dayId: string,
     dayData: Partial<CreateDayContentData>,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -370,7 +370,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         dayData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const updatedDayContent = response.data.dayContent;
 
@@ -380,17 +380,17 @@ export const useModuleStore = create<ModuleStore>((set) => ({
             ? {
                 ...module,
                 days: module.days?.map((day) =>
-                  day.id === dayId ? updatedDayContent : day
+                  day.id === dayId ? updatedDayContent : day,
                 ),
               }
-            : module
+            : module,
         ),
         selectedModule:
           state.selectedModule?.id === moduleId
             ? {
                 ...state.selectedModule,
                 days: state.selectedModule.days?.map((day) =>
-                  day.id === dayId ? updatedDayContent : day
+                  day.id === dayId ? updatedDayContent : day,
                 ),
               }
             : state.selectedModule,
@@ -405,7 +405,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
       };
       console.error(
         "Day content update error:",
-        err.response?.data || err.message
+        err.response?.data || err.message,
       );
       set({
         error: err?.response?.data?.message || "Failed to update day content",
@@ -421,7 +421,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     courseId: string,
     moduleId: string,
     dayId: string,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -429,7 +429,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content/${dayId}`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
 
       set((state) => ({
@@ -439,14 +439,14 @@ export const useModuleStore = create<ModuleStore>((set) => ({
                 ...module,
                 days: module.days?.filter((day) => day.id !== dayId),
               }
-            : module
+            : module,
         ),
         selectedModule:
           state.selectedModule?.id === moduleId
             ? {
                 ...state.selectedModule,
                 days: state.selectedModule.days?.filter(
-                  (day) => day.id !== dayId
+                  (day) => day.id !== dayId,
                 ),
               }
             : state.selectedModule,
@@ -459,7 +459,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
       };
       console.error(
         "Day content delete error:",
-        err.response?.data || err.message
+        err.response?.data || err.message,
       );
       set({
         error: err?.response?.data?.message || "Failed to delete day content",
@@ -475,7 +475,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     courseId: string,
     moduleId: string,
     mcqData: CreateMCQData,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -484,13 +484,13 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         mcqData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const newMCQ = response.data.mcq;
 
       set((state) => ({
         modules: state.modules.map((module) =>
-          module.id === moduleId ? { ...module, mcq: newMCQ } : module
+          module.id === moduleId ? { ...module, mcq: newMCQ } : module,
         ),
         selectedModule:
           state.selectedModule?.id === moduleId
@@ -521,7 +521,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     moduleId: string,
     mcqId: string,
     mcqData: Partial<CreateMCQData>,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -530,13 +530,13 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         mcqData,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
       const updatedMCQ = response.data.mcq;
 
       set((state) => ({
         modules: state.modules.map((module) =>
-          module.id === moduleId ? { ...module, mcq: updatedMCQ } : module
+          module.id === moduleId ? { ...module, mcq: updatedMCQ } : module,
         ),
         selectedModule:
           state.selectedModule?.id === moduleId
@@ -566,7 +566,7 @@ export const useModuleStore = create<ModuleStore>((set) => ({
     courseId: string,
     moduleId: string,
     mcqId: string,
-    jwt: string
+    jwt: string,
   ) => {
     set({ loading: true, error: null });
     try {
@@ -574,12 +574,12 @@ export const useModuleStore = create<ModuleStore>((set) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq/${mcqId}`,
         {
           headers: { Authorization: `Bearer ${jwt}` },
-        }
+        },
       );
 
       set((state) => ({
         modules: state.modules.map((module) =>
-          module.id === moduleId ? { ...module, mcq: undefined } : module
+          module.id === moduleId ? { ...module, mcq: undefined } : module,
         ),
         selectedModule:
           state.selectedModule?.id === moduleId

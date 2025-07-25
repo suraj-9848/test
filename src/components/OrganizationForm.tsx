@@ -1,24 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { FaBuilding, FaMapMarkerAlt, FaFileAlt, FaSave, FaTimes } from 'react-icons/fa';
-import { Organization } from '@/store/organizationStore';
+import React, { useState, useEffect } from "react";
+import {
+  FaBuilding,
+  FaMapMarkerAlt,
+  FaFileAlt,
+  FaSave,
+  FaTimes,
+} from "react-icons/fa";
+import { Organization } from "@/store/organizationStore";
 
 interface OrganizationFormProps {
   organization?: Organization | null;
-  onSubmit: (org: Omit<Organization, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubmit: (org: Omit<Organization, "id" | "createdAt" | "updatedAt">) => void;
   onCancel: () => void;
   isEdit?: boolean;
 }
 
-const OrganizationForm: React.FC<OrganizationFormProps> = ({ 
-  organization, 
-  onSubmit, 
-  onCancel, 
-  isEdit = false 
+const OrganizationForm: React.FC<OrganizationFormProps> = ({
+  organization,
+  onSubmit,
+  onCancel,
+  isEdit = false,
 }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    description: '',
+    name: "",
+    address: "",
+    description: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,15 +43,15 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Organization name is required';
+      newErrors.name = "Organization name is required";
     }
 
     if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
+      newErrors.address = "Address is required";
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = "Description is required";
     }
 
     setErrors(newErrors);
@@ -54,18 +60,18 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSubmit(formData);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -80,9 +86,9 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
         <input
           type="text"
           value={formData.name}
-          onChange={(e) => handleInputChange('name', e.target.value)}
+          onChange={(e) => handleInputChange("name", e.target.value)}
           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-black text-sm ${
-            errors.name ? 'border-red-500' : 'border-gray-300'
+            errors.name ? "border-red-500" : "border-gray-300"
           }`}
           placeholder="Enter organization name"
           required
@@ -101,9 +107,9 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
         <input
           type="text"
           value={formData.address}
-          onChange={(e) => handleInputChange('address', e.target.value)}
+          onChange={(e) => handleInputChange("address", e.target.value)}
           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-black text-sm ${
-            errors.address ? 'border-red-500' : 'border-gray-300'
+            errors.address ? "border-red-500" : "border-gray-300"
           }`}
           placeholder="Enter address (e.g., City, State)"
           required
@@ -121,10 +127,10 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
         </label>
         <textarea
           value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
+          onChange={(e) => handleInputChange("description", e.target.value)}
           rows={4}
           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-black text-sm resize-none ${
-            errors.description ? 'border-red-500' : 'border-gray-300'
+            errors.description ? "border-red-500" : "border-gray-300"
           }`}
           placeholder="Enter organization description"
           required
@@ -149,11 +155,11 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
           className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
         >
           <FaSave className="w-4 h-4" />
-          <span>{isEdit ? 'Update' : 'Create'} Organization</span>
+          <span>{isEdit ? "Update" : "Create"} Organization</span>
         </button>
       </div>
     </form>
   );
 };
 
-export default OrganizationForm; 
+export default OrganizationForm;

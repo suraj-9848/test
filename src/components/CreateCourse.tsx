@@ -134,7 +134,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
@@ -152,7 +152,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
   const handleBatchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(
       e.target.selectedOptions,
-      (option) => option.value
+      (option) => option.value,
     );
     setFormData((prev) => ({ ...prev, batch_ids: selectedOptions }));
     if (errors.batch_ids) {

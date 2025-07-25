@@ -57,9 +57,8 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
 
   const fetchStudentAssignments = async (studentId: string) => {
     try {
-      const response = await instructorApi.getStudentCourseAssignments(
-        studentId
-      );
+      const response =
+        await instructorApi.getStudentCourseAssignments(studentId);
       setAssignmentHistory((prev) => ({
         ...prev,
         [studentId]: response.courses,
@@ -82,7 +81,7 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
     try {
       const result = await instructorApi.assignCoursesToStudents(
         selectedCourses,
-        selectedStudents
+        selectedStudents,
       );
       
       setSuccess(result.message);
@@ -106,7 +105,7 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
     setSelectedCourses((prev) =>
       prev.includes(courseId)
         ? prev.filter((id) => id !== courseId)
-        : [...prev, courseId]
+        : [...prev, courseId],
     );
   };
 
@@ -114,7 +113,7 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
     setSelectedStudents((prev) =>
       prev.includes(studentId)
         ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
+        : [...prev, studentId],
     );
 
     // Fetch assignment history when student is selected
@@ -127,13 +126,13 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
     (student) =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.username.toLowerCase().includes(searchTerm.toLowerCase())
+      student.username.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const filteredCourses = courses.filter(
     (course) =>
       course.title.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
-      course.description.toLowerCase().includes(courseSearchTerm.toLowerCase())
+      course.description.toLowerCase().includes(courseSearchTerm.toLowerCase()),
   );
 
   const CourseCard: React.FC<{
@@ -497,7 +496,7 @@ const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
                     </div>
                   </div>
                 );
-              }
+              },
             )}
           </div>
         </div>

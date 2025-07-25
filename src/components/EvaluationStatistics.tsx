@@ -135,7 +135,7 @@ const EvaluationStatistics: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
   const [statistics, setStatistics] = useState<EvaluationStatistics | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -172,7 +172,7 @@ const EvaluationStatistics: React.FC = () => {
 
       return response.json();
     },
-    [API_BASE_URL, backendJwt]
+    [API_BASE_URL, backendJwt],
   );
 
   // Fetch user profile and get JWT
@@ -192,7 +192,7 @@ const EvaluationStatistics: React.FC = () => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         const jwt = loginRes.data.token;
         setBackendJwt(jwt);
@@ -205,117 +205,125 @@ const EvaluationStatistics: React.FC = () => {
     if (session) fetchProfile();
   }, [session]);
 
-  const fetchStatistics = useCallback(async (
-    batchId: string,
-    courseId: string,
-    testId: string
-  ) => {
-    try {
-      setLoading(true);
-      const response = await apiCall(
-        `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`
-      );
+  const fetchStatistics = useCallback(
+    async (batchId: string, courseId: string, testId: string) => {
+      try {
+        setLoading(true);
+        const response = await apiCall(
+          `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`,
+        );
 
-      // Process the statistics data
-      const processedStats: EvaluationStatistics = {
-        testId,
-        testTitle: tests.find((t) => t.id === testId)?.title || "Test",
-        totalQuestions: response.data?.totalQuestions || 0,
-        totalMarks: response.data?.totalMarks || 0,
-        passingMarks: response.data?.passingMarks || 0,
-        totalSubmissions: response.data?.totalSubmissions || 0,
-        evaluatedSubmissions: response.data?.evaluatedSubmissions || 0,
-        pendingEvaluations: response.data?.pendingEvaluations || 0,
-        averageScore: response.data?.averageScore || 0,
-        highestScore: response.data?.highestScore || 0,
-        lowestScore: response.data?.lowestScore || 0,
-        medianScore: response.data?.medianScore || 0,
-        passRate: response.data?.passRate || 0,
-        failRate: response.data?.failRate || 0,
-        averageTimeSpent: response.data?.averageTimeSpent || 0,
-        submissionTrends: response.data?.submissionTrends || [],
-        scoreDistribution: response.data?.scoreDistribution || [],
-        questionAnalysis:
-          response.data?.questionAnalysis?.map(
-            (q: {
-              questionId: string;
-              questionText: string;
-              totalAttempts: number;
-              correctAttempts: number;
-              averageTimeSpent: number;
-              difficultyLevel: "Easy" | "Medium" | "Hard";
-            }) => ({
-              questionId: q.questionId,
-              questionText: q.questionText,
-              questionType: "MCQ", // Default type
-              marks: 1, // Default marks
-              correctAnswers: q.correctAttempts,
-              incorrectAnswers: q.totalAttempts - q.correctAttempts,
-              accuracyRate: (q.correctAttempts / q.totalAttempts) * 100,
-              averageMarks: 0, // Will need to be calculated
-              difficulty: q.difficultyLevel.toLowerCase() as "easy" | "medium" | "hard",
-            })
-          ) || [],
-        difficultyAnalysis: response.data?.difficultyAnalysis || {
-          easy: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
-          medium: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
-          hard: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
-        },
-        performanceMetrics: response.data?.performanceMetrics || {
-          excellentPerformers: 0,
-          goodPerformers: 0,
-          averagePerformers: 0,
-          poorPerformers: 0,
-        },
-        timingAnalysis: response.data?.timingAnalysis || {
-          averageCompletionTime: 0,
-          fastestCompletion: 0,
-          slowestCompletion: 0,
-          timeoutSubmissions: 0,
-          earlySubmissions: 0,
-        },
-      };
+        // Process the statistics data
+        const processedStats: EvaluationStatistics = {
+          testId,
+          testTitle: tests.find((t) => t.id === testId)?.title || "Test",
+          totalQuestions: response.data?.totalQuestions || 0,
+          totalMarks: response.data?.totalMarks || 0,
+          passingMarks: response.data?.passingMarks || 0,
+          totalSubmissions: response.data?.totalSubmissions || 0,
+          evaluatedSubmissions: response.data?.evaluatedSubmissions || 0,
+          pendingEvaluations: response.data?.pendingEvaluations || 0,
+          averageScore: response.data?.averageScore || 0,
+          highestScore: response.data?.highestScore || 0,
+          lowestScore: response.data?.lowestScore || 0,
+          medianScore: response.data?.medianScore || 0,
+          passRate: response.data?.passRate || 0,
+          failRate: response.data?.failRate || 0,
+          averageTimeSpent: response.data?.averageTimeSpent || 0,
+          submissionTrends: response.data?.submissionTrends || [],
+          scoreDistribution: response.data?.scoreDistribution || [],
+          questionAnalysis:
+            response.data?.questionAnalysis?.map(
+              (q: {
+                questionId: string;
+                questionText: string;
+                totalAttempts: number;
+                correctAttempts: number;
+                averageTimeSpent: number;
+                difficultyLevel: "Easy" | "Medium" | "Hard";
+              }) => ({
+                questionId: q.questionId,
+                questionText: q.questionText,
+                questionType: "MCQ", // Default type
+                marks: 1, // Default marks
+                correctAnswers: q.correctAttempts,
+                incorrectAnswers: q.totalAttempts - q.correctAttempts,
+                accuracyRate: (q.correctAttempts / q.totalAttempts) * 100,
+                averageMarks: 0, // Will need to be calculated
+                difficulty: q.difficultyLevel.toLowerCase() as
+                  | "easy"
+                  | "medium"
+                  | "hard",
+              }),
+            ) || [],
+          difficultyAnalysis: response.data?.difficultyAnalysis || {
+            easy: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
+            medium: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
+            hard: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
+          },
+          performanceMetrics: response.data?.performanceMetrics || {
+            excellentPerformers: 0,
+            goodPerformers: 0,
+            averagePerformers: 0,
+            poorPerformers: 0,
+          },
+          timingAnalysis: response.data?.timingAnalysis || {
+            averageCompletionTime: 0,
+            fastestCompletion: 0,
+            slowestCompletion: 0,
+            timeoutSubmissions: 0,
+            earlySubmissions: 0,
+          },
+        };
 
-      setStatistics(processedStats);
-    } catch (err) {
-      console.error("Error fetching statistics:", err);
-      setError("Failed to load evaluation statistics");
-    } finally {
-      setLoading(false);
-    }
-  }, [apiCall, tests, setError]);
-
-  const fetchTests = useCallback(async (batchId: string, courseId: string) => {
-    try {
-      const response = await apiCall(
-        `/api/instructor/batches/${batchId}/courses/${courseId}/tests`
-      );
-      setTests(response.data?.tests || []);
-      if (response.data?.tests && response.data.tests.length > 0) {
-        setSelectedTest(response.data.tests[0].id);
-        await fetchStatistics(batchId, courseId, response.data.tests[0].id);
+        setStatistics(processedStats);
+      } catch (err) {
+        console.error("Error fetching statistics:", err);
+        setError("Failed to load evaluation statistics");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching tests:", err);
-      setError("Failed to load tests");
-    }
-  }, [apiCall, fetchStatistics, setError]);
+    },
+    [apiCall, tests, setError],
+  );
 
-  const fetchCourses = useCallback(async (batchId: string) => {
-    try {
-      const response = await apiCall(
-        `/api/instructor/batches/${batchId}/courses`
-      );
-      setCourses(response.courses || []);
-      if (response.courses && response.courses.length > 0) {
-        setSelectedCourse(response.courses[0].id);
-        await fetchTests(batchId, response.courses[0].id);
+  const fetchTests = useCallback(
+    async (batchId: string, courseId: string) => {
+      try {
+        const response = await apiCall(
+          `/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
+        );
+        setTests(response.data?.tests || []);
+        if (response.data?.tests && response.data.tests.length > 0) {
+          setSelectedTest(response.data.tests[0].id);
+          await fetchStatistics(batchId, courseId, response.data.tests[0].id);
+        }
+      } catch (err) {
+        console.error("Error fetching tests:", err);
+        setError("Failed to load tests");
       }
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-      setError("Failed to load courses");
-    }
-  }, [apiCall, fetchTests]);
+    },
+    [apiCall, fetchStatistics, setError],
+  );
+
+  const fetchCourses = useCallback(
+    async (batchId: string) => {
+      try {
+        const response = await apiCall(
+          `/api/instructor/batches/${batchId}/courses`,
+        );
+        setCourses(response.courses || []);
+        if (response.courses && response.courses.length > 0) {
+          setSelectedCourse(response.courses[0].id);
+          await fetchTests(batchId, response.courses[0].id);
+        }
+      } catch (err) {
+        console.error("Error fetching courses:", err);
+        setError("Failed to load courses");
+      }
+    },
+    [apiCall, fetchTests],
+  );
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -407,8 +415,8 @@ const EvaluationStatistics: React.FC = () => {
         "download",
         `evaluation-statistics-${statistics.testTitle.replace(
           /[^a-zA-Z0-9]/g,
-          "-"
-        )}.csv`
+          "-",
+        )}.csv`,
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -880,7 +888,7 @@ const EvaluationStatistics: React.FC = () => {
                           <td className="py-3 px-4">
                             <span
                               className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColor(
-                                question.difficulty
+                                question.difficulty,
                               )}`}
                             >
                               {question.difficulty}
@@ -894,7 +902,7 @@ const EvaluationStatistics: React.FC = () => {
                           <td className="py-3 px-4">
                             <span
                               className={`text-sm font-medium ${getPerformanceColor(
-                                question.accuracyRate
+                                question.accuracyRate,
                               )}`}
                             >
                               {question.accuracyRate.toFixed(1)}%
@@ -916,7 +924,7 @@ const EvaluationStatistics: React.FC = () => {
                             </div>
                           </td>
                         </tr>
-                      )
+                      ),
                     )}
                   </tbody>
                 </table>
@@ -954,7 +962,7 @@ const EvaluationStatistics: React.FC = () => {
                         </span>
                         <span className="text-sm font-medium">
                           {statistics.difficultyAnalysis.easy.averageAccuracy.toFixed(
-                            1
+                            1,
                           )}
                           %
                         </span>
@@ -963,7 +971,7 @@ const EvaluationStatistics: React.FC = () => {
                         <span className="text-sm text-gray-600">Avg Marks</span>
                         <span className="text-sm font-medium">
                           {statistics.difficultyAnalysis.easy.averageMarks.toFixed(
-                            1
+                            1,
                           )}
                         </span>
                       </div>
@@ -992,7 +1000,7 @@ const EvaluationStatistics: React.FC = () => {
                         </span>
                         <span className="text-sm font-medium">
                           {statistics.difficultyAnalysis.medium.averageAccuracy.toFixed(
-                            1
+                            1,
                           )}
                           %
                         </span>
@@ -1001,7 +1009,7 @@ const EvaluationStatistics: React.FC = () => {
                         <span className="text-sm text-gray-600">Avg Marks</span>
                         <span className="text-sm font-medium">
                           {statistics.difficultyAnalysis.medium.averageMarks.toFixed(
-                            1
+                            1,
                           )}
                         </span>
                       </div>
@@ -1030,7 +1038,7 @@ const EvaluationStatistics: React.FC = () => {
                         </span>
                         <span className="text-sm font-medium">
                           {statistics.difficultyAnalysis.hard.averageAccuracy.toFixed(
-                            1
+                            1,
                           )}
                           %
                         </span>
@@ -1039,7 +1047,7 @@ const EvaluationStatistics: React.FC = () => {
                         <span className="text-sm text-gray-600">Avg Marks</span>
                         <span className="text-sm font-medium">
                           {statistics.difficultyAnalysis.hard.averageMarks.toFixed(
-                            1
+                            1,
                           )}
                         </span>
                       </div>
@@ -1092,7 +1100,7 @@ const EvaluationStatistics: React.FC = () => {
                   </div>
                   <p className="text-2xl font-bold text-blue-700">
                     {Math.round(
-                      statistics.timingAnalysis.averageCompletionTime
+                      statistics.timingAnalysis.averageCompletionTime,
                     )}{" "}
                     min
                   </p>

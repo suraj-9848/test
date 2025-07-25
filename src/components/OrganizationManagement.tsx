@@ -75,7 +75,7 @@ const OrganizationManagement: React.FC = () => {
   };
 
   const handleSubmitOrganization = async (
-    orgData: Omit<Organization, "id" | "createdAt" | "updatedAt">
+    orgData: Omit<Organization, "id" | "createdAt" | "updatedAt">,
   ) => {
     try {
       if (selectedOrganization) {

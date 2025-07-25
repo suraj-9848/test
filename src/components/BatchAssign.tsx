@@ -88,7 +88,7 @@ const BatchAssign: React.FC = () => {
     try {
       await assignStudentsToBatch(selectedBatchId, selectedStudents);
       setSuccess(
-        `Successfully assigned ${selectedStudents.length} student(s) to batch`
+        `Successfully assigned ${selectedStudents.length} student(s) to batch`,
       );
       setSelectedBatchId("");
       setSelectedStudents([]);
@@ -104,14 +104,14 @@ const BatchAssign: React.FC = () => {
     setSelectedStudents((prev) =>
       prev.includes(studentId)
         ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
+        : [...prev, studentId],
     );
   };
 
   const filteredStudents = students.filter(
     (student) =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())
+      student.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const StudentCard: React.FC<{
@@ -163,7 +163,7 @@ const BatchAssign: React.FC = () => {
             <div className="space-y-2">
               {(() => {
                 const batch = batches.find(
-                  (b) => b.id.toString() === selectedBatchId
+                  (b) => b.id.toString() === selectedBatchId,
                 );
                 return batch ? (
                   <div className="flex items-center justify-between bg-white p-2 rounded border">

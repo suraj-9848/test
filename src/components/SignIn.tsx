@@ -42,8 +42,8 @@ const SignIn = () => {
       <div className="w-full max-w-5xl bg-white border border-gray-200 rounded-3xl shadow-2xl grid grid-cols-1 md:grid-cols-2 overflow-hidden">
         {/* Left Panel (Black & White theme) */}
         <div
-  style={{
-    clipPath: `path('M0,0 
+          style={{
+            clipPath: `path('M0,0 
                 Q20,0 20,20 
                 V100 
                 Q20,100 0,100 
@@ -55,7 +55,7 @@ const SignIn = () => {
                 Q100,40 90,40 
                 H20 
                 Z')`,
-  }}
+          }}
           className="hidden md:flex flex-col justify-between text-white p-10 bg-black relative rounded-tr-[60px] rounded-bl-[40px]"
         >
           {/* Top Heading */}

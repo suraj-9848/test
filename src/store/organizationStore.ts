@@ -98,7 +98,7 @@ export const useOrganizationStore = create<OrganizationStoreState>((set) => ({
       const response = await organizationApi.update(id, orgData);
       set((state) => ({
         organizations: state.organizations.map((org) =>
-          org.id === id ? response.org : org
+          org.id === id ? response.org : org,
         ),
         loading: false,
       }));

@@ -93,7 +93,7 @@ const ProgressAnalytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [selectedView, setSelectedView] = useState<"course" | "session">(
-    "course"
+    "course",
   );
   const [selectedBatch, setSelectedBatch] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
@@ -103,7 +103,7 @@ const ProgressAnalytics: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [backendJwt, setBackendJwt] = useState<string>("");
 
@@ -129,14 +129,14 @@ const ProgressAnalytics: React.FC = () => {
 
       return response.json();
     },
-    [API_BASE_URL, backendJwt]
+    [API_BASE_URL, backendJwt],
   );
 
   const fetchCourseProgress = useCallback(
     async (batchId: string, courseId: string) => {
       try {
         const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses/${courseId}/progress`
+          `/api/instructor/batches/${batchId}/courses/${courseId}/progress`,
         );
 
         // Process the progress data
@@ -173,7 +173,7 @@ const ProgressAnalytics: React.FC = () => {
               lastAccessed: item.lastAccessed || new Date().toISOString(),
               startDate: item.startDate || new Date().toISOString(),
               completionDate: item.completionDate,
-            })
+            }),
           ) || [];
 
         setProgressData(processedData);
@@ -182,14 +182,14 @@ const ProgressAnalytics: React.FC = () => {
         setError("Failed to load course progress");
       }
     },
-    [apiCall, courses]
+    [apiCall, courses],
   );
 
   const fetchModules = useCallback(
     async (batchId: string, courseId: string) => {
       try {
         const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses/${courseId}/modules`
+          `/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
         );
         setModules(response);
       } catch (err) {
@@ -197,14 +197,14 @@ const ProgressAnalytics: React.FC = () => {
         setError("Failed to load modules");
       }
     },
-    [apiCall]
+    [apiCall],
   );
 
   const fetchCourses = useCallback(
     async (batchId: string) => {
       try {
         const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses`
+          `/api/instructor/batches/${batchId}/courses`,
         );
         setCourses(response);
         if (response.length > 0) {
@@ -217,7 +217,7 @@ const ProgressAnalytics: React.FC = () => {
         setError("Failed to load courses");
       }
     },
-    [apiCall, fetchModules, fetchCourseProgress]
+    [apiCall, fetchModules, fetchCourseProgress],
   );
 
   const fetchInitialData = useCallback(async () => {
@@ -254,7 +254,7 @@ const ProgressAnalytics: React.FC = () => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         const jwt = loginRes.data.token;
         setBackendJwt(jwt);
@@ -278,7 +278,7 @@ const ProgressAnalytics: React.FC = () => {
     async (sessionId: string) => {
       try {
         const response = await apiCall(
-          `/api/instructor/sessions/${sessionId}/progress`
+          `/api/instructor/sessions/${sessionId}/progress`,
         );
 
         // Process the session progress data
@@ -300,7 +300,7 @@ const ProgressAnalytics: React.FC = () => {
               completedStudents: session.completedStudents || 0,
               inProgressStudents: session.inProgressStudents || 0,
               notStartedStudents: session.notStartedStudents || 0,
-            })
+            }),
           ) || [];
 
         setSessionProgress(processedData);
@@ -309,7 +309,7 @@ const ProgressAnalytics: React.FC = () => {
         setError("Failed to load session progress");
       }
     },
-    [apiCall]
+    [apiCall],
   );
 
   const handleBatchChange = (batchId: string) => {
@@ -340,7 +340,7 @@ const ProgressAnalytics: React.FC = () => {
     // Filter progress data by module if needed
     if (moduleId) {
       const filteredData = progressData.filter(
-        (item) => item.moduleId === moduleId
+        (item) => item.moduleId === moduleId,
       );
       setProgressData(filteredData);
     } else {
@@ -376,13 +376,13 @@ const ProgressAnalytics: React.FC = () => {
 
     const totalStudents = filteredProgressData.length;
     const completedStudents = filteredProgressData.filter(
-      (s) => s.status === "completed"
+      (s) => s.status === "completed",
     ).length;
     const inProgressStudents = filteredProgressData.filter(
-      (s) => s.status === "in-progress"
+      (s) => s.status === "in-progress",
     ).length;
     const notStartedStudents = filteredProgressData.filter(
-      (s) => s.status === "not-started"
+      (s) => s.status === "not-started",
     ).length;
 
     const averageProgress =
@@ -390,7 +390,7 @@ const ProgressAnalytics: React.FC = () => {
       totalStudents;
     const totalTimeSpent = filteredProgressData.reduce(
       (sum, s) => sum + s.timeSpent,
-      0
+      0,
     );
     const averageTimeSpent = totalTimeSpent / totalStudents;
 
@@ -827,7 +827,7 @@ const ProgressAnalytics: React.FC = () => {
                       <td className="py-3 px-4">
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                            item.status
+                            item.status,
                           )}`}
                         >
                           {item.status.replace("-", " ").toUpperCase()}
@@ -940,7 +940,7 @@ const ProgressAnalytics: React.FC = () => {
                       <div className="text-2xl font-bold text-blue-700">
                         {Math.round(
                           (session.completedStudents / session.totalStudents) *
-                            100
+                            100,
                         )}
                         %
                       </div>
@@ -988,7 +988,7 @@ const ProgressAnalytics: React.FC = () => {
                               <td className="py-2 px-3">
                                 <span
                                   className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                                    student.status
+                                    student.status,
                                   )}`}
                                 >
                                   {student.status
@@ -1019,7 +1019,7 @@ const ProgressAnalytics: React.FC = () => {
                               <td className="py-2 px-3">
                                 <span className="text-sm text-gray-600">
                                   {new Date(
-                                    student.lastAccessed
+                                    student.lastAccessed,
                                   ).toLocaleDateString()}
                                 </span>
                               </td>

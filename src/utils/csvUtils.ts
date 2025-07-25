@@ -133,7 +133,7 @@ export class CSVUtils {
       ["username", "email", "org_id", "role", "batch_id"],
       ["john_doe", "john@example.com", "org123", "student", "batch1"],
       ["jane_smith", "jane@example.com", "org123", "instructor", ""],
-      ["admin_user", "admin@example.com", "org123", "college_admin", ""],
+      ["admin_user", "admin@example.com", "org123", "admin", ""],
     ];
 
     return sample.map((row) => row.join(",")).join("\n");

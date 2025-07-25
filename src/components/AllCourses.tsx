@@ -122,7 +122,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         const jwt = loginRes.data.token;
         setBackendJwt(jwt);
@@ -213,7 +213,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
         `${API_BASE_URL}/api/instructor/batches`,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
-        }
+        },
       );
 
       // Extract batches from response structure
@@ -253,7 +253,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
         `${API_BASE_URL}/api/instructor/courses/${courseToDelete}`,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
-        }
+        },
       );
 
       // Remove course from local state

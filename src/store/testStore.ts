@@ -26,23 +26,23 @@ export interface TestActions {
   createTest: (
     courseId: string,
     testData: CreateTestRequest,
-    batchId?: string
+    batchId?: string,
   ) => Promise<void>;
   updateTest: (
     courseId: string,
     testId: string,
     testData: Partial<CreateTestRequest>,
-    batchId?: string
+    batchId?: string,
   ) => Promise<void>;
   deleteTest: (
     courseId: string,
     testId: string,
-    batchId?: string
+    batchId?: string,
   ) => Promise<void>;
   publishTest: (
     testId: string,
     courseId: string,
-    batchId?: string
+    batchId?: string,
   ) => Promise<void>;
 
   // Test Selection
@@ -52,24 +52,24 @@ export interface TestActions {
   fetchQuestions: (
     courseId: string,
     testId: string,
-    batchId?: string
+    batchId?: string,
   ) => Promise<void>;
   addQuestion: (
     testId: string,
-    questionData: CreateQuestionRequest
+    questionData: CreateQuestionRequest,
   ) => Promise<void>;
   updateQuestion: (
     courseId: string,
     testId: string,
     questionId: string,
     questionData: Partial<CreateQuestionRequest>,
-    batchId?: string
+    batchId?: string,
   ) => Promise<void>;
   deleteQuestion: (
     courseId: string,
     testId: string,
     questionId: string,
-    batchId?: string
+    batchId?: string,
   ) => Promise<void>;
 
   // Analytics
@@ -114,7 +114,7 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
       const currentTests = get().tests;
       // Merge tests from this course with existing tests from other courses
       const otherTests = currentTests.filter(
-        (test) => test.course.id !== courseId
+        (test) => test.course.id !== courseId,
       );
       const allTests = [
         ...otherTests,
@@ -138,7 +138,7 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
   createTest: async (
     courseId: string,
     testData: CreateTestRequest,
-    batchId?: string
+    batchId?: string,
   ) => {
     set({ isLoading: true, error: null });
     try {
@@ -166,7 +166,7 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
     courseId: string,
     testId: string,
     testData: Partial<CreateTestRequest>,
-    batchId?: string
+    batchId?: string,
   ) => {
     set({ isLoading: true, error: null });
     try {
@@ -174,11 +174,11 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
         courseId,
         testId,
         testData,
-        batchId
+        batchId,
       );
       const currentTests = get().tests;
       const updatedTests = currentTests.map((test) =>
-        test.id === testId ? response.test : test
+        test.id === testId ? response.test : test,
       );
       set({
         tests: updatedTests,
@@ -221,7 +221,7 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
       await instructorApi.publishTest(testId, courseId, batchId);
       const currentTests = get().tests;
       const updatedTests = currentTests.map((test) =>
-        test.id === testId ? { ...test, status: "PUBLISHED" as const } : test
+        test.id === testId ? { ...test, status: "PUBLISHED" as const } : test,
       );
       set({
         tests: updatedTests,
@@ -255,14 +255,14 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
   fetchQuestions: async (
     courseId: string,
     testId: string,
-    batchId?: string
+    batchId?: string,
   ) => {
     set({ isLoading: true, error: null });
     try {
       const response = await instructorApi.getQuestions(
         courseId,
         testId,
-        batchId
+        batchId,
       );
       set({ questions: response.questions, isLoading: false });
     } catch (error) {
@@ -299,7 +299,7 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
     testId: string,
     questionId: string,
     questionData: Partial<CreateQuestionRequest>,
-    batchId?: string
+    batchId?: string,
   ) => {
     set({ isLoading: true, error: null });
     try {
@@ -308,11 +308,11 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
         testId,
         questionId,
         questionData,
-        batchId
+        batchId,
       );
       const currentQuestions = get().questions;
       const updatedQuestions = currentQuestions.map((question) =>
-        question.id === questionId ? response.question : question
+        question.id === questionId ? response.question : question,
       );
       set({
         questions: updatedQuestions,
@@ -332,14 +332,14 @@ export const useTestStore = create<TestState & TestActions>((set, get) => ({
     courseId: string,
     testId: string,
     questionId: string,
-    batchId?: string
+    batchId?: string,
   ) => {
     set({ isLoading: true, error: null });
     try {
       await instructorApi.deleteQuestion(courseId, testId, questionId, batchId);
       const currentQuestions = get().questions;
       const filteredQuestions = currentQuestions.filter(
-        (question) => question.id !== questionId
+        (question) => question.id !== questionId,
       );
       set({
         questions: filteredQuestions,

@@ -1,8 +1,17 @@
-"use client"
+"use client";
 
-import React, { useMemo } from 'react';
-import { FaUser, FaBriefcase, FaCalendar, FaMapMarkerAlt, FaEdit, FaTrash, FaEye, FaPlus } from 'react-icons/fa';
-import { useHiringStore, JobStatus, JobType } from '@/store/hiringStore';
+import React, { useMemo } from "react";
+import {
+  FaUser,
+  FaBriefcase,
+  FaCalendar,
+  FaMapMarkerAlt,
+  FaEdit,
+  FaTrash,
+  FaEye,
+  FaPlus,
+} from "react-icons/fa";
+import { useHiringStore, JobStatus, JobType } from "@/store/hiringStore";
 
 const ManageHiring: React.FC = () => {
   const {
@@ -15,45 +24,45 @@ const ManageHiring: React.FC = () => {
     setDepartmentFilter,
     setTypeFilter,
     setStatusFilter,
-    
+
     deleteJob,
   } = useHiringStore();
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       const matchesSearch =
-        search.trim() === '' ||
+        search.trim() === "" ||
         job.title.toLowerCase().includes(search.toLowerCase());
       const matchesDept =
-        departmentFilter === 'All Departments' ||
+        departmentFilter === "All Departments" ||
         job.department === departmentFilter;
-      const matchesType = typeFilter === 'All' || job.type === typeFilter;
+      const matchesType = typeFilter === "All" || job.type === typeFilter;
       const matchesStatus =
-        statusFilter === 'All' || job.status === statusFilter;
+        statusFilter === "All" || job.status === statusFilter;
       return matchesSearch && matchesDept && matchesType && matchesStatus;
     });
   }, [jobs, search, departmentFilter, typeFilter, statusFilter]);
 
   const departmentOptions = useMemo(() => {
     const all = jobs.map((j) => j.department);
-    return ['All Departments', ...Array.from(new Set(all))];
+    return ["All Departments", ...Array.from(new Set(all))];
   }, [jobs]);
 
   const getStatusBadge = (status: JobStatus) => {
     switch (status) {
-      case 'Active':
+      case "Active":
         return (
           <span className="px-3 py-1 text-xs font-medium bg-gray-200 text-gray-800 rounded-full">
             Active
           </span>
         );
-      case 'Closed':
+      case "Closed":
         return (
           <span className="px-3 py-1 text-xs font-medium bg-gray-300 text-gray-900 rounded-full">
             Closed
           </span>
         );
-      case 'Draft':
+      case "Draft":
         return (
           <span className="px-3 py-1 text-xs font-medium bg-gray-400 text-white rounded-full">
             Draft
@@ -100,7 +109,9 @@ const ManageHiring: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Jobs</p>
-              <p className="text-2xl font-bold text-gray-900">{jobs.filter((j) => j.status === 'Active').length}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {jobs.filter((j) => j.status === "Active").length}
+              </p>
             </div>
             <div className="p-3 bg-gray-200 rounded-lg">
               <FaCalendar className="w-6 h-6 text-gray-600" />
@@ -111,8 +122,12 @@ const ManageHiring: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Applicants</p>
-              <p className="text-2xl font-bold text-gray-900">{jobs.reduce((sum, job) => sum + job.applicants, 0)}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Total Applicants
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {jobs.reduce((sum, job) => sum + job.applicants, 0)}
+              </p>
             </div>
             <div className="p-3 bg-gray-200 rounded-lg">
               <FaUser className="w-6 h-6 text-gray-600" />
@@ -123,8 +138,15 @@ const ManageHiring: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Avg. Applicants</p>
-              <p className="text-2xl font-bold text-gray-900">{Math.round(jobs.reduce((sum, job) => sum + job.applicants, 0) / jobs.length)}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Avg. Applicants
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {Math.round(
+                  jobs.reduce((sum, job) => sum + job.applicants, 0) /
+                    jobs.length,
+                )}
+              </p>
             </div>
             <div className="p-3 bg-gray-200 rounded-lg">
               <FaMapMarkerAlt className="w-6 h-6 text-gray-600" />
@@ -136,7 +158,9 @@ const ManageHiring: React.FC = () => {
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Search
+          </label>
           <input
             type="text"
             placeholder="Search jobs..."
@@ -145,9 +169,11 @@ const ManageHiring: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Department
+          </label>
           <select
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
             value={departmentFilter}
@@ -158,13 +184,15 @@ const ManageHiring: React.FC = () => {
             ))}
           </select>
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Job Type
+          </label>
           <select
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as JobType | 'All')}
+            onChange={(e) => setTypeFilter(e.target.value as JobType | "All")}
           >
             <option value="All">All Types</option>
             <option value="Full-time">Full-time</option>
@@ -172,13 +200,17 @@ const ManageHiring: React.FC = () => {
             <option value="Contract">Contract</option>
           </select>
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Status
+          </label>
           <select
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as JobStatus | 'All')}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as JobStatus | "All")
+            }
           >
             <option value="All">All Status</option>
             <option value="Active">Active</option>
@@ -193,12 +225,24 @@ const ManageHiring: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicants</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posted Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Job Title
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Applicants
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Posted Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Deadline
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -206,14 +250,26 @@ const ManageHiring: React.FC = () => {
               <tr key={job.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900">{job.title}</span>
-                    <span className="text-xs text-gray-500">{job.department}</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {job.title}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {job.department}
+                    </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{job.applicants}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{job.postedDate}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{job.deadline}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(job.status)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {job.applicants}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {job.postedDate}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {job.deadline}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getStatusBadge(job.status)}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center space-x-2">
                     <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
@@ -245,9 +301,11 @@ const ManageHiring: React.FC = () => {
             <option>10</option>
             <option>25</option>
           </select>
-          <span className="text-sm text-gray-700">of {jobs.length} entries</span>
+          <span className="text-sm text-gray-700">
+            of {jobs.length} entries
+          </span>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
             Previous
