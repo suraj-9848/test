@@ -207,7 +207,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
 
         return {
           studentId: studentData.studentId,
-          name: studentData.username || studentData.name || `Student ${studentData.studentId}`,
+          name: String(studentData.username || studentData.name || `Student ${studentData.studentId}`),
           email: studentData.email || `${studentData.username}@domain.com`,
           courseProgress: [
             {
@@ -338,7 +338,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ onClose }) => {
   const handleCourseChange = (courseId: string) => {
     setSelectedCourse(courseId);
     if (selectedBatch && courseId) {
-      fetchStudentAnalytics(batchId, courseId);
+      fetchStudentAnalytics(selectedBatch, courseId);
     }
   };
 

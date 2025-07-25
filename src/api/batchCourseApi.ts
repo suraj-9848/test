@@ -12,12 +12,12 @@ export const getCoursesForBatch = async (batchId: string) => {
             headers,
         });
         return res.data.courses || [];
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error(`Error fetching courses for batch ${batchId}:`, err);
-        throw new Error(
-            err.response?.data?.message ||
-                `Failed to fetch courses for batch ${batchId}`
-        );
+        const errorMessage = err instanceof Error && 'response' in err 
+            ? (err as any).response?.data?.message 
+            : `Failed to fetch courses for batch ${batchId}`;
+        throw new Error(errorMessage);
     }
 };
 

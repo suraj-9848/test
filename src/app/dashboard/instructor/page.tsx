@@ -11,7 +11,7 @@ import CreateCourse from "../../../components/CreateCourse";
 import ManageModules from "../../../components/ManageModules";
 import ModuleContent from "../../../components/ModuleContent";
 import MCQManagement from "../../../components/MCQManagement";
-import BatchManagement from "../../../components/BatchManagement";
+
 import UnifiedBatchManagement from "@/components/UnifiedBatchManagement";
 import CreateTest from "../../../components/CreateTest";
 import ManageTest from "../../../components/ManageTest";
@@ -231,7 +231,7 @@ const InstructorDashboard: React.FC = () => {
 
       // Analytics & Reports
       case "student-analytics":
-        return <StudentAnalytics />;
+        return <StudentAnalytics onClose={() => setActiveSection("dashboard")} />;
       case "progress-analytics":
         return <ProgressAnalytics />;
       case "test-analytics":

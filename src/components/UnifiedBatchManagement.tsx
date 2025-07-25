@@ -3,7 +3,6 @@ import axios from "axios";
 import {
     FaChevronDown,
     FaExclamationTriangle,
-    FaPlus,
     FaSearch,
     FaSpinner,
     FaGraduationCap,
@@ -11,14 +10,8 @@ import {
     FaInfoCircle,
     FaUsers,
     FaChartLine,
-    FaDownload,
     FaUserCheck,
     FaTrophy,
-    FaFilter,
-    FaEye,
-    FaFileExport,
-    FaTachometerAlt,
-    FaEllipsisH,
     FaEdit,
     FaTrash,
 } from "react-icons/fa";
