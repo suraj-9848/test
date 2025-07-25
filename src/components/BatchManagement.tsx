@@ -1,333 +1,459 @@
 import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import {
-  FaEdit,
-  FaUsers,
-  FaBook,
-  FaCalendarAlt,
-  FaSearch,
-  FaSpinner,
-  FaEye,
-  FaChevronDown,
-  FaChevronRight,
+    FaChevronDown,
+    FaExclamationTriangle,
+    FaPlus,
+    FaSearch,
+    FaSpinner,
+    FaGraduationCap,
+    FaBook,
+    FaInfoCircle,
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
-import axios from "axios";
+import { getBackendJwt } from "../utils/auth";
+import Link from "next/link";
 
 // Types
 interface Batch {
-  id: string;
-  name: string;
-  description?: string;
-  created_at?: string;
-  updated_at?: string;
-  org_id?: string;
-  courseCount?: number;
-  studentCount?: number;
+    id: string;
+    name: string;
+    description?: string;
+    created_at?: string;
+    updated_at?: string;
+    org_id?: string;
+    courseCount?: number;
+    studentCount?: number;
 }
 
 interface Course {
-  id: string;
-  title: string;
-  instructor_name: string;
-  start_date: string;
-  end_date: string;
-  is_public: boolean;
+    id: string;
+    title: string;
+    instructor_name?: string;
+    start_date?: string;
+    end_date?: string;
+    is_public?: boolean;
+    description?: string;
 }
 
 const BatchManagement: React.FC = () => {
-  const { data: session } = useSession();
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [backendJwt, setBackendJwt] = useState<string>("");
+    const { data: session } = useSession();
+    const [batches, setBatches] = useState<Batch[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [courseLoading, setCourseLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [backendJwt, setBackendJwt] = useState<string>("");
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+    const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
 
-  // Authentication setup
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const googleIdToken = (session as { id_token: string })?.id_token;
-        if (!googleIdToken) return;
+    // Authentication setup - Fixed to prevent infinite loop
+    useEffect(() => {
+        let isMounted = true;
 
-        const loginRes = await axios.post(
-          `${API_BASE_URL}/api/auth/admin-login`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${googleIdToken}` },
-          }
-        );
+        const fetchProfile = async () => {
+            if (!session) return;
 
-        if (loginRes.data?.jwt) {
-          setBackendJwt(loginRes.data.jwt);
+            try {
+                if (backendJwt) return; // Skip if we already have JWT to prevent loop
+
+                const jwt = await getBackendJwt();
+                if (isMounted) {
+                    console.log("JWT obtained successfully");
+                    setBackendJwt(jwt);
+                }
+            } catch (err) {
+                console.error("Failed to fetch user profile:", err);
+                if (isMounted) {
+                    setError("Authentication failed. Please try again.");
+                }
+            }
+        };
+
+        fetchProfile();
+
+        return () => {
+            isMounted = false; // Cleanup to prevent state updates on unmounted component
+        };
+    }, [session, backendJwt]);
+
+    const fetchBatches = useCallback(async () => {
+        if (!backendJwt) {
+            console.log("Cannot fetch batches: No JWT available");
+            return;
         }
-      } catch (err) {
-        console.error("Failed to fetch user profile:", err);
-      }
+
+        try {
+            setLoading(true);
+            setError("");
+
+            console.log("Making API call to fetch batches");
+            const response = await axios.get(
+                `${API_BASE_URL}/api/instructor/batches`,
+                {
+                    headers: { Authorization: `Bearer ${backendJwt}` },
+                }
+            );
+
+            console.log("Batches API response:", response.data);
+
+            // Handle the API response structure
+            const batchesData: Batch[] = response.data.batches || [];
+            console.log(`Fetched ${batchesData.length} batches`);
+
+            // Set batches without course counts initially
+            setBatches(batchesData);
+
+            // Fetch course counts for each batch
+            if (batchesData.length > 0) {
+                try {
+                    // Fetch course counts for each batch
+                    const batchesWithCourseCount = await Promise.all(
+                        batchesData.map(async (batch: Batch) => {
+                            try {
+                                const courseResponse = await axios.get(
+                                    `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
+                                    {
+                                        headers: {
+                                            Authorization: `Bearer ${backendJwt}`,
+                                        },
+                                    }
+                                );
+                                const courses =
+                                    courseResponse.data.courses || [];
+                                return {
+                                    ...batch,
+                                    courseCount: courses.length,
+                                };
+                            } catch (err) {
+                                console.error(
+                                    `Error fetching courses for batch ${batch.id}:`,
+                                    err
+                                );
+                                return batch; // Return batch without courseCount if there's an error
+                            }
+                        })
+                    );
+
+                    // Update batches with course counts
+                    setBatches(batchesWithCourseCount);
+                    console.log(
+                        "Updated batches with course counts:",
+                        batchesWithCourseCount
+                    );
+                } catch (err) {
+                    console.error("Error fetching course counts:", err);
+                }
+            }
+
+            if (batchesData.length === 0) {
+                console.log("No batches found in API response");
+            }
+        } catch (err: any) {
+            console.error("Error fetching batches:", err);
+            const errorMsg =
+                err.response?.data?.message || "Failed to load batches";
+            console.log("Error message:", errorMsg);
+            setError(errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    }, [API_BASE_URL, backendJwt]);
+
+    // Fetch data when JWT is available
+    useEffect(() => {
+        if (backendJwt) {
+            console.log(
+                "Fetching batches with JWT:",
+                backendJwt.substring(0, 10) + "..."
+            );
+            fetchBatches();
+        } else {
+            console.log("No backendJwt available yet");
+        }
+    }, [backendJwt, fetchBatches]);
+
+    const fetchCoursesForBatch = async (batchId: string) => {
+        if (!backendJwt) {
+            console.log("Cannot fetch courses: No JWT available");
+            return;
+        }
+
+        try {
+            setCourseLoading(true);
+            console.log(`Fetching courses for batch ${batchId}`);
+            const response = await axios.get(
+                `${API_BASE_URL}/api/instructor/batches/${batchId}/courses`,
+                {
+                    headers: { Authorization: `Bearer ${backendJwt}` },
+                }
+            );
+
+            // The API returns { message: string, courses: Course[] }
+            const courseData = response.data.courses || response.data || [];
+            console.log(
+                `Successfully fetched ${courseData.length} courses for batch ${batchId}`
+            );
+            setCourses(courseData);
+
+            // Update the batch's courseCount in the batches array
+            setBatches((prevBatches) =>
+                prevBatches.map((batch) =>
+                    batch.id === batchId
+                        ? { ...batch, courseCount: courseData.length }
+                        : batch
+                )
+            );
+        } catch (err: any) {
+            console.error("Error fetching courses:", err);
+            const errorMsg =
+                err.response?.data?.message ||
+                "Failed to load courses for batch";
+            console.log("Error message:", errorMsg);
+            setError(errorMsg);
+            setCourses([]);
+        } finally {
+            setCourseLoading(false);
+        }
     };
 
-    if (session) fetchProfile();
-  }, [session, API_BASE_URL]);
-
-  const fetchBatches = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/instructor/batches`,
-        {
-          headers: { Authorization: `Bearer ${backendJwt}` },
+    const handleBatchExpand = async (batchId: string) => {
+        if (expandedBatch === batchId) {
+            setExpandedBatch(null);
+            setCourses([]);
+        } else {
+            setExpandedBatch(batchId);
+            await fetchCoursesForBatch(batchId);
         }
-      );
-      setBatches(response.data.batches || []);
-    } catch (err) {
-      console.error("Error fetching batches:", err);
-      setError("Failed to load batches");
-    } finally {
-      setLoading(false);
-    }
-  }, [API_BASE_URL, backendJwt]);
+    };
 
-  // Fetch data when JWT is available
-  useEffect(() => {
-    if (backendJwt) {
-      fetchBatches();
-    }
-  }, [backendJwt, fetchBatches]);
+    const handleRefresh = () => {
+        fetchBatches();
+    };
 
-  const fetchCoursesForBatch = async (batchId: string) => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/api/instructor/batches/${batchId}/courses`,
-        {
-          headers: { Authorization: `Bearer ${backendJwt}` },
-        }
-      );
-      setCourses(response.data.courses || response.data || []);
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-      setError("Failed to load courses for batch");
-    }
-  };
-
-  const handleBatchExpand = async (batchId: string) => {
-    if (expandedBatch === batchId) {
-      setExpandedBatch(null);
-      setCourses([]);
-    } else {
-      setExpandedBatch(batchId);
-      await fetchCoursesForBatch(batchId);
-    }
-  };
-
-  const filteredBatches = batches.filter(
-    (batch) =>
-      batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batch.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading && batches.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="flex items-center justify-center h-64">
-          <FaSpinner className="animate-spin text-4xl text-blue-600" />
-        </div>
-      </div>
+    const filteredBatches = batches.filter(
+        (batch) =>
+            batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            batch.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Batch Management
-          </h1>
-          <p className="text-slate-600">
-            Manage your batches and view courses within each batch
-          </p>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search batches..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+    if (loading && batches.length === 0) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+                <div className="flex items-center justify-center h-64">
+                    <FaSpinner className="animate-spin text-4xl text-blue-600" />
+                </div>
             </div>
-          </div>
-        </div>
+        );
+    }
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Batches List */}
-        <div className="space-y-4">
-          {filteredBatches.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
-              <FaUsers className="mx-auto text-4xl text-slate-400 mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                No Batches Found
-              </h3>
-              <p className="text-slate-600">
-                {searchTerm
-                  ? "No batches match your search criteria."
-                  : "You don't have access to any batches yet."}
-              </p>
-            </div>
-          ) : (
-            filteredBatches.map((batch) => (
-              <div
-                key={batch.id}
-                className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-              >
-                {/* Batch Header */}
-                <div
-                  className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
-                  onClick={() => handleBatchExpand(batch.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        {expandedBatch === batch.id ? (
-                          <FaChevronDown className="text-slate-400" />
-                        ) : (
-                          <FaChevronRight className="text-slate-400" />
-                        )}
-                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <FaUsers className="text-blue-600 text-xl" />
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-900">
-                          {batch.name}
-                        </h3>
-                        {batch.description && (
-                          <p className="text-slate-600 mt-1">
-                            {batch.description}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-4 mt-2 text-sm text-slate-500">
-                          <span className="flex items-center space-x-1">
-                            <FaCalendarAlt />
-                            <span>
-                              Created{" "}
-                              {batch.created_at
-                                ? new Date(
-                                    batch.created_at
-                                  ).toLocaleDateString()
-                                : "Unknown"}
-                            </span>
-                          </span>
-                        </div>
-                      </div>
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                            Batch Management
+                        </h1>
+                        <p className="text-slate-600">
+                            Manage your batches and view courses within each
+                            batch
+                        </p>
                     </div>
-                    <div className="flex items-center space-x-6">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-slate-900">
-                          {batch.courseCount || 0}
-                        </div>
-                        <div className="text-sm text-slate-500">Courses</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-slate-900">
-                          {batch.studentCount || 0}
-                        </div>
-                        <div className="text-sm text-slate-500">Students</div>
-                      </div>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={handleRefresh}
+                            className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition flex items-center gap-2"
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <FaSpinner className="animate-spin" />
+                            ) : (
+                                <FaGraduationCap />
+                            )}
+                            Refresh Batches
+                        </button>
+                        <Link
+                            href="/dashboard/instructor/create-batch"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                        >
+                            <FaPlus /> Create New Batch
+                        </Link>
                     </div>
-                  </div>
                 </div>
 
-                {/* Expanded Courses */}
-                {expandedBatch === batch.id && (
-                  <div className="border-t border-slate-200 bg-slate-50">
-                    <div className="p-6">
-                      <h4 className="text-lg font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                        <FaBook />
-                        <span>Courses in this Batch</span>
-                      </h4>
-                      {courses.length === 0 ? (
-                        <div className="text-center py-8">
-                          <FaBook className="mx-auto text-3xl text-slate-400 mb-3" />
-                          <p className="text-slate-600">
-                            No courses found in this batch
-                          </p>
+                {/* Search and Filters */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="relative flex-grow">
+                            <FaSearch className="absolute top-1/2 left-4 -translate-y-1/2 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by batch name or description..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition"
+                            />
                         </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {courses.map((course) => (
-                            <div
-                              key={course.id}
-                              className="bg-white rounded-lg border border-slate-200 p-4 hover:shadow-md transition-shadow"
-                            >
-                              <div className="flex items-start justify-between mb-3">
-                                <h5 className="font-semibold text-slate-900 line-clamp-2">
-                                  {course.title}
-                                </h5>
-                                <span
-                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    course.is_public
-                                      ? "bg-green-100 text-green-700"
-                                      : "bg-gray-100 text-gray-700"
-                                  }`}
-                                >
-                                  {course.is_public ? "Public" : "Private"}
-                                </span>
-                              </div>
-                              <div className="space-y-2 text-sm text-slate-600">
-                                <div>
-                                  <strong>Instructor:</strong>{" "}
-                                  {course.instructor_name}
-                                </div>
-                                <div>
-                                  <strong>Duration:</strong>{" "}
-                                  {new Date(
-                                    course.start_date
-                                  ).toLocaleDateString()}{" "}
-                                  -{" "}
-                                  {new Date(
-                                    course.end_date
-                                  ).toLocaleDateString()}
-                                </div>
-                              </div>
-                              <div className="mt-4 flex space-x-2">
-                                <button className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm">
-                                  <FaEye />
-                                  <span>View</span>
-                                </button>
-                                <button className="flex items-center space-x-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm">
-                                  <FaEdit />
-                                  <span>Edit</span>
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
-                  </div>
+                </div>
+
+                {/* Error Message */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+                        <FaExclamationTriangle className="text-red-500" />
+                        <p className="text-red-700 font-medium">{error}</p>
+                        <button
+                            onClick={() => setError("")}
+                            className="ml-auto text-red-700 hover:text-red-900"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
                 )}
-              </div>
-            ))
-          )}
+
+                {/* Batches List */}
+                <div className="space-y-4">
+                    {filteredBatches.length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-200">
+                            <FaGraduationCap className="mx-auto text-4xl text-slate-300 mb-4" />
+                            <h3 className="text-xl font-semibold text-slate-700">
+                                No batches found
+                            </h3>
+                            <p className="text-slate-500 mt-2 max-w-md mx-auto">
+                                {loading
+                                    ? "Loading batches..."
+                                    : searchTerm
+                                    ? "No batches match your search criteria."
+                                    : "Create a new batch to get started or make sure you have instructor permissions."}
+                            </p>
+                            {!loading && !searchTerm && (
+                                <Link
+                                    href="/dashboard/instructor/create-batch"
+                                    className="inline-block mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                                >
+                                    Create New Batch
+                                </Link>
+                            )}
+                        </div>
+                    ) : (
+                        filteredBatches.map((batch) => (
+                            <div
+                                key={batch.id}
+                                className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+                            >
+                                <div
+                                    className="flex items-center justify-between p-6 cursor-pointer hover:bg-slate-50 transition"
+                                    onClick={() => handleBatchExpand(batch.id)}
+                                >
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900">
+                                            {batch.name}
+                                        </h2>
+                                        <p className="text-slate-600">
+                                            {batch.description ||
+                                                "No description provided"}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-sm text-slate-500">
+                                            <span className="font-semibold">
+                                                {batch.studentCount || 0}
+                                            </span>{" "}
+                                            Students
+                                        </div>
+                                        <div className="text-sm text-slate-500">
+                                            <span className="font-semibold">
+                                                {batch.courseCount || 0}
+                                            </span>{" "}
+                                            Courses
+                                        </div>
+                                        <FaChevronDown
+                                            className={`transform transition-transform ${
+                                                expandedBatch === batch.id
+                                                    ? "rotate-180"
+                                                    : ""
+                                            }`}
+                                        />
+                                    </div>
+                                </div>
+                                {expandedBatch === batch.id && (
+                                    <div className="p-6 border-t border-slate-200">
+                                        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                            <FaBook /> Courses in this Batch
+                                        </h3>
+
+                                        {courseLoading ? (
+                                            <div className="py-8 flex justify-center">
+                                                <FaSpinner className="animate-spin text-blue-600 text-2xl" />
+                                            </div>
+                                        ) : courses.length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {courses.map((course) => (
+                                                    <div
+                                                        key={course.id}
+                                                        className="bg-slate-50 p-4 rounded-lg border border-slate-200"
+                                                    >
+                                                        <h4 className="font-semibold text-slate-800">
+                                                            {course.title}
+                                                        </h4>
+                                                        {course.description && (
+                                                            <p className="text-sm text-slate-600 mt-1">
+                                                                {
+                                                                    course.description
+                                                                }
+                                                            </p>
+                                                        )}
+                                                        {course.instructor_name && (
+                                                            <p className="text-sm text-slate-500 mt-2">
+                                                                Instructor:{" "}
+                                                                {
+                                                                    course.instructor_name
+                                                                }
+                                                            </p>
+                                                        )}
+                                                        {course.start_date &&
+                                                            course.end_date && (
+                                                                <p className="text-sm text-slate-500">
+                                                                    {new Date(
+                                                                        course.start_date
+                                                                    ).toLocaleDateString()}{" "}
+                                                                    -{" "}
+                                                                    {new Date(
+                                                                        course.end_date
+                                                                    ).toLocaleDateString()}
+                                                                </p>
+                                                            )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8 bg-slate-50 rounded-lg border border-slate-200">
+                                                <FaInfoCircle className="mx-auto text-2xl text-slate-400 mb-2" />
+                                                <p className="text-slate-500">
+                                                    No courses assigned to this
+                                                    batch yet.
+                                                </p>
+                                                <Link
+                                                    href="/dashboard/instructor/create-course"
+                                                    className="inline-block mt-4 text-blue-600 hover:text-blue-800 text-sm"
+                                                >
+                                                    Create a new course
+                                                </Link>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default BatchManagement;

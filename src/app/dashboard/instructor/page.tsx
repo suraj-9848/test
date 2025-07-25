@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { FaBook, FaGraduationCap, FaChartLine, FaUsers } from "react-icons/fa";
 
 import InstructorSidebar from "../../../components/InstructorSidebar";
 import AllCourses from "../../../components/AllCourses";
@@ -11,10 +12,10 @@ import ManageModules from "../../../components/ManageModules";
 import ModuleContent from "../../../components/ModuleContent";
 import MCQManagement from "../../../components/MCQManagement";
 import BatchManagement from "../../../components/BatchManagement";
+import UnifiedBatchManagement from "@/components/UnifiedBatchManagement";
 import CreateTest from "../../../components/CreateTest";
 import ManageTest from "../../../components/ManageTest";
 import TestAnalytics from "@/components/TestAnalytics";
-
 import CourseAssignment from "../../../components/CourseAssignment";
 import StudentAnalytics from "../../../components/StudentAnalytics";
 import ProgressAnalytics from "../../../components/ProgressAnalytics";
@@ -22,7 +23,6 @@ import EvaluationStatistics from "../../../components/EvaluationStatistics";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
 import { instructorApi } from "@/api/instructorApi";
-import { FaBook, FaGraduationCap, FaChartLine, FaUsers } from "react-icons/fa";
 
 interface DashboardStats {
   totalCourses: number;
@@ -62,7 +62,6 @@ const InstructorDashboard: React.FC = () => {
         } else {
           setError("Failed to load dashboard statistics");
         }
-        // Set fallback stats for now
         setStats({
           totalCourses: 0,
           totalBatches: 0,
@@ -70,7 +69,7 @@ const InstructorDashboard: React.FC = () => {
           averageProgress: 0,
           recentActivity: 0,
           publicCourses: 0,
-          privateCourses: 0
+          privateCourses: 0,
         });
       } finally {
         setLoading(false);
@@ -115,7 +114,6 @@ const InstructorDashboard: React.FC = () => {
                   <FaBook className="w-8 h-8 text-blue-200" />
                 </div>
               </div>
-              
               <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
                 <div className="flex items-center justify-between">
                   <div>
@@ -125,7 +123,6 @@ const InstructorDashboard: React.FC = () => {
                   <FaUsers className="w-8 h-8 text-green-200" />
                 </div>
               </div>
-              
               <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
                 <div className="flex items-center justify-between">
                   <div>
@@ -135,7 +132,6 @@ const InstructorDashboard: React.FC = () => {
                   <FaGraduationCap className="w-8 h-8 text-purple-200" />
                 </div>
               </div>
-              
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-4 text-white">
                 <div className="flex items-center justify-between">
                   <div>
@@ -163,24 +159,22 @@ const InstructorDashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Recent Activity</h3>
                   <p className="text-2xl font-bold text-blue-600">{stats.recentActivity}</p>
                   <p className="text-sm text-gray-500">Student interactions (30 days)</p>
                 </div>
-
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Quick Actions</h3>
                   <div className="space-y-2">
                     <button
-                      onClick={() => setActiveSection('create-course')}
+                      onClick={() => setActiveSection("create-course")}
                       className="w-full text-left px-3 py-2 text-sm bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                     >
                       Create New Course
                     </button>
                     <button
-                      onClick={() => setActiveSection('all-courses')}
+                      onClick={() => setActiveSection("all-courses")}
                       className="w-full text-left px-3 py-2 text-sm bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
                     >
                       Manage Courses
@@ -191,20 +185,16 @@ const InstructorDashboard: React.FC = () => {
             )}
           </div>
         );
-      
+
       // Course Management
       case "all-courses":
-        return <AllCourses onCreateCourse={() => setActiveSection("create-course")} />;
       case "courses-overview": // Legacy support
         return <AllCourses onCreateCourse={() => setActiveSection("create-course")} />;
       case "create-course":
         return (
-          <CreateCourse 
+          <CreateCourse
             onCancel={() => setActiveSection("all-courses")}
-            onSuccess={() => {
-              setActiveSection("all-courses");
-              // You could add a success message here if needed
-            }}
+            onSuccess={() => setActiveSection("all-courses")}
           />
         );
       case "manage-modules":
@@ -217,22 +207,27 @@ const InstructorDashboard: React.FC = () => {
         return <CourseAssignment />;
 
       // Batch Management
+      case "batch-management":
+      case "batches": // Legacy support
+      case "batch-analytics": // Unified component handles analytics
+        return <UnifiedBatchManagement />;
       case "create-batch":
         return <CreateBatch />;
-      case "batch-management":
-        return <BatchManagement />;
-      case "batch-analytics":
-        return <div className="p-6">Batch Analytics</div>;
       case "batch-assignments":
         return <BatchAssign />;
 
       // Test Management
       case "create-test":
         return <CreateTest setActiveSection={setActiveSection} />;
-      case "manage-test":
+      case "manage-tests": // Consistent with bugfix branch
+      case "manage-test": // Consistent with main branch
         return <ManageTest />;
       // case "test-questions":
-      //   return <TestQuestionManagement />;
+      //   return <TestQuestionManagement />; // Commented out as component is undefined
+      // case "test-evaluation":
+      //   return <TestEvaluation />; // Commented out as component is undefined
+      // case "test-publishing":
+      //   return <TestPublishing />; // Commented out as component is undefined
 
       // Analytics & Reports
       case "student-analytics":
@@ -241,20 +236,8 @@ const InstructorDashboard: React.FC = () => {
         return <ProgressAnalytics />;
       case "test-analytics":
         return <TestAnalytics />;
-
       case "evaluation-statistics":
         return <EvaluationStatistics />;
-
-      // Batch Management
-      case "batch-management":
-      case "create-batch":
-        return <CreateBatch />;
-      case "batches": // Legacy support
-        return <BatchManagement />;
-      case "batch-analytics":
-        return <StudentAnalytics />; // Can be extended for batch-specific analytics
-      case "batch-assignments":
-        return <BatchAssign />;
 
       default:
         return (

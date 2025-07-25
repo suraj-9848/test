@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import {
   FaBook,
@@ -74,7 +76,7 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
       icon: <FaPlus className="w-4 h-4" />,
     },
     {
-      key: "manage-test", // changed from "manage-tests" to match dashboard
+      key: "manage-test",
       label: "Manage Tests",
       icon: <FaClipboardList className="w-4 h-4" />,
     },
@@ -107,17 +109,12 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
     {
       key: "create-batch",
       label: "Create Batch",
-      icon: <FaGraduationCap className="w-4 h-4" />,
+      icon: <FaPlus className="w-4 h-4" />,
     },
     {
       key: "batch-management",
-      label: "Manage Batches",
+      label: "Batch Dashboard",
       icon: <FaGraduationCap className="w-4 h-4" />,
-    },
-    {
-      key: "batch-analytics",
-      label: "Batch Analytics",
-      icon: <FaChartBar className="w-4 h-4" />,
     },
     {
       key: "batch-assignments",
@@ -142,7 +139,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
               <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 NIRUDHYOG
               </span>
-              <p className="text-sm text-slate-500 -mt-1">Instructor Portal</p>
+              <p className="text-sm text-slate-500 -mt-1">
+                Instructor Portal
+              </p>
             </div>
           )}
         </div>
@@ -171,7 +170,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
             >
               <FaTachometerAlt className="w-5 h-5" />
               {!collapsed && (
-                <span className="font-semibold text-lg">Dashboard</span>
+                <span className="font-semibold text-lg">
+                  Dashboard
+                </span>
               )}
             </button>
           </div>
@@ -179,13 +180,17 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
           {/* Course Management */}
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
             <button
-              onClick={() => setIsCoursesExpanded(!isCoursesExpanded)}
+              onClick={() =>
+                setIsCoursesExpanded(!isCoursesExpanded)
+              }
               className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
                 collapsed ? "justify-center" : "justify-between"
               }`}
             >
               <div
-                className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
+                className={`flex items-center ${
+                  collapsed ? "" : "space-x-3"
+                }`}
               >
                 <FaBook className="w-5 h-5 text-slate-700" />
                 {!collapsed && (
@@ -207,7 +212,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                 {courseMenuItems.map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => setActiveSection(item.key)}
+                    onClick={() =>
+                      setActiveSection(item.key)
+                    }
                     className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
                       activeSection === item.key
                         ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
@@ -215,7 +222,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                     }`}
                   >
                     {item.icon}
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium">
+                      {item.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -231,11 +240,15 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <div
-                className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
+                className={`flex items-center ${
+                  collapsed ? "" : "space-x-3"
+                }`}
               >
                 <FaClipboardList className="w-5 h-5 text-slate-700" />
                 {!collapsed && (
-                  <span className="font-semibold text-lg">Test Management</span>
+                  <span className="font-semibold text-lg">
+                    Test Management
+                  </span>
                 )}
               </div>
               {!collapsed &&
@@ -278,13 +291,17 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
           {/* Analytics */}
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
             <button
-              onClick={() => setIsAnalyticsExpanded(!isAnalyticsExpanded)}
+              onClick={() =>
+                setIsAnalyticsExpanded(!isAnalyticsExpanded)
+              }
               className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
                 collapsed ? "justify-center" : "justify-between"
               }`}
             >
               <div
-                className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
+                className={`flex items-center ${
+                  collapsed ? "" : "space-x-3"
+                }`}
               >
                 <FaChartLine className="w-5 h-5 text-slate-700" />
                 {!collapsed && (
@@ -306,7 +323,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                 {analyticsMenuItems.map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => setActiveSection(item.key)}
+                    onClick={() =>
+                      setActiveSection(item.key)
+                    }
                     className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
                       activeSection === item.key
                         ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
@@ -314,7 +333,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                     }`}
                   >
                     {item.icon}
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium">
+                      {item.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -324,13 +345,17 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
           {/* Batch Management */}
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
             <button
-              onClick={() => setIsBatchesExpanded(!isBatchesExpanded)}
+              onClick={() =>
+                setIsBatchesExpanded(!isBatchesExpanded)
+              }
               className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
                 collapsed ? "justify-center" : "justify-between"
               }`}
             >
               <div
-                className={`flex items-center ${collapsed ? "" : "space-x-3"}`}
+                className={`flex items-center ${
+                  collapsed ? "" : "space-x-3"
+                }`}
               >
                 <FaGraduationCap className="w-5 h-5 text-slate-700" />
                 {!collapsed && (
@@ -352,7 +377,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                 {batchMenuItems.map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => setActiveSection(item.key)}
+                    onClick={() =>
+                      setActiveSection(item.key)
+                    }
                     className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
                       activeSection === item.key
                         ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
@@ -360,7 +387,9 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
                     }`}
                   >
                     {item.icon}
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium">
+                      {item.label}
+                    </span>
                   </button>
                 ))}
               </div>

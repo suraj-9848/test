@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { fetchBatches, fetchStudents, assignStudentsToBatch } from "../api/batchAssignApi";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   FaUser,
   FaGraduationCap,
@@ -9,6 +11,7 @@ import {
   FaSearch,
   FaUserCheck,
   FaExclamationTriangle,
+  FaInfo,
 } from "react-icons/fa";
 
 interface Student {
@@ -25,6 +28,9 @@ interface Batch {
 }
 
 const BatchAssign: React.FC = () => {
+  const searchParams = useSearchParams();
+  const batchIdFromURL = searchParams.get("batchId");
+  
   const [batches, setBatches] = useState<Batch[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
@@ -33,10 +39,19 @@ const BatchAssign: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isNewBatch, setIsNewBatch] = useState(false);
 
   useEffect(() => {
     fetchBatchesAndStudents();
   }, []);
+
+  // Set selected batch ID from URL parameter if available
+  useEffect(() => {
+    if (batchIdFromURL) {
+      setSelectedBatchId(batchIdFromURL);
+      setIsNewBatch(true);
+    }
+  }, [batchIdFromURL]);
 
   const fetchBatchesAndStudents = async () => {
     setLoading(true);
@@ -246,6 +261,14 @@ const BatchAssign: React.FC = () => {
             Assign students to batches and manage enrollments
           </p>
         </div>
+        <div>
+          <Link 
+            href="/dashboard/instructor?section=batch-management"
+            className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition"
+          >
+            Back to Batches
+          </Link>
+        </div>
       </div>
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
@@ -257,6 +280,18 @@ const BatchAssign: React.FC = () => {
         <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2">
           <FaCheck className="w-5 h-5" />
           {success}
+        </div>
+      )}
+      {isNewBatch && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg flex items-center gap-2">
+          <FaInfo className="w-5 h-5" />
+          Your new batch has been created successfully! Now you can assign students to this batch.
+          <button 
+            onClick={() => setIsNewBatch(false)} 
+            className="ml-auto text-blue-700 hover:text-blue-900"
+          >
+            Dismiss
+          </button>
         </div>
       )}
       {(selectedBatchId !== "" || selectedStudents.length > 0) && (
