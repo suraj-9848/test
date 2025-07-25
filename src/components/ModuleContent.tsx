@@ -101,7 +101,7 @@ const SafeRichTextEditor: React.FC<{
           placeholder={placeholder}
           className="w-full h-48 resize-none border-none outline-none bg-transparent text-slate-600"
           style={{ minHeight: "200px" }}
-        </textarea>
+        />
       </div>
     );
   }
@@ -1312,7 +1312,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth={2"
+                          strokeWidth={2}
                           d="M12 4v16m8-8H4"
                         />
                       </svg>
@@ -1329,7 +1329,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
                           MCQ Test
                         </h3>
                         <p className="text-sm text-gray-600">
-                          Passing Score: {selectedModule.mcqData.passingScore}%
+                          Passing Score: {selectedModule.mcq.passingScore}%
                         </p>
                       </div>
                       <button
@@ -1355,9 +1355,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
                     </div>
                     <div className="space-y-4">
                       <h4 className="text-md font-medium text-gray-700">
-                        Questions ({selectedModule.mcqData.questions.length})
+                        Questions ({selectedModule.mcq.questions.length})
                       </h4>
-                      {selectedModule.mcqData.questions.map((question, index) => (
+                      {selectedModule.mcq.questions.map((question, index) => (
                         <div
                           key={question.id}
                           className="bg-white rounded-lg p-4 border"
@@ -1418,31 +1418,31 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
             )}
           </div>
         </div>
-
-        {/* Modals */}
-        <DayContentModal
-          show={showContentModal}
-          content={true}
-          onClose={() => {
-            setShowContentModal(false);
-            resetDayContentForm();
-          }}
-          onSubmit={handleCreateDayContent}
-          formData={dayContentForm}
-          setFormData={setDayContentForm}
-          editingDay={editingDay}
-          loading={moduleLoading}
-        />
-        <MCQModal
-          show={showMCQModal}
-          onClose={() => setShowMCQModal(false)}
-          onSubmit={handleCreateMCQ}
-          formData={mcqForm}
-          setFormData={setMCQForm}
-          loading={moduleLoading}
-        />
-      </div>
-    );
+      )}
+      {/* Modals */}
+      <DayContentModal
+        show={showContentModal}
+        content={true}
+        onClose={() => {
+          setShowContentModal(false);
+          resetDayContentForm();
+        }}
+        onSubmit={handleCreateDayContent}
+        formData={dayContentForm}
+        setFormData={setDayContentForm}
+        editingDay={editingDay}
+        loading={moduleLoading}
+      />
+      <MCQModal
+        show={showMCQModal}
+        onClose={() => setShowMCQModal(false)}
+        onSubmit={handleCreateMCQ}
+        formData={mcqForm}
+        setFormData={setMCQForm}
+        loading={moduleLoading}
+      />
+    </div>
+  );
 };
 
 export default ModuleContent;
