@@ -23,16 +23,8 @@ import { organizationApi } from "@/api/adminApi";
 // Union type for all user types
 type CombinedUser = AdminUser | InstructorUser | StudentUser | RecruiterUser;
 
-// Common fields across all user types
-interface BaseUser {
-  name: string;
-  email: string;
-  college: string;
-  batch_id?: string[];
-  userRole?: UserRole;
-  role: UserRole;
-  status: UserStatus;
-}
+// Common fields across all user types - using the BaseUser from store
+import { BaseUser } from "@/store/adminStore";
 
 // Define form data structure
 interface FormData {
@@ -74,16 +66,15 @@ const UserForm: React.FC<UserFormProps> = ({
 
   useEffect(() => {
     if (user) {
-      const baseUser = user as BaseUser;
       setFormData({
-        name: baseUser.name,
-        email: baseUser.email,
+        name: user.name,
+        email: user.email,
         password: null,
-        college: baseUser.college,
-        batch_id: baseUser.batch_id || [],
-        userRole: baseUser.userRole || "",
-        role: baseUser.role,
-        status: baseUser.status,
+        college: user.college,
+        batch_id: (user as any).batch_id || [],
+        userRole: user.userRole || "",
+        role: (user as any).role || "",
+        status: user.status,
       });
     }
   }, [user]);
