@@ -23,8 +23,15 @@ import { organizationApi } from "@/api/adminApi";
 // Union type for all user types
 type CombinedUser = AdminUser | InstructorUser | StudentUser | RecruiterUser;
 
-// Common fields across all user types - using the BaseUser from store
-import { BaseUser } from "@/store/adminStore";
+// Helper function to safely extract role from CombinedUser
+const getUserRole = (user: CombinedUser): UserRole | "" => {
+  return 'role' in user ? (user.role as UserRole) : "";
+};
+
+// Helper function to safely extract batch_id from user (if it exists)
+const getUserBatchId = (user: CombinedUser): string[] => {
+  return (user as any).batch_id || [];
+};
 
 // Define form data structure
 interface FormData {
@@ -71,22 +78,13 @@ const UserForm: React.FC<UserFormProps> = ({
         email: user.email,
         password: null,
         college: user.college,
-        batch_id: (user as any).batch_id || [],
+        batch_id: getUserBatchId(user),
         userRole: user.userRole || "",
-        role: (user as any).role || "",
+        role: getUserRole(user),
         status: user.status,
       });
     }
   }, [user]);
-
-  const validateRole = (
-    role: string,
-    userRole: UserRole,
-  ): UserRole | undefined => {
-    if (!userRole || !role) return undefined;
-    const validRoles = roleOptions[userRole].map((option) => option.value);
-    return validRoles.includes(role) ? (role as UserRole) : undefined;
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
