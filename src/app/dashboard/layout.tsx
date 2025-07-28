@@ -1,10 +1,10 @@
+// src/app/dashboard/layout.tsx
 "use client";
 
-import AuthValidationWrapper from "@/components/AuthValidator";
 import AuthWrapper from "@/components/AuthWrapper";
 import Navbar from "@/components/Navbar";
 
-export default function Layout({
+export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

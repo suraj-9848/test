@@ -1,3 +1,4 @@
+// src/app/dashboard/admin/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -10,9 +11,8 @@ import ComprehensiveUserManagement from "@/components/ComprehensiveUserManagemen
 import OrganizationManagement from "@/components/OrganizationManagement";
 import ManageHiring from "@/components/ManageHiring";
 import PaymentApproval from "@/components/PaymentApproval";
-import { ToastProvider } from "@/components/ToastContext";
 
-const Index: React.FC = () => {
+const AdminPage: React.FC = () => {
   const { status } = useSession();
   const router = useRouter();
 
@@ -60,16 +60,14 @@ const Index: React.FC = () => {
   if (status === "unauthenticated") return null;
 
   return (
-    <ToastProvider>
-      <div className="flex h-screen bg-white">
-        <Sidebar
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-        />
-        <div className="flex-1 overflow-auto bg-white">{renderContent()}</div>
-      </div>
-    </ToastProvider>
+    <div className="flex h-screen bg-white">
+      <Sidebar
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      />
+      <div className="flex-1 overflow-auto bg-white">{renderContent()}</div>
+    </div>
   );
 };
 
-export default Index;
+export default AdminPage;
