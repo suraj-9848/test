@@ -30,7 +30,7 @@ const getBackendJwt = async () => {
       {
         headers: { Authorization: `Bearer ${googleIdToken}` },
         withCredentials: true,
-      },
+      }
     );
     cachedBackendJwt = loginRes.data.token;
     return cachedBackendJwt;
@@ -47,8 +47,43 @@ const getAuthHeaders = async () => {
     Authorization: `Bearer ${jwt}`,
   };
 };
+const parseErrorResponse = async (response: Response): Promise<string> => {
+  try {
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      const errorData = await response.json();
+      return (
+        errorData.message ||
+        errorData.error ||
+        `HTTP ${response.status}: ${response.statusText}`
+      );
+    } else {
+      const errorText = await response.text();
+      return errorText || `HTTP ${response.status}: ${response.statusText}`;
+    }
+  } catch (parseError) {
+    console.warn("Failed to parse error response:", parseError);
+    return `HTTP ${response.status}: ${response.statusText}`;
+  }
+};
 
-// Test Types
+const safeApiCall = async (url: string, options: RequestInit = {}) => {
+  try {
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      const errorMessage = await parseErrorResponse(response);
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network request failed");
+  }
+};
 export interface Test {
   id: string;
   title: string;
@@ -232,7 +267,7 @@ export const instructorApi = {
     return getBackendJwt();
   },
 
-  // Dashboard Statistics
+  // Dashboard Statistics with proper error handling
   getDashboardStats: async (): Promise<{
     stats: {
       totalCourses: number;
@@ -244,24 +279,48 @@ export const instructorApi = {
       privateCourses: number;
     };
   }> => {
-    const headers = await getAuthHeaders();
-    const response = await fetch(
-      `${API_BASE_URL}/api/instructor/dashboard/stats`,
-      {
-        method: "GET",
-        headers,
-      }
-    );
+    try {
+      const headers = await getAuthHeaders();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch dashboard stats");
+      const result = await safeApiCall(
+        `${API_BASE_URL}/api/instructor/dashboard/stats`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
+
+      // Ensure we return the expected structure
+      return {
+        stats: {
+          totalCourses: result.stats?.totalCourses || 0,
+          totalBatches: result.stats?.totalBatches || 0,
+          totalStudents: result.stats?.totalStudents || 0,
+          averageProgress: result.stats?.averageProgress || 0,
+          recentActivity: result.stats?.recentActivity || 0,
+          publicCourses: result.stats?.publicCourses || 0,
+          privateCourses: result.stats?.privateCourses || 0,
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+
+      // Return default stats instead of throwing
+      return {
+        stats: {
+          totalCourses: 0,
+          totalBatches: 0,
+          totalStudents: 0,
+          averageProgress: 0,
+          recentActivity: 0,
+          publicCourses: 0,
+          privateCourses: 0,
+        },
+      };
     }
-
-    return response.json();
   },
 
-  // Get Instructor's Students
+  // Get Instructor's Students with proper error handling
   getInstructorStudents: async (): Promise<{
     students: Array<{
       id: string;
@@ -276,62 +335,79 @@ export const instructorApi = {
       }>;
     }>;
   }> => {
-    const headers = await getAuthHeaders();
-    const response = await fetch(
-      `${API_BASE_URL}/api/instructor/students`,
-      {
-        method: "GET",
-        headers,
-      }
-    );
+    try {
+      const headers = await getAuthHeaders();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch instructor students");
+      const result = await safeApiCall(
+        `${API_BASE_URL}/api/instructor/students`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
+
+      return {
+        students: result.students || [],
+      };
+    } catch (error) {
+      console.error("Error fetching instructor students:", error);
+      return { students: [] };
     }
-
-    return response.json();
   },
 
-  // User Management
+  // User Management with proper error handling
   getCurrentUser: async (): Promise<{
     id: string;
     username: string;
     email: string;
     userRole: string;
   }> => {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      method: "GET",
-      headers,
-    });
+    try {
+      const headers = await getAuthHeaders();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch user profile");
+      const result = await safeApiCall(`${API_BASE_URL}/api/auth/me`, {
+        method: "GET",
+        headers,
+      });
+
+      return (
+        result.user || {
+          id: "",
+          username: "Unknown",
+          email: "",
+          userRole: "INSTRUCTOR",
+        }
+      );
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      throw new Error("Failed to fetch user profile");
     }
-
-    const data = await response.json();
-    return data.user;
   },
 
+  // Get Batches with proper error handling
   getBatches: async (): Promise<{ batches: Batch[] }> => {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/instructor/batches`, {
-      method: "GET",
-      headers,
-    });
+    try {
+      const headers = await getAuthHeaders();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch batches");
+      const result = await safeApiCall(
+        `${API_BASE_URL}/api/instructor/batches`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
+
+      return {
+        batches: result.batches || [],
+      };
+    } catch (error) {
+      console.error("Error fetching batches:", error);
+      return { batches: [] };
     }
-
-    return response.json();
   },
 
   createCourse: async (
-    courseData: CreateCourseData,
+    courseData: CreateCourseData
   ): Promise<CourseResponse> => {
     const headers = await getAuthHeaders();
     // Use the first batch_id for route (API only supports one at a time)
@@ -358,29 +434,26 @@ export const instructorApi = {
     console.log("URL:", url);
     console.log("Headers:", headers);
     console.log("Body:", JSON.stringify(minimalRequestBody, null, 2));
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(minimalRequestBody),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("API Error Response:", response.status, errorText);
-      try {
-        const errorJson = JSON.parse(errorText);
-        alert(`Course creation failed: ${errorJson.message || errorText}`);
-      } catch {
-        alert(`Course creation failed: ${errorText}`);
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(minimalRequestBody),
+      });
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorResponse(response);
+        console.error("API Error Response:", response.status, errorMessage);
+        alert(`Course creation failed: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
-      let error;
-      try {
-        error = JSON.parse(errorText);
-      } catch {
-        error = { message: errorText || "Failed to create course" };
-      }
-      throw new Error(error.message || "Failed to create course");
+
+      return response.json();
+    } catch (error) {
+      console.error("Course creation error:", error);
+      throw error;
     }
-    return response.json();
   },
 
   // Test Management
@@ -396,195 +469,180 @@ export const instructorApi = {
       ...testData,
       courseIds: Array.isArray(courseIds) ? courseIds : [courseIds],
     };
-    const response = await fetch(
-      `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/bulk/tests`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      }
-    );
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to create test");
+
+    try {
+      const result = await safeApiCall(
+        `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/bulk/tests`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        }
+      );
+
+      return result;
+    } catch (error) {
+      console.error("Error creating test:", error);
+      throw error;
     }
-    return response.json();
   },
 
   getTestsByCourse: async (
     courseId: string,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ tests: Test[] }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
-      `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests`,
-      {
-        method: "GET",
-        headers,
-      },
-    );
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        // Return empty tests array if endpoint doesn't exist
-        console.warn(
-          `No tests found for course ${courseId} in batch ${actualBatchId}`,
-        );
-        return { tests: [] };
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Return empty tests array if endpoint doesn't exist
+          console.warn(
+            `No tests found for course ${courseId} in batch ${actualBatchId}`
+          );
+          return { tests: [] };
+        }
+        const errorMessage = await parseErrorResponse(response);
+        throw new Error(errorMessage);
       }
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch tests");
-    }
 
-    const data = await response.json();
-    return {
-      tests: Array.isArray(data.tests)
-        ? data.tests
-        : Array.isArray(data)
+      const data = await response.json();
+      return {
+        tests: Array.isArray(data.tests)
+          ? data.tests
+          : Array.isArray(data)
           ? data
           : [],
-    };
+      };
+    } catch (error) {
+      console.error("Error fetching tests:", error);
+      return { tests: [] };
+    }
   },
 
   getTestById: async (
     testId: string,
     courseId: string,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ test: Test }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests/${testId}`,
       {
         method: "GET",
         headers,
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch test");
-    }
-
-    return response.json();
+    return result;
   },
 
   updateTest: async (
     courseId: string,
     testId: string,
     testData: Partial<CreateTestRequest>,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ test: Test }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests/${testId}`,
       {
         method: "PUT",
         headers,
         body: JSON.stringify(testData),
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update test");
-    }
-
-    return response.json();
+    return result;
   },
 
   publishTest: async (
     testId: string,
     courseId: string,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests/${testId}/publish`,
       {
         method: "PATCH",
         headers,
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to publish test");
-    }
-
-    return response.json();
+    return result;
   },
 
   deleteTest: async (
     courseId: string,
     testId: string,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests/${testId}`,
       {
         method: "DELETE",
         headers,
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to delete test");
-    }
-
-    return response.json();
+    return result;
   },
 
   // Question Management
   addQuestion: async (
     testId: string,
-    questionData: CreateQuestionRequest,
+    questionData: CreateQuestionRequest
   ): Promise<{ question: Question }> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/tests/${testId}/questions`,
       {
         method: "POST",
         headers,
         body: JSON.stringify({ questions: [questionData] }),
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to add question");
-    }
-
-    return response.json();
+    return result;
   },
 
   getQuestions: async (
     courseId: string,
     testId: string,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ questions: Question[] }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests/${testId}/questions`,
       {
         method: "GET",
         headers,
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch questions");
-    }
-
-    return response.json();
+    return result;
   },
 
   updateQuestion: async (
@@ -592,97 +650,81 @@ export const instructorApi = {
     testId: string,
     questionId: string,
     questionData: Partial<CreateQuestionRequest>,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ question: Question }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
       {
         method: "PUT",
         headers,
         body: JSON.stringify(questionData),
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update question");
-    }
-
-    return response.json();
+    return result;
   },
 
   deleteQuestion: async (
     courseId: string,
     testId: string,
     questionId: string,
-    batchId?: string,
+    batchId?: string
   ): Promise<{ message: string }> => {
     const headers = await getAuthHeaders();
     const actualBatchId = batchId || "batch-2024"; // Default to batch-2024 if no batch ID provided
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${actualBatchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
       {
         method: "DELETE",
         headers,
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to delete question");
-    }
-
-    return response.json();
+    return result;
   },
 
   // Analytics and Statistics
   getTestStatistics: async (
-    testId: string,
+    testId: string
   ): Promise<{ statistics: TestStatistics }> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/tests/${testId}/statistics`,
       {
         method: "GET",
         headers,
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch test statistics");
-    }
-
-    return response.json();
+    return result;
   },
 
   getTestAnalytics: async (testId: string): Promise<StudentTestAnalytics> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/tests/${testId}/analytics`,
       {
         method: "GET",
         headers,
-      },
+      }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch test analytics");
-    }
-
-    return response.json();
+    return result;
   },
 
   // Course Management - Get all courses (direct API)
   getCourses: async (): Promise<{ courses: Course[] }> => {
-    const headers = await getAuthHeaders();
-
     try {
+      const headers = await getAuthHeaders();
+
       // Use the direct course endpoint instead of per-batch
-      const coursesResponse = await fetch(
+      const result = await safeApiCall(
         `${API_BASE_URL}/api/instructor/courses`,
         {
           method: "GET",
@@ -690,106 +732,108 @@ export const instructorApi = {
         }
       );
 
-      if (!coursesResponse.ok) {
-        const error = await coursesResponse.json();
-        throw new Error(error.message || "Failed to fetch courses");
-      }
-
-      const coursesData = await coursesResponse.json();
-      return { courses: coursesData.courses || [] };
+      return { courses: result.courses || [] };
     } catch (err) {
       console.error("Error fetching courses:", err);
-      throw err;
+      return { courses: [] };
     }
   },
 
   getStudents: async (): Promise<{ users: Student[] }> => {
-    const headers = await getAuthHeaders();
+    try {
+      const headers = await getAuthHeaders();
 
-    // Get all batches first
-    const batchesResponse = await fetch(
-      `${API_BASE_URL}/api/instructor/batches`,
-      {
-        method: "GET",
-        headers,
-      },
-    );
-
-    if (!batchesResponse.ok) {
-      throw new Error("Failed to fetch batches");
-    }
-
-    const batchesData = await batchesResponse.json();
-    const batches = batchesData.batches || [];
-
-    // Get students from all batch/course combinations using progress endpoint
-    const allStudents = new Map<string, Student>(); // Use Map to avoid duplicates
-
-    for (const batch of batches) {
-      try {
-        // Get courses for this batch
-        const coursesResponse = await fetch(
-          `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
-          {
-            method: "GET",
-            headers,
-          },
-        );
-
-        if (!coursesResponse.ok) continue;
-
-        const coursesData = await coursesResponse.json();
-        const courses = coursesData.courses || [];
-
-        // Get students from each course's progress
-        for (const course of courses) {
-          try {
-            const progressResponse = await fetch(
-              `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses/${course.id}/progress`,
-              {
-                method: "GET",
-                headers,
-              },
-            );
-
-            if (!progressResponse.ok) continue;
-
-            const progressData = await progressResponse.json();
-            const students = progressData.report || [];
-
-            // Add unique students to our collection
-            students.forEach((student: StudentProgressData) => {
-              if (student.studentId && !allStudents.has(student.studentId)) {
-                allStudents.set(student.studentId, {
-                  id: student.studentId,
-                  name: student.username || `Student ${student.studentId}`,
-                  email: "", // No email needed for course assignment
-                  username: student.username || student.studentId,
-                });
-              }
-            });
-          } catch (err) {
-            console.warn(
-              `Failed to fetch progress for course ${course.id}:`,
-              err,
-            );
-          }
+      // Get all batches first
+      const batchesResponse = await fetch(
+        `${API_BASE_URL}/api/instructor/batches`,
+        {
+          method: "GET",
+          headers,
         }
-      } catch (err) {
-        console.warn(`Failed to fetch courses for batch ${batch.id}:`, err);
+      );
+
+      if (!batchesResponse.ok) {
+        throw new Error("Failed to fetch batches");
       }
+
+      const batchesData = await batchesResponse.json();
+      const batches = batchesData.batches || [];
+
+      // Get students from all batch/course combinations using progress endpoint
+      const allStudents = new Map<string, Student>(); // Use Map to avoid duplicates
+
+      for (const batch of batches) {
+        try {
+          // Get courses for this batch
+          const coursesResponse = await fetch(
+            `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
+            {
+              method: "GET",
+              headers,
+            }
+          );
+
+          if (!coursesResponse.ok) continue;
+
+          const coursesData = await coursesResponse.json();
+          const courses = coursesData.courses || [];
+
+          // Get students from each course's progress
+          for (const course of courses) {
+            try {
+              const progressResponse = await fetch(
+                `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses/${course.id}/progress`,
+                {
+                  method: "GET",
+                  headers,
+                }
+              );
+
+              if (!progressResponse.ok) continue;
+
+              const progressData = await progressResponse.json();
+              const students = progressData.report || [];
+
+              // Add unique students to our collection
+              students.forEach((student: StudentProgressData) => {
+                if (student.studentId && !allStudents.has(student.studentId)) {
+                  allStudents.set(student.studentId, {
+                    id: student.studentId,
+                    name: student.username || `Student ${student.studentId}`,
+                    email: "", // No email needed for course assignment
+                    username: student.username || student.studentId,
+                  });
+                }
+              });
+            } catch (err) {
+              console.warn(
+                `Failed to fetch progress for course ${course.id}:`,
+                err
+              );
+            }
+          }
+        } catch (err) {
+          console.warn(`Failed to fetch courses for batch ${batch.id}:`, err);
+        }
+      }
+
+      // Convert Map to array
+      const uniqueStudents = Array.from(allStudents.values());
+
+      return { users: uniqueStudents };
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      return { users: [] };
     }
-
-    // Convert Map to array
-    const uniqueStudents = Array.from(allStudents.values());
-
-    return { users: uniqueStudents };
   },
 
   assignCoursesToStudents: async (
     courseIds: string[],
     studentIds: string[]
-  ): Promise<{ message: string; details?: { successful: number; failed: number; skipped: number } }> => {
+  ): Promise<{
+    message: string;
+    details?: { successful: number; failed: number; skipped: number };
+  }> => {
     const headers = await getAuthHeaders();
 
     // Since the backend only supports single course-student assignments,
@@ -810,7 +854,7 @@ export const instructorApi = {
           {
             method: "GET",
             headers,
-          },
+          }
         );
 
         if (!batchesResponse.ok) {
@@ -832,16 +876,20 @@ export const instructorApi = {
             method: "POST",
             headers,
             body: JSON.stringify({ userId: studentId, courseId }),
-          },
+          }
         );
 
         if (!response.ok) {
-          const error = await response.json();
-          const errorMessage = error.message || "Failed to assign course";
+          const errorMessage = await parseErrorResponse(response);
 
           // If it's already assigned, we'll treat it as a warning, not an error
           if (errorMessage.includes("already assigned")) {
-            return { skipped: true, courseId, studentId, message: errorMessage };
+            return {
+              skipped: true,
+              courseId,
+              studentId,
+              message: errorMessage,
+            };
           }
 
           throw new Error(
@@ -903,58 +951,54 @@ export const instructorApi = {
 
   getStudentCourseAssignments: async (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _studentId: string,
+    _studentId: string
   ): Promise<{ courses: Course[] }> => {
     // This endpoint doesn't exist in the current backend
     // For now, return empty array - this feature needs backend implementation
     console.warn(
-      "getStudentCourseAssignments: Backend endpoint not implemented",
+      "getStudentCourseAssignments: Backend endpoint not implemented"
     );
     return { courses: [] };
   },
 
   deleteCourse: async (batchId: string, courseId: string) => {
     const headers = await getAuthHeaders();
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}`,
       {
         method: "DELETE",
         headers,
-      },
+      }
     );
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to delete course");
-    }
-    return response.json();
+
+    return result;
   },
 
   updateCourse: async (
     batchId: string,
     courseId: string,
-    courseData: Partial<Course>,
+    courseData: Partial<Course>
   ) => {
     const headers = await getAuthHeaders();
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}`,
       {
         method: "PUT",
         headers,
         body: JSON.stringify(courseData),
-      },
+      }
     );
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update course");
-    }
-    return response.json();
+
+    return result;
   },
 
   // Get course details
   getCourseById: async (courseId: string): Promise<Course> => {
     const headers = await getAuthHeaders();
 
-    const response = await fetch(
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/courses/${courseId}`,
       {
         method: "GET",
@@ -962,31 +1006,22 @@ export const instructorApi = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch course");
-    }
-
-    const data = await response.json();
-    return data.course;
+    return result.course;
   },
 
   // Get course analytics
   getCourseAnalytics: async (courseId: string): Promise<CourseAnalytics> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(
+
+    const result = await safeApiCall(
       `${API_BASE_URL}/api/instructor/courses/${courseId}/analytics`,
       {
         method: "GET",
         headers,
       }
     );
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch course analytics");
-    }
-    const data = await response.json();
-    return data.analytics as CourseAnalytics;
+
+    return result.analytics as CourseAnalytics;
   },
 
   // MCQ Management APIs
@@ -1076,20 +1111,97 @@ export const instructorApi = {
       }>;
     }>;
   }> => {
-    const headers = await getAuthHeaders();
-    const response = await fetch(
-      `${API_BASE_URL}/api/instructor/analytics/students`,
-      {
-        method: "GET",
-        headers,
-      }
-    );
+    try {
+      const headers = await getAuthHeaders();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch system-wide student analytics");
+      const result = await safeApiCall(
+        `${API_BASE_URL}/api/instructor/analytics/students`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
+
+      return {
+        students: result.students || [],
+      };
+    } catch (error) {
+      console.error("Error fetching system-wide student analytics:", error);
+      return { students: [] };
+    }
+  },
+
+  // Refresh API function with exponential backoff
+  refreshApi: async (retries: number = 3): Promise<boolean> => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`RefreshAPI attempt ${attempt}/${retries}`);
+
+        // Test the API connection with a simple endpoint
+        const headers = await getAuthHeaders();
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          method: "GET",
+          headers,
+        });
+
+        if (response.ok) {
+          console.log("RefreshAPI: Connection successful");
+          return true;
+        }
+
+        console.warn(
+          `RefreshAPI attempt ${attempt} failed:`,
+          response.status,
+          response.statusText
+        );
+      } catch (error) {
+        console.error(`RefreshAPI attempt ${attempt} error:`, error);
+      }
+
+      // Wait before retrying (exponential backoff)
+      if (attempt < retries) {
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`RefreshAPI: Waiting ${delay}ms before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
     }
 
-    return response.json();
+    console.error("RefreshAPI: All attempts failed");
+    return false;
   },
+
+  // Health check function
+  healthCheck: async (): Promise<{ status: string; timestamp: string }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        return {
+          status: "healthy",
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      return {
+        status: "unhealthy",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error("Health check failed:", error);
+      return {
+        status: "error",
+        timestamp: new Date().toISOString(),
+      };
+    }
+  },
+
+  // Safe API call helpers
+  safeApiCall: safeApiCall,
+  parseErrorResponse: parseErrorResponse,
 };
