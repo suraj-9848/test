@@ -1,7 +1,14 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { signOut, getSession } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
 import { clearAuthCache, isJWTExpired, getBackendJwt } from './auth';
-import { BASE_URLS, API_ENDPOINTS, DOMAIN_MAPPINGS, getLMSUrl } from '../config/urls';
+import { BASE_URLS, API_ENDPOINTS, getLMSUrl } from '../config/urls';
+
+// Interface for error response data
+interface ErrorResponseData {
+  error?: string;
+  message?: string;
+  code?: string;
+}
 
 // Create axios instance with centralized base URL
 const apiClient = axios.create({
@@ -158,7 +165,7 @@ apiClient.interceptors.request.use(
         if (token) {
           storeAdminToken(token);
         }
-      } catch (error) {
+      } catch {
         console.log('No valid token available for request');
       }
     }
@@ -211,7 +218,7 @@ apiClient.interceptors.response.use(
     
     // Check if error is due to token expiry/invalidity
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const errorData = error.response.data as any;
+      const errorData = error.response.data as ErrorResponseData;
       
       // Check if it's a token-related error
       if (

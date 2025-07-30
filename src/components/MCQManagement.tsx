@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
 import apiClient from "../utils/axiosInterceptor";
+import { useToast } from "./ToastContext";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -577,6 +578,7 @@ const MCQEditor: React.FC<{
 
 const MCQManagement: React.FC = () => {
   const { data: session } = useSession();
+  const { showToast } = useToast();
 
   // State
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -738,9 +740,22 @@ const MCQManagement: React.FC = () => {
       );
       await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
       setIsCreating(false);
-    } catch (err) {
+      showToast("success", "MCQ set created successfully!");
+    } catch (err: any) {
       console.error("Error creating MCQ set:", err);
-      setError("Failed to create MCQ set");
+      
+      // Extract specific error message from the response
+      let errorMessage = "Failed to create MCQ set";
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      showToast("error", errorMessage);
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -755,9 +770,22 @@ const MCQManagement: React.FC = () => {
       );
       await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
       setIsEditing(false);
-    } catch (err) {
+      showToast("success", "MCQ set updated successfully!");
+    } catch (err: any) {
       console.error("Error updating MCQ set:", err);
-      setError("Failed to update MCQ set");
+      
+      // Extract specific error message from the response
+      let errorMessage = "Failed to update MCQ set";
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      showToast("error", errorMessage);
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -770,10 +798,23 @@ const MCQManagement: React.FC = () => {
           `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
         );
         await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
+        showToast("success", "MCQ set deleted successfully!");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting MCQ set:", err);
-      setError("Failed to delete MCQ set");
+      
+      // Extract specific error message from the response
+      let errorMessage = "Failed to delete MCQ set";
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      showToast("error", errorMessage);
+      setError(errorMessage);
     }
   };
 

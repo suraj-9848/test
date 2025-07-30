@@ -368,7 +368,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
         if (result.errorDetails.length > 3) {
           errorMessages.push(`... and ${result.errorDetails.length - 3} more errors`);
         }
-        showToast("warning", errorMessages.join("\n"));
+        showToast("error", errorMessages.join("\n"));
       }
 
       setBulkUploadData("");
