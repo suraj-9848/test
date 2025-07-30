@@ -115,16 +115,24 @@ export const getBackendJwt = async (): Promise<string> => {
   
   const session = await getSession();
   if (!session) {
+    console.log('🔍 [AUTH UTILS] No session found - user not logged in with Google yet');
     throw new Error("No session found - user not logged in");
   }
 
   const googleIdToken = (session as { id_token?: string })?.id_token;
   if (!googleIdToken) {
+    console.log('🔍 [AUTH UTILS] No Google ID token found in session');
+    console.log('🔍 [AUTH UTILS] Session keys:', Object.keys(session));
     throw new Error("No Google ID token found in session");
   }
 
+  console.log('🔍 [AUTH UTILS] Valid Google session found, proceeding with backend authentication');
+
   try {
-    console.log('🔑 Fetching new backend JWT (cached token expired/missing)');
+    console.log('🔑 [AUTH UTILS] Fetching new backend JWT (cached token expired/missing)');
+    console.log('🔍 [AUTH UTILS] Making request to:', `${baseUrl}/api/auth/admin-login`);
+    console.log('🔍 [AUTH UTILS] Google ID token length:', googleIdToken.length);
+    
     const loginRes = await axios.post(
       `${baseUrl}/api/auth/admin-login`,
       {},
@@ -134,18 +142,35 @@ export const getBackendJwt = async (): Promise<string> => {
       }
     );
     
+    console.log('🔍 [AUTH UTILS] Backend login response status:', loginRes.status);
+    console.log('🔍 [AUTH UTILS] Backend response data keys:', Object.keys(loginRes.data));
+    
     cachedBackendJwt = loginRes.data.token;
     lastTokenFetch = now;
     
     // Also store in sessionStorage for apiClient interceptor
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('adminToken', cachedBackendJwt);
+      console.log('🔍 [AUTH UTILS] Stored JWT in sessionStorage');
     }
     
-    console.log('✅ New backend JWT obtained and cached');
+    console.log('✅ [AUTH UTILS] New backend JWT obtained and cached, length:', cachedBackendJwt.length);
+    
+    // Immediately extract and log role information
+    try {
+      const jwtPayload = getUserInfoFromJWT(cachedBackendJwt);
+      console.log('🔍 [AUTH UTILS] JWT payload after login:', JSON.stringify(jwtPayload, null, 2));
+    } catch (decodeError) {
+      console.error('🔍 [AUTH UTILS] Error decoding JWT:', decodeError);
+    }
+    
     return cachedBackendJwt;
-  } catch (err) {
-    console.error("Failed to authenticate with backend", err);
+  } catch (err: any) {
+    console.error("🔍 [AUTH UTILS] Failed to authenticate with backend:", err);
+    if (err.response) {
+      console.error("🔍 [AUTH UTILS] Error response status:", err.response.status);
+      console.error("🔍 [AUTH UTILS] Error response data:", err.response.data);
+    }
     throw new Error("Failed to authenticate with backend");
   }
 };
@@ -155,16 +180,33 @@ export const getBackendJwt = async (): Promise<string> => {
  */
 export const getUserRole = async (): Promise<string | null> => {
   try {
+    console.log('🔍 [AUTH UTILS] getUserRole() called');
+    console.log('🔍 [AUTH UTILS] Cached JWT exists:', !!cachedBackendJwt);
+    console.log('🔍 [AUTH UTILS] Cached JWT expired:', cachedBackendJwt ? isJWTExpired(cachedBackendJwt) : 'N/A');
+    
     // Try to get role from cached token first
     if (cachedBackendJwt && !isJWTExpired(cachedBackendJwt)) {
-      return getUserRoleFromJWT(cachedBackendJwt);
+      const role = getUserRoleFromJWT(cachedBackendJwt);
+      console.log('🔍 [AUTH UTILS] Role from cached JWT:', role);
+      return role;
     }
     
+    // Before trying to fetch new JWT, check if we have a valid Google session
+    const session = await getSession();
+    if (!session || !(session as { id_token?: string })?.id_token) {
+      console.log('🔍 [AUTH UTILS] No valid Google session - cannot fetch backend JWT');
+      console.log('🔍 [AUTH UTILS] User needs to log in with Google first');
+      return null;
+    }
+    
+    console.log('🔍 [AUTH UTILS] No valid cached JWT, fetching new one...');
     // If no valid cached token, fetch new one
     const jwt = await getBackendJwt();
-    return getUserRoleFromJWT(jwt);
+    const role = getUserRoleFromJWT(jwt);
+    console.log('🔍 [AUTH UTILS] Role from fresh JWT:', role);
+    return role;
   } catch (error) {
-    console.error('Failed to get user role:', error);
+    console.error('🔍 [AUTH UTILS] Failed to get user role:', error);
     return null;
   }
 };
@@ -174,16 +216,27 @@ export const getUserRole = async (): Promise<string | null> => {
  */
 export const getUserInfo = async () => {
   try {
+    console.log('🔍 [AUTH UTILS] getUserInfo() called');
+    
     // Try to get info from cached token first
     if (cachedBackendJwt && !isJWTExpired(cachedBackendJwt)) {
+      console.log('🔍 [AUTH UTILS] Using cached JWT for user info');
       return getUserInfoFromJWT(cachedBackendJwt);
     }
     
+    // Before trying to fetch new JWT, check if we have a valid Google session
+    const session = await getSession();
+    if (!session || !(session as { id_token?: string })?.id_token) {
+      console.log('🔍 [AUTH UTILS] No valid Google session - cannot fetch user info');
+      return null;
+    }
+    
+    console.log('🔍 [AUTH UTILS] Fetching fresh JWT for user info');
     // If no valid cached token, fetch new one
     const jwt = await getBackendJwt();
     return getUserInfoFromJWT(jwt);
   } catch (error) {
-    console.error('Failed to get user info:', error);
+    console.error('🔍 [AUTH UTILS] Failed to get user info:', error);
     return null;
   }
 };

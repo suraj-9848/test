@@ -19,48 +19,71 @@ export default function AuthValidationWrapper({
   useEffect(() => {
     const validateUser = async () => {
       console.log("=== AuthValidator Debug ===");
-      console.log("Session status:", status);
+      console.log("🔍 [VALIDATOR] Session status:", status);
+      console.log("🔍 [VALIDATOR] Current URL:", window.location.href);
+      console.log("🔍 [VALIDATOR] Timestamp:", new Date().toISOString());
 
       // Wait for session to load
       if (status === "loading") {
+        console.log("🔍 [VALIDATOR] Still loading authentication...");
         return;
       }
 
-      // No session = redirect to login
+      // No session = don't validate, just allow SignIn component to show
       if (status === "unauthenticated" || !session?.id_token) {
-        console.log("No session found, redirecting to /");
-        router.push("/");
+        console.log("🔍 [VALIDATOR] No session found - allowing SignIn component to show");
+        console.log("🔍 [VALIDATOR] Status:", status, "Has id_token:", !!session?.id_token);
+        console.log("🔍 [VALIDATOR] ✅ Setting validation complete = true (for SignIn page)");
+        setValidationComplete(true);
+        setIsValidating(false);
         return;
       }
 
-      console.log("Session found, validating user role...");
+      console.log("🔍 [VALIDATOR] Session found, validating user role...");
+      console.log("🔍 [VALIDATOR] Session details:", {
+        id_token: !!session.id_token,
+        accessToken: !!(session as any).accessToken,
+        user: session.user
+      });
 
       try {
+        console.log("🔍 [VALIDATOR] Starting role validation process...");
+        
         // Try to get user role from cached JWT first (fast client-side check)
         let role = await getUserRole();
+        console.log("🔍 [VALIDATOR] Cached role from getUserRole():", role);
         
         // If no role from cache, try to get fresh JWT
         if (!role) {
-          console.log("No cached role, fetching fresh JWT...");
-          const jwt = await getBackendJwt();
-          if (jwt) {
-            role = await getUserRole();
+          console.log("🔍 [VALIDATOR] No cached role, fetching fresh JWT...");
+          try {
+            const jwt = await getBackendJwt();
+            console.log("🔍 [VALIDATOR] Fresh JWT obtained, length:", jwt?.length);
+            if (jwt) {
+              role = await getUserRole();
+              console.log("🔍 [VALIDATOR] Role after fresh JWT fetch:", role);
+            }
+          } catch (jwtError) {
+            console.error("🔍 [VALIDATOR] Error fetching JWT:", jwtError);
           }
         }
 
         if (!role) {
-          console.log("Failed to get user role, redirecting to LMS");
+          console.log("🔍 [VALIDATOR] Failed to get user role, redirecting to LMS");
+          console.log("🔍 [VALIDATOR] This indicates either JWT fetch failed or role extraction failed");
           await signOut({ redirect: false });
           window.location.href = "https://lms.nirudhyog.com/";
           return;
         }
 
         const normalizedRole = role.toLowerCase();
-        console.log("User role:", normalizedRole);
+        console.log("🔍 [VALIDATOR] User role extracted successfully:");
+        console.log("  - Original role:", role);
+        console.log("  - Normalized role:", normalizedRole);
 
         // Handle role-based routing - but respect ViewAs context for admins
         if (normalizedRole === "student") {
-          console.log("Student user detected, redirecting to LMS");
+          console.log("🔍 [VALIDATOR] Student user detected, redirecting to LMS");
           await signOut({ redirect: false });
           window.location.href = "https://lms.nirudhyog.com/";
           return;
@@ -69,13 +92,20 @@ export default function AuthValidationWrapper({
         // Let AuthContext handle all routing - AuthValidator should only validate
         // Just reset role picker for admin users
         if (normalizedRole === "admin") {
-          console.log("Admin user detected - allowing access to all views");
+          console.log("🔍 [VALIDATOR] Admin user detected - allowing access to all views");
+          console.log("🔍 [VALIDATOR] Setting admin_view_as_role to 'admin' in localStorage");
           // Reset role picker to admin view on login for admin users
           localStorage.setItem('admin_view_as_role', 'admin');
+        } else if (normalizedRole === "instructor") {
+          console.log("🔍 [VALIDATOR] Instructor user detected");
+        } else if (normalizedRole === "recruiter") {
+          console.log("🔍 [VALIDATOR] Recruiter user detected");
+        } else {
+          console.log("🔍 [VALIDATOR] Unknown role detected:", normalizedRole);
         }
 
         // If we get here, user is valid and on correct page
-        console.log("✅ User validation successful");
+        console.log("✅ [VALIDATOR] User validation successful - role:", normalizedRole);
         setValidationComplete(true);
 
       } catch (error) {

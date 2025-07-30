@@ -11,7 +11,8 @@ import {
   clearAuthCache,
   getBackendJwt,
   isJWTExpired,
-  decodeJWT
+  decodeJWT,
+  getUserInfoFromJWT
 } from '../utils/auth';
 
 interface User {
@@ -98,13 +99,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuth = useCallback(async () => {
     if (status === 'loading') return;
 
-    console.log('🔍 Checking authentication status...');
+    console.log('🔍 [AUTH CONTEXT] Checking authentication status...');
+    console.log('🔍 [AUTH CONTEXT] Session status:', status);
+    console.log('🔍 [AUTH CONTEXT] Has session:', !!session);
+    console.log('🔍 [AUTH CONTEXT] Has id_token:', !!session?.id_token);
+    
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // No session = not authenticated
+      // No session = not authenticated, but don't try to authenticate
       if (status === 'unauthenticated' || !session?.id_token) {
-        console.log('❌ No valid session found');
+        console.log('🔍 [AUTH CONTEXT] No valid session found - setting unauthenticated state');
+        console.log('🔍 [AUTH CONTEXT] This is normal for users who haven\'t logged in yet');
         setAuthState({
           user: null,
           isLoading: false,
@@ -158,6 +164,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('✅ Authentication successful:', userInfo.userRole);
+      console.log('🔍 [AUTH DEBUG] Full userInfo object:', JSON.stringify(userInfo, null, 2));
+      console.log('🔍 [AUTH DEBUG] Backend token length:', backendToken.length);
+      console.log('🔍 [AUTH DEBUG] JWT payload:', JSON.stringify(getUserInfoFromJWT(backendToken), null, 2));
 
       // Success - set authenticated state
       setAuthState({
@@ -168,9 +177,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         backendToken,
       });
 
+      console.log('🔍 [AUTH DEBUG] Auth state updated - isAuthenticated: true, user role:', userInfo.userRole);
+
       // Handle role-based routing
       const role = userInfo.userRole.toLowerCase();
       const currentPath = window.location.pathname;
+
+      console.log('🔍 [AUTH DEBUG] Role-based routing analysis:');
+      console.log('  - Original role:', userInfo.userRole);
+      console.log('  - Normalized role:', role);
+      console.log('  - Current path:', currentPath);
+      console.log('  - hasRedirected:', hasRedirected);
+      console.log('  - sessionStorage auth_redirected:', sessionStorage.getItem('auth_redirected'));
 
       if (role === 'student') {
         console.log('👨‍🎓 Student detected, redirecting to main LMS');
@@ -183,16 +201,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if ((currentPath === '/dashboard' || currentPath === '/') && !hasRedirected) {
         let targetPath = '';
         
+        console.log('🔍 [AUTH DEBUG] Evaluating redirect conditions:');
+        console.log('  - Path matches dashboard/root:', (currentPath === '/dashboard' || currentPath === '/'));
+        console.log('  - hasRedirected:', hasRedirected);
+        console.log('  - Role for routing:', role);
+        
         if (role === 'instructor') {
           console.log('👨‍🏫 Routing instructor to instructor dashboard');
           targetPath = '/dashboard/instructor';
         } else if (['admin', 'recruiter'].includes(role)) {
           console.log('👨‍💼 Routing admin/recruiter to admin dashboard');
           targetPath = '/dashboard/admin';
+        } else {
+          console.log('❓ Unknown role, no specific routing:', role);
         }
+        
+        console.log('🔍 [AUTH DEBUG] Target path determined:', targetPath);
         
         if (targetPath) {
           console.log(`🚀 Redirecting to: ${targetPath}`);
+          console.log('🔍 [AUTH DEBUG] Setting hasRedirected = true and updating sessionStorage');
           setHasRedirected(true);
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('auth_redirected', 'true');
@@ -200,9 +228,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Use setTimeout to ensure state is set before redirect
           setTimeout(() => {
+            console.log('🔍 [AUTH DEBUG] Executing router.replace to:', targetPath);
             router.replace(targetPath);
           }, 100);
+        } else {
+          console.log('⚠️ [AUTH DEBUG] No target path set - user will stay on current page');
         }
+      } else {
+        console.log('🔍 [AUTH DEBUG] Skipping redirect due to conditions:');
+        console.log('  - Current path is not dashboard/root:', !(currentPath === '/dashboard' || currentPath === '/'));
+        console.log('  - Already redirected:', hasRedirected);
       }
 
     } catch (error) {
