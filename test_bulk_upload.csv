@@ -1,0 +1,6 @@
+username,email,org_id,role,batch_id
+john_doe,john@example.com,org123,student,batch1
+jane_smith,jane@example.com,org123,instructor,
+admin_user,admin@example.com,org123,admin,
+recruiter_test,recruiter@example.com,org123,recruiter,batch2
+student_batch2,student2@example.com,org456,student,batch2
