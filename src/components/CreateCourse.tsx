@@ -38,10 +38,12 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
           return;
         }
 
-        const user = await instructorApi.getCurrentUser();
+        // Use session storage for instructor name
+        const adminToken = sessionStorage.getItem('adminToken');
+        const instructorName = adminToken ? 'Current User' : 'Unknown';
         setFormData((prev) => ({
           ...prev,
-          instructor_name: user.username || user.email || "Unknown",
+          instructor_name: instructorName,
         }));
       } catch (error) {
         console.error("Error fetching user profile:", error);

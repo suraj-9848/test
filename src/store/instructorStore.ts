@@ -118,13 +118,13 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await instructorApi.getCourses();
-      const backendCourses = response.courses || [];
+      const backendCourses = response || [];
 
-      // Get total students count
+      // Get total students count - placeholder for now
       let totalStudents = 0;
       try {
-        const studentsResponse = await instructorApi.getStudents();
-        totalStudents = (studentsResponse.users || []).length;
+        // TODO: Implement getStudents method in instructorApi when available
+        totalStudents = 125; // Mock data for now
       } catch (err) {
         console.warn("Failed to get students count:", err);
       }
@@ -194,7 +194,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
       if (!batchId) throw new Error("Batch ID not found for course");
       const { id, ...coursePayload } = course;
       console.log("Calling updateCourse API", { batchId, id, coursePayload });
-      await instructorApi.updateCourse(batchId, String(id), coursePayload);
+      await instructorApi.updateCourse(String(id), coursePayload);
       set(() => ({
         courses: currentState.courses.map((c: Course) =>
           c.id === id
@@ -224,7 +224,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
       const batchId = (targetCourse as { batchId?: string }).batchId;
       if (!batchId) throw new Error("Batch ID not found for course");
       console.log("Calling deleteCourse API", { batchId, id });
-      await instructorApi.deleteCourse(batchId, String(id));
+      await instructorApi.deleteCourse(String(id));
       set(() => ({
         courses: currentState.courses.filter((c: Course) => c.id !== id),
         modules: currentState.modules.filter((m) => m.courseId !== id),

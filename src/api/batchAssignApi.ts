@@ -1,6 +1,5 @@
 import axios from "axios";
 import { getSession } from "next-auth/react";
-import { instructorApi } from "./instructorApi";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
 const API_URL = `${baseUrl}/api/instructor/batches`;
@@ -42,9 +41,14 @@ export const fetchBatches = async () => {
 };
 
 export const fetchStudents = async () => {
-  // Use instructorApi.getStudents for correct logic
-  const result = await instructorApi.getStudents();
-  return result.users || [];
+  const headers = { Authorization: `Bearer ${sessionStorage.getItem('adminToken')}` };
+  try {
+    const res = await axios.get(`${API_URL}/students`, { headers });
+    return res.data.students || [];
+  } catch (error) {
+    console.error("Failed to fetch students:", error);
+    return [];
+  }
 };
 
 // Assign students to a batch

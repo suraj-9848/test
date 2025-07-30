@@ -1,506 +1,431 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  FaUser,
-  FaGraduationCap,
-  FaCheck,
-  FaTimes,
-  FaSpinner,
-  FaSearch,
-  FaUserCheck,
-  FaListAlt,
-  FaExclamationTriangle,
-} from "react-icons/fa";
-import { instructorApi, Course, Student } from "../api/instructorApi";
+import { FaSearch, FaUsers, FaBook, FaCheck, FaTimes, FaSpinner } from "react-icons/fa";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
+
+interface Student {
+  id: string;
+  username: string;
+  email: string;
+  courses?: Array<{
+    courseId: string;
+    courseName: string;
+    completed: boolean;
+    progress: number;
+  }>;
+}
+
+interface Course {
+  id: string;
+  title: string;
+  description?: string;
+  instructor_name: string;
+  is_public: boolean;
+  batches?: Array<{
+    id: string;
+    name: string;
+  }>;
+}
 
 interface CourseAssignmentProps {
   onClose?: () => void;
 }
 
-const CourseAssignment: React.FC<CourseAssignmentProps> = () => {
-  const [courses, setCourses] = useState<Course[]>([]);
+const CourseAssignment: React.FC<CourseAssignmentProps> = ({ onClose }) => {
   const [students, setStudents] = useState<Student[]>([]);
-  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
-  const [success, setSuccess] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [courseSearchTerm, setCourseSearchTerm] = useState("");
-  const [showAssignmentHistory, setShowAssignmentHistory] = useState(false);
-  const [assignmentHistory, setAssignmentHistory] = useState<{
-    [studentId: string]: Course[];
-  }>({});
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
+  // Fetch students and courses on component mount
   useEffect(() => {
-    fetchCoursesAndStudents();
+    fetchData();
   }, []);
 
-  const fetchCoursesAndStudents = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
+    
     try {
-      const [coursesResponse, studentsResponse] = await Promise.all([
-        instructorApi.getCourses(),
-        instructorApi.getStudents(),
+      // Fetch students and courses in parallel
+      const [studentsResponse, coursesResponse] = await Promise.all([
+        apiClient.get(API_ENDPOINTS.INSTRUCTOR.STUDENTS),
+        apiClient.get(API_ENDPOINTS.INSTRUCTOR.COURSES)
       ]);
-      setCourses(coursesResponse.courses || []);
-      setStudents(studentsResponse.users || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch data");
+
+      setStudents(studentsResponse.data.students || []);
+      setCourses(coursesResponse.data.courses || coursesResponse.data || []);
+    } catch (err: any) {
       console.error("Error fetching data:", err);
+      setError(err.response?.data?.message || "Failed to fetch data");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStudentAssignments = async (studentId: string) => {
-    try {
-      const response =
-        await instructorApi.getStudentCourseAssignments(studentId);
-      setAssignmentHistory((prev) => ({
-        ...prev,
-        [studentId]: response.courses,
-      }));
-    } catch (err) {
-      console.error("Error fetching student assignments:", err);
+  // Filter students based on search term
+  const filteredStudents = students.filter(student =>
+    student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Handle student selection
+  const handleStudentSelect = (studentId: string) => {
+    setSelectedStudents(prev => {
+      if (prev.includes(studentId)) {
+        return prev.filter(id => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
+  };
+
+  // Handle select all students
+  const handleSelectAll = () => {
+    if (selectedStudents.length === filteredStudents.length) {
+      setSelectedStudents([]);
+    } else {
+      setSelectedStudents(filteredStudents.map(student => student.id));
     }
   };
 
-  const handleAssignCourses = async () => {
-    if (selectedCourses.length === 0 || selectedStudents.length === 0) {
-      setError("Please select at least one course and one student");
+  // Check if student is already enrolled in selected course
+  const isStudentEnrolled = (student: Student, courseId: string) => {
+    return student.courses?.some(course => course.courseId === courseId) || false;
+  };
+
+  // Handle course assignment
+  const handleAssignCourse = async () => {
+    if (!selectedCourse || selectedStudents.length === 0) {
+      setError("Please select both a course and at least one student");
       return;
     }
 
-    setLoading(true);
-    setError("");
-    setSuccess("");
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
 
     try {
-      const result = await instructorApi.assignCoursesToStudents(
-        selectedCourses,
-        selectedStudents,
-      );
+      const selectedCourseData = courses.find(course => course.id === selectedCourse);
       
-      setSuccess(result.message);
-      setSelectedCourses([]);
-      setSelectedStudents([]);
-
-      // Refresh assignment history for selected students
-      selectedStudents.forEach((studentId) => {
-        fetchStudentAssignments(studentId);
+      // Assign course to each selected student
+      const assignmentPromises = selectedStudents.map(async (studentId) => {
+        try {
+          const response = await apiClient.post(`/api/instructor/courses/${selectedCourse}/assign`, {
+            userId: studentId,
+            courseId: selectedCourse
+          });
+          return { studentId, success: true, data: response.data };
+        } catch (error: any) {
+          console.error(`Failed to assign course to student ${studentId}:`, error);
+          return { 
+            studentId, 
+            success: false, 
+            error: error.response?.data?.message || "Assignment failed" 
+          };
+        }
       });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to assign courses";
-      console.error("Course assignment error:", errorMessage);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const toggleCourseSelection = (courseId: string) => {
-    setSelectedCourses((prev) =>
-      prev.includes(courseId)
-        ? prev.filter((id) => id !== courseId)
-        : [...prev, courseId],
-    );
-  };
+      const results = await Promise.all(assignmentPromises);
+      
+      // Count successful and failed assignments
+      const successful = results.filter(result => result.success);
+      const failed = results.filter(result => !result.success);
 
-  const toggleStudentSelection = (studentId: string) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId)
-        ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId],
-    );
-
-    // Fetch assignment history when student is selected
-    if (!selectedStudents.includes(studentId)) {
-      fetchStudentAssignments(studentId);
-    }
-  };
-
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.username.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  const filteredCourses = courses.filter(
-    (course) =>
-      course.title.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
-      course.description.toLowerCase().includes(courseSearchTerm.toLowerCase()),
-  );
-
-  const CourseCard: React.FC<{
-    course: Course;
-    isSelected: boolean;
-    onClick: () => void;
-  }> = ({ course, isSelected, onClick }) => (
-    <div
-      onClick={onClick}
-      className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-        isSelected
-          ? "border-blue-500 bg-blue-50 shadow-md"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-slate-800 truncate">
-          {course.title}
-        </h3>
-        {isSelected && (
-          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-            <FaCheck className="w-3 h-3 text-white" />
-          </div>
-        )}
-      </div>
-      <p className="text-sm text-slate-600 line-clamp-2">
-        {course.description}
-      </p>
-    </div>
-  );
-
-  const StudentCard: React.FC<{
-    student: Student;
-    isSelected: boolean;
-    onClick: () => void;
-  }> = ({ student, isSelected, onClick }) => {
-    const studentCourses = assignmentHistory[student.id] || [];
-
-    return (
-      <div
-        onClick={onClick}
-        className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-          isSelected
-            ? "border-blue-500 bg-blue-50 shadow-md"
-            : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
-        }`}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <FaUser className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-800">{student.name}</h3>
-              <p className="text-sm text-slate-600">{student.email}</p>
-            </div>
-          </div>
-          {isSelected && (
-            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-              <FaCheck className="w-3 h-3 text-white" />
-            </div>
-          )}
-        </div>
-
-        {studentCourses.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-slate-200">
-            <p className="text-xs text-slate-500 mb-2">Currently Enrolled:</p>
-            <div className="flex flex-wrap gap-1">
-              {studentCourses.slice(0, 3).map((course) => (
-                <span
-                  key={course.id}
-                  className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
-                >
-                  {course.title}
-                </span>
-              ))}
-              {studentCourses.length > 3 && (
-                <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full">
-                  +{studentCourses.length - 3} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const SelectionSummary: React.FC = () => (
-    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-200">
-      <h3 className="text-lg font-semibold text-slate-800 mb-4">
-        Assignment Summary
-      </h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
-            <FaGraduationCap className="w-4 h-4" />
-            Selected Courses ({selectedCourses.length})
-          </h4>
-          {selectedCourses.length === 0 ? (
-            <p className="text-slate-500 text-sm">No courses selected</p>
-          ) : (
-            <div className="space-y-2">
-              {selectedCourses.map((courseId) => {
-                const course = courses.find((c) => c.id === courseId);
-                return course ? (
-                  <div
-                    key={courseId}
-                    className="flex items-center justify-between bg-white p-2 rounded border"
-                  >
-                    <span className="text-sm text-slate-700">
-                      {course.title}
-                    </span>
-                    <button
-                      onClick={() => toggleCourseSelection(courseId)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FaTimes className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : null;
-              })}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
-            <FaUser className="w-4 h-4" />
-            Selected Students ({selectedStudents.length})
-          </h4>
-          {selectedStudents.length === 0 ? (
-            <p className="text-slate-500 text-sm">No students selected</p>
-          ) : (
-            <div className="space-y-2">
-              {selectedStudents.map((studentId) => {
-                const student = students.find((s) => s.id === studentId);
-                return student ? (
-                  <div
-                    key={studentId}
-                    className="flex items-center justify-between bg-white p-2 rounded border"
-                  >
-                    <span className="text-sm text-slate-700">
-                      {student.name}
-                    </span>
-                    <button
-                      onClick={() => toggleStudentSelection(studentId)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FaTimes className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : null;
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 flex gap-4">
-        <button
-          onClick={handleAssignCourses}
-          disabled={
-            loading ||
-            selectedCourses.length === 0 ||
-            selectedStudents.length === 0
+      if (successful.length > 0) {
+        setSuccess(`Successfully assigned "${selectedCourseData?.title}" to ${successful.length} student(s)`);
+        
+        // Update local student data to reflect the new assignments
+        setStudents(prev => prev.map(student => {
+          if (selectedStudents.includes(student.id)) {
+            const existingCourses = student.courses || [];
+            const isAlreadyEnrolled = existingCourses.some(course => course.courseId === selectedCourse);
+            
+            if (!isAlreadyEnrolled) {
+              return {
+                ...student,
+                courses: [
+                  ...existingCourses,
+                  {
+                    courseId: selectedCourse,
+                    courseName: selectedCourseData?.title || "Unknown Course",
+                    completed: false,
+                    progress: 0
+                  }
+                ]
+              };
+            }
           }
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <FaSpinner className="w-4 h-4 animate-spin" />
-          ) : (
-            <FaUserCheck className="w-4 h-4" />
-          )}
-          Assign Courses
-        </button>
+          return student;
+        }));
 
-        <button
-          onClick={() => {
-            setSelectedCourses([]);
-            setSelectedStudents([]);
-          }}
-          className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-        >
-          Clear Selection
-        </button>
+        // Reset selections
+        setSelectedStudents([]);
+        setSelectedCourse("");
+      }
 
-        <button
-          onClick={() => setShowAssignmentHistory(!showAssignmentHistory)}
-          className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
-        >
-          <FaListAlt className="w-4 h-4" />
-          {showAssignmentHistory ? "Hide" : "Show"} History
-        </button>
-      </div>
-    </div>
-  );
+      if (failed.length > 0) {
+        setError(`Failed to assign course to ${failed.length} student(s). Some may already be enrolled.`);
+      }
 
-  if (loading && courses.length === 0) {
+    } catch (err: any) {
+      console.error("Error assigning course:", err);
+      setError(err.response?.data?.message || "Failed to assign course");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-center py-12">
-          <FaSpinner className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <FaSpinner className="animate-spin w-8 h-8 text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading students and courses...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">
-            Course Assignment
-          </h1>
-          <p className="text-slate-600 mt-2">
-            Assign courses to students and manage enrollments
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
-          <FaExclamationTriangle className="w-5 h-5" />
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2">
-          <FaCheck className="w-5 h-5" />
-          {success}
-        </div>
-      )}
-
-      {/* Selection Summary */}
-      {(selectedCourses.length > 0 || selectedStudents.length > 0) && (
-        <div className="mb-8">
-          <SelectionSummary />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Courses Section */}
-        <div className="space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">
-                Available Courses
-              </h2>
-              <span className="text-sm text-slate-500">
-                {selectedCourses.length} selected
-              </span>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Course Assignment</h1>
+              <p className="text-gray-600">Assign courses to students individually or in bulk</p>
             </div>
-
-            <div className="relative mb-4">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search courses..."
-                value={courseSearchTerm}
-                onChange={(e) => setCourseSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredCourses.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                <FaGraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p>No courses found</p>
-              </div>
-            ) : (
-              filteredCourses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  isSelected={selectedCourses.includes(course.id)}
-                  onClick={() => toggleCourseSelection(course.id)}
-                />
-              ))
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* Students Section */}
-        <div className="space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">Students</h2>
-              <span className="text-sm text-slate-500">
-                {selectedStudents.length} selected
-              </span>
-            </div>
-
-            <div className="relative mb-4">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search students..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-700">{error}</p>
           </div>
+        )}
 
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredStudents.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                <FaUser className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p>No students found</p>
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <p className="text-green-700">{success}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Student Selection */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <FaUsers className="w-5 h-5 mr-2 text-blue-600" />
+                  Select Students ({selectedStudents.length} selected)
+                </h2>
+                <button
+                  onClick={handleSelectAll}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {selectedStudents.length === filteredStudents.length ? 'Deselect All' : 'Select All'}
+                </button>
               </div>
-            ) : (
-              filteredStudents.map((student) => (
-                <StudentCard
-                  key={student.id}
-                  student={student}
-                  isSelected={selectedStudents.includes(student.id)}
-                  onClick={() => toggleStudentSelection(student.id)}
+              
+              {/* Search */}
+              <div className="relative">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+              </div>
+            </div>
 
-      {/* Assignment History */}
-      {showAssignmentHistory && Object.keys(assignmentHistory).length > 0 && (
-        <div className="mt-8 bg-white p-6 rounded-xl shadow-md border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
-            Assignment History
-          </h3>
-          <div className="space-y-4">
-            {Object.entries(assignmentHistory).map(
-              ([studentId, studentCourses]) => {
-                const student = students.find((s) => s.id === studentId);
-                if (!student) return null;
-
-                return (
-                  <div key={studentId} className="p-4 bg-slate-50 rounded-lg">
-                    <h4 className="font-medium text-slate-800 mb-2">
-                      {student.name}
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {studentCourses.map((course) => (
-                        <span
-                          key={course.id}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full"
-                        >
-                          {course.title}
-                        </span>
-                      ))}
-                      {studentCourses.length === 0 && (
-                        <span className="text-slate-500 text-sm">
-                          No courses assigned
-                        </span>
-                      )}
+            <div className="max-h-96 overflow-y-auto">
+              {filteredStudents.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  {searchTerm ? 'No students found matching your search' : 'No students available'}
+                </div>
+              ) : (
+                <div className="p-4 space-y-2">
+                  {filteredStudents.map((student) => (
+                    <div
+                      key={student.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedStudents.includes(student.id)
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }`}
+                      onClick={() => handleStudentSelect(student.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{student.username}</p>
+                          <p className="text-sm text-gray-600">{student.email}</p>
+                          {student.courses && student.courses.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Enrolled in {student.courses.length} course(s)
+                            </p>
+                          )}
+                        </div>
+                        {selectedStudents.includes(student.id) && (
+                          <FaCheck className="w-4 h-4 text-blue-600" />
+                        )}
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Course Selection and Assignment */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                <FaBook className="w-5 h-5 mr-2 text-green-600" />
+                Select Course
+              </h2>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Course Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Choose a course to assign
+                </label>
+                <select
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select a course...</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title} {course.is_public ? '(Public)' : '(Private)'} - {course.instructor_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Selected Course Details */}
+              {selectedCourse && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  {(() => {
+                    const course = courses.find(c => c.id === selectedCourse);
+                    return course ? (
+                      <div>
+                        <h3 className="font-medium text-gray-900 mb-2">{course.title}</h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          Instructor: {course.instructor_name}
+                        </p>
+                        {course.description && (
+                          <p className="text-sm text-gray-600 mb-2">{course.description}</p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            course.is_public 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {course.is_public ? 'Public Course' : 'Private Course'}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+
+              {/* Assignment Summary */}
+              {selectedStudents.length > 0 && selectedCourse && (
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h3 className="font-medium text-blue-900 mb-2">Assignment Summary</h3>
+                  <p className="text-sm text-blue-800">
+                    You are about to assign <strong>{courses.find(c => c.id === selectedCourse)?.title}</strong> to{' '}
+                    <strong>{selectedStudents.length}</strong> student(s).
+                  </p>
+                  
+                  {/* Show already enrolled students */}
+                  {(() => {
+                    const enrolledStudents = selectedStudents.filter(studentId => {
+                      const student = students.find(s => s.id === studentId);
+                      return student ? isStudentEnrolled(student, selectedCourse) : false;
+                    });
+                    
+                    if (enrolledStudents.length > 0) {
+                      return (
+                        <p className="text-sm text-orange-700 mt-2">
+                          Note: {enrolledStudents.length} selected student(s) are already enrolled in this course.
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+
+              {/* Assignment Button */}
+              <button
+                onClick={handleAssignCourse}
+                disabled={!selectedCourse || selectedStudents.length === 0 || submitting}
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+                  !selectedCourse || selectedStudents.length === 0 || submitting
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {submitting ? (
+                  <div className="flex items-center justify-center">
+                    <FaSpinner className="animate-spin w-4 h-4 mr-2" />
+                    Assigning Course...
                   </div>
-                );
-              },
-            )}
+                ) : (
+                  `Assign Course to ${selectedStudents.length} Student(s)`
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Stats Summary */}
+        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{students.length}</div>
+              <div className="text-sm text-gray-600">Total Students</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{courses.length}</div>
+              <div className="text-sm text-gray-600">Available Courses</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{selectedStudents.length}</div>
+              <div className="text-sm text-gray-600">Students Selected</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

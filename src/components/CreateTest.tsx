@@ -39,9 +39,9 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
     if (selectedBatch) {
       instructorApi
         .getCourses()
-        .then((res: { courses: Course[] }) => {
+        .then((courses: Course[]) => {
           const batchIdStr = String(selectedBatch);
-          const filtered = res.courses.filter((course) => {
+          const filtered = courses.filter((course) => {
             const batch_id = (course as { batch_id?: string }).batch_id;
             const batchId = (course as { batchId?: string }).batchId;
             const batch = (course as { batch?: { id?: string } }).batch;
@@ -51,7 +51,7 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
               (batch && typeof batch.id === "string" && batch.id === batchIdStr)
             );
           });
-          setCourses(filtered.length === 0 ? res.courses : filtered);
+          setCourses(filtered.length === 0 ? courses : filtered);
         })
         .catch((err: unknown) => {
           if (err instanceof Error) setError(err.message);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FaChartBar,
   FaUsers,
@@ -130,6 +130,10 @@ interface Test {
 const EvaluationStatistics: React.FC = () => {
   const { data: session } = useSession();
 
+  // Use refs to maintain stable references
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // State
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -154,64 +158,108 @@ const EvaluationStatistics: React.FC = () => {
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
 
-  // API Helper
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // API Helper with stable reference
   const apiCall = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          Authorization: `Bearer ${backendJwt}`,
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+      // Abort previous request if exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
+      
+      abortControllerRef.current = new AbortController();
 
-      return response.json();
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          signal: abortControllerRef.current.signal,
+          headers: {
+            Authorization: `Bearer ${backendJwt}`,
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          console.log('Request aborted');
+          return null;
+        }
+        console.error(`Failed to fetch ${endpoint}:`, err);
+        throw err;
+      }
     },
     [API_BASE_URL, backendJwt],
   );
 
-  // Fetch user profile and get JWT
+  // Authentication effect
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!session || !mountedRef.current) return;
+
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
         const googleIdToken = (session as { id_token?: string })?.id_token;
         if (!googleIdToken) {
           console.error("No Google ID token found");
+          if (mountedRef.current) {
+            setError("Authentication failed: No Google ID token found");
+          }
           return;
         }
 
         const loginRes = await axios.post(
-          `${baseUrl}/api/auth/admin-login`,
+          `${API_BASE_URL}/api/auth/admin-login`,
           {},
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
           },
         );
-        const jwt = loginRes.data.token;
-        setBackendJwt(jwt);
+
+        if (mountedRef.current) {
+          setBackendJwt(loginRes.data.token);
+        }
       } catch (err) {
         console.error("Failed to fetch user profile:", err);
-        setError("Failed to authenticate");
+        if (mountedRef.current) {
+          setError("Failed to authenticate with backend");
+        }
       }
     };
 
-    if (session) fetchProfile();
-  }, [session]);
+    fetchProfile();
+  }, [session, API_BASE_URL]);
 
+  // Fetch statistics
   const fetchStatistics = useCallback(
     async (batchId: string, courseId: string, testId: string) => {
+      if (!batchId || !courseId || !testId || !backendJwt || !mountedRef.current) {
+        return;
+      }
+
       try {
         setLoading(true);
+        setError("");
+
         const response = await apiCall(
           `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`,
         );
+
+        if (!response || !mountedRef.current) return;
 
         // Process the statistics data
         const processedStats: EvaluationStatistics = {
@@ -248,12 +296,9 @@ const EvaluationStatistics: React.FC = () => {
                 marks: 1, // Default marks
                 correctAnswers: q.correctAttempts,
                 incorrectAnswers: q.totalAttempts - q.correctAttempts,
-                accuracyRate: (q.correctAttempts / q.totalAttempts) * 100,
-                averageMarks: 0, // Will need to be calculated
-                difficulty: q.difficultyLevel.toLowerCase() as
-                  | "easy"
-                  | "medium"
-                  | "hard",
+                accuracyRate: q.totalAttempts > 0 ? (q.correctAttempts / q.totalAttempts) * 100 : 0,
+                averageMarks: q.totalAttempts > 0 ? q.correctAttempts / q.totalAttempts : 0,
+                difficulty: q.difficultyLevel.toLowerCase() as "easy" | "medium" | "hard",
               }),
             ) || [],
           difficultyAnalysis: response.data?.difficultyAnalysis || {
@@ -276,108 +321,168 @@ const EvaluationStatistics: React.FC = () => {
           },
         };
 
-        setStatistics(processedStats);
-      } catch (err) {
-        console.error("Error fetching statistics:", err);
-        setError("Failed to load evaluation statistics");
+        if (mountedRef.current) {
+          setStatistics(processedStats);
+        }
+      } catch (err: any) {
+        console.error("Error fetching evaluation statistics:", err);
+        if (mountedRef.current && err.name !== 'AbortError') {
+          setError("Failed to load evaluation statistics");
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     },
-    [apiCall, tests, setError],
+    [apiCall, backendJwt, tests],
   );
 
+  // Fetch tests for selected batch and course
   const fetchTests = useCallback(
     async (batchId: string, courseId: string) => {
+      if (!batchId || !courseId || !backendJwt || !mountedRef.current) {
+        return;
+      }
+
       try {
-        const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
-        );
-        setTests(response.data?.tests || []);
-        if (response.data?.tests && response.data.tests.length > 0) {
-          setSelectedTest(response.data.tests[0].id);
-          await fetchStatistics(batchId, courseId, response.data.tests[0].id);
+        const response = await apiCall(`/api/instructor/batches/${batchId}/courses/${courseId}/tests`);
+        if (!response || !mountedRef.current) return;
+
+        // Handle different response formats: {data: {tests}} or {tests} or direct array
+        const testList = response.data?.tests || response.tests || response.data || response || [];
+        console.log('Tests received for evaluation:', testList);
+
+        setTests(testList);
+
+        if (testList.length > 0) {
+          setSelectedTest(testList[0].id);
+          await fetchStatistics(batchId, courseId, testList[0].id);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching tests:", err);
-        setError("Failed to load tests");
+        if (mountedRef.current && err.name !== 'AbortError') {
+          setError("Failed to load tests for the selected course");
+        }
       }
     },
-    [apiCall, fetchStatistics, setError],
+    [apiCall, backendJwt, fetchStatistics],
   );
 
+  // Fetch courses for selected batch
   const fetchCourses = useCallback(
     async (batchId: string) => {
+      if (!batchId || !backendJwt || !mountedRef.current) {
+        return;
+      }
+
       try {
-        const response = await apiCall(
-          `/api/instructor/batches/${batchId}/courses`,
-        );
-        setCourses(response.courses || []);
-        if (response.courses && response.courses.length > 0) {
-          setSelectedCourse(response.courses[0].id);
-          await fetchTests(batchId, response.courses[0].id);
+        const response = await apiCall(`/api/instructor/batches/${batchId}/courses`);
+        if (!response || !mountedRef.current) return;
+
+        // Handle different response formats from backend
+        const courseList = response.data?.courses || response.courses || response.data || response || [];
+        console.log('Courses received for evaluation:', courseList);
+
+        setCourses(courseList);
+
+        if (courseList.length > 0) {
+          setSelectedCourse(courseList[0].id);
+          await fetchTests(batchId, courseList[0].id);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching courses:", err);
-        setError("Failed to load courses");
+        if (mountedRef.current && err.name !== 'AbortError') {
+          setError("Failed to load courses for the selected batch");
+        }
       }
     },
-    [apiCall, fetchTests],
+    [apiCall, backendJwt, fetchTests],
   );
 
+  // Fetch initial data
   const fetchInitialData = useCallback(async () => {
+    if (!backendJwt || !mountedRef.current) {
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await apiCall("/api/instructor/batches");
-      setBatches(response.batches || []);
-      if (response.length > 0) {
-        setSelectedBatch(response[0].id);
-        await fetchCourses(response[0].id);
-      }
-    } catch (err) {
-      console.error("Error fetching initial data:", err);
-      setError("Failed to load initial data");
-    } finally {
-      setLoading(false);
-    }
-  }, [apiCall, fetchCourses]);
+      setError("");
 
-  // Fetch initial data
+      const batchesResponse = await apiCall("/api/instructor/batches");
+      if (!batchesResponse || !mountedRef.current) return;
+
+      // Handle different response formats
+      const batchList = batchesResponse.data?.batches || batchesResponse.batches || batchesResponse.data || batchesResponse || [];
+      console.log('Batches received for evaluation:', batchList);
+
+      setBatches(batchList);
+
+      if (batchList.length > 0) {
+        setSelectedBatch(batchList[0].id);
+        await fetchCourses(batchList[0].id);
+      }
+    } catch (err: any) {
+      console.error("Error fetching initial data:", err);
+      if (mountedRef.current && err.name !== 'AbortError') {
+        setError("Failed to load initial data");
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [apiCall, backendJwt, fetchCourses]);
+
+  // Initialize data when JWT is available
   useEffect(() => {
-    if (backendJwt) {
+    if (backendJwt && mountedRef.current) {
       fetchInitialData();
     }
   }, [backendJwt, fetchInitialData]);
 
-  const handleBatchChange = (batchId: string) => {
+  // Handle batch change
+  const handleBatchChange = useCallback((batchId: string) => {
+    if (!mountedRef.current) return;
+
     setSelectedBatch(batchId);
     setSelectedCourse("");
     setSelectedTest("");
     setCourses([]);
     setTests([]);
     setStatistics(null);
-    if (batchId) {
+
+    if (batchId && backendJwt) {
       fetchCourses(batchId);
     }
-  };
+  }, [backendJwt, fetchCourses]);
 
-  const handleCourseChange = (courseId: string) => {
+  // Handle course change
+  const handleCourseChange = useCallback((courseId: string) => {
+    if (!mountedRef.current) return;
+
     setSelectedCourse(courseId);
     setSelectedTest("");
     setTests([]);
     setStatistics(null);
-    if (selectedBatch && courseId) {
+
+    if (selectedBatch && courseId && backendJwt) {
       fetchTests(selectedBatch, courseId);
     }
-  };
+  }, [selectedBatch, backendJwt, fetchTests]);
 
-  const handleTestChange = (testId: string) => {
+  // Handle test change
+  const handleTestChange = useCallback((testId: string) => {
+    if (!mountedRef.current) return;
+
     setSelectedTest(testId);
     setStatistics(null);
-    if (selectedBatch && selectedCourse && testId) {
+
+    if (selectedBatch && selectedCourse && testId && backendJwt) {
       fetchStatistics(selectedBatch, selectedCourse, testId);
     }
-  };
+  }, [selectedBatch, selectedCourse, backendJwt, fetchStatistics]);
 
   const exportStatistics = () => {
     if (!statistics) return;

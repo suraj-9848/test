@@ -1,9 +1,9 @@
 /**
  * Simple API client stub to prevent build errors
- * This file is kept for compatibility but functionality has been moved to src/utils/axiosInterceptor.ts
+ * This file is kept for compatibility but functionality has been moved to axiosInterceptor.ts
  */
 
-import { useAuth } from '../src/contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 // Simple stub class to prevent build errors
 class ApiClient {
@@ -55,4 +55,4 @@ export const useApiClient = () => {
   };
 };
 
-export default apiClient;
+export default apiClient; 

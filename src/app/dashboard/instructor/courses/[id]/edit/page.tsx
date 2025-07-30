@@ -39,7 +39,7 @@ const EditCoursePage = () => {
             const response = await fetch(
               `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
               {
-                headers: { Authorization: `Bearer ${await instructorApi.getBackendJwt()}` },
+                headers: { Authorization: `Bearer ${sessionStorage.getItem('adminToken')}` },
               }
             );
             if (!response.ok) return null;
@@ -167,7 +167,7 @@ const EditCoursePage = () => {
         throw new Error('No batches selected');
       }
       
-      await instructorApi.updateCourse(primaryBatchId, courseId, formData);
+      await instructorApi.updateCourse(courseId, formData);
       
       // Navigate back to courses list
       router.push('/dashboard/instructor/courses');
