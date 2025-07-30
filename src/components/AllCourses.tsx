@@ -260,9 +260,11 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
       setCourses((prev) => prev.filter((course) => course.id !== courseToDelete));
       setSuccessMessage("Course deleted successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting course:", err);
-      setError("Failed to delete course");
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to delete course";
+      setError(errorMessage);
+      setTimeout(() => setError(""), 5000); // Clear error after 5 seconds
     } finally {
       setShowDeleteConfirmModal(false);
       setCourseToDelete(null);
