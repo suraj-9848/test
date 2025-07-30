@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { FaChartLine, FaUsers, FaBook, FaSpinner } from "react-icons/fa";
 import apiClient from "../utils/axiosInterceptor";
 import { API_ENDPOINTS } from "../config/urls";
@@ -30,6 +31,8 @@ interface ProgressAnalyticsProps {
 }
 
 const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
+  const { data: session, status } = useSession();
+  
   // State
   const [progressData, setProgressData] = useState<ProgressData[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -42,12 +45,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
   // Refs for cleanup
   const mountedRef = useRef(true);
 
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // Cleanup is now handled in the main useEffect below
 
   // Fetch progress data
   const fetchProgressData = useCallback(
@@ -103,16 +101,14 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
       }
 
       try {
-        console.log(`Fetching courses for batch: ${batchId}`);
-        const coursesResponse = await apiClient.get(`${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses`);
+        console.log(`📋 Fetching courses for batch: ${batchId}`);
+        const coursesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batchId));
         
         if (!coursesResponse || !mountedRef.current) return;
 
         const responseData = coursesResponse.data;
-        // Handle the response format from backend
-        const courseList = responseData.data?.courses || responseData.courses || responseData || [];
+        const courseList = responseData.courses || [];
         
-        console.log('Courses received:', courseList);
         setCourses(courseList);
 
         if (courseList.length > 0) {
@@ -120,13 +116,13 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
           await fetchProgressData(batchId, courseList[0].id);
         }
       } catch (err: any) {
-        console.error("Error fetching courses:", err);
+        console.error("❌ Error fetching courses:", err);
         if (mountedRef.current) {
           setError("Failed to load courses for the selected batch");
         }
       }
     },
-    [fetchProgressData],
+    [] // Remove dependency to prevent loops
   );
 
   // Fetch initial data
@@ -135,20 +131,24 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
       return;
     }
 
+    // Let axios interceptor handle authentication
+    if (status === 'loading') {
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
 
-      console.log('Fetching initial batches data...');
+      console.log('🚀 ProgressAnalytics - Fetching batches...');
       const batchesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCHES);
       
       if (!batchesResponse || !mountedRef.current) return;
 
       const responseData = batchesResponse.data;
-      // Handle the response format: {data: {batches}} or {batches} or direct array
-      const batchList = responseData.data?.batches || responseData.batches || responseData || [];
+      const batchList = responseData.batches || [];
       
-      console.log('Batches received:', batchList);
+      console.log('✅ ProgressAnalytics - Batches received:', batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
@@ -156,7 +156,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         await fetchCoursesForBatch(batchList[0].id);
       }
     } catch (err: any) {
-      console.error("Error fetching initial data:", err);
+      console.error("❌ ProgressAnalytics - Error fetching initial data:", err);
       if (mountedRef.current) {
         setError("Failed to load initial data");
       }
@@ -165,14 +165,23 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         setLoading(false);
       }
     }
-  }, [fetchCoursesForBatch]);
+  }, []); // Remove dependencies
 
   // Initialize data on component mount
   useEffect(() => {
-    if (mountedRef.current) {
-      fetchInitialData();
-    }
-  }, [fetchInitialData]);
+    console.log('🚀 ProgressAnalytics - Component mounted');
+    
+    // Ensure mountedRef is set to true
+    mountedRef.current = true;
+    console.log('🔧 ProgressAnalytics mountedRef set to:', mountedRef.current);
+    
+    fetchInitialData();
+    
+    return () => {
+      console.log('🧹 ProgressAnalytics - Component cleanup, setting mountedRef to false');
+      mountedRef.current = false;
+    };
+  }, []); // No dependencies - fetchInitialData handles its own conditions
 
   // Handle batch change
   const handleBatchChange = useCallback((batchId: string) => {
@@ -186,7 +195,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
     if (batchId) {
       fetchCoursesForBatch(batchId);
     }
-  }, [fetchCoursesForBatch]);
+  }, []); // Remove dependency
 
   // Handle course change
   const handleCourseChange = useCallback(async (courseId: string) => {
@@ -196,10 +205,10 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
     setProgressData([]);
     
     if (selectedBatch && courseId) {
-      console.log('🚀 PROGRESS ANALYTICS: Fetching progress data for batch:', selectedBatch, 'course:', courseId);
+      console.log('📊 PROGRESS ANALYTICS: Fetching progress data for batch:', selectedBatch, 'course:', courseId);
       await fetchProgressData(selectedBatch, courseId);
     }
-  }, [selectedBatch, fetchProgressData]);
+  }, [selectedBatch]); // Keep selectedBatch dependency but remove fetchProgressData
 
   // Calculate statistics
   const calculateStats = () => {
@@ -219,6 +228,18 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
   };
 
   const stats = calculateStats();
+
+  // Show loading for authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <FaSpinner className="animate-spin text-4xl text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Render loading state
   if (loading) {

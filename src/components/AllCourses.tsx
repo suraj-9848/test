@@ -341,14 +341,36 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
   };
 
   const handleViewAnalytics = async (course: Course) => {
+    const requestId = Math.random().toString(36).substr(2, 9);
+    const startTime = Date.now();
+    
     try {
       setLoading(true);
       
+      const analyticsUrl = `${API_BASE_URL}/api/instructor/courses/${course.id}/analytics`;
+      
+      console.log(`📊 ALL COURSES ANALYTICS REQUEST [${requestId}]:`, {
+        courseId: course.id,
+        courseName: course.name,
+        url: analyticsUrl,
+        hasToken: !!backendJwt,
+        timestamp: new Date().toISOString()
+      });
+      
       // Use the new analytics API endpoint
       const analyticsResponse = await axios.get(
-        `${API_BASE_URL}/api/instructor/courses/${course.id}/analytics`,
+        analyticsUrl,
         { headers: { Authorization: `Bearer ${backendJwt}` } }
       );
+
+      const duration = Date.now() - startTime;
+      
+      console.log(`📊 ALL COURSES ANALYTICS RESPONSE [${requestId}]:`, {
+        status: analyticsResponse.status,
+        dataSize: JSON.stringify(analyticsResponse.data).length,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      });
 
       const analyticsData = analyticsResponse.data.analytics;
       
@@ -359,11 +381,28 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
         batchAnalytics: analyticsData.batchesProgress || [],
       };
 
+      console.log(`📊 ALL COURSES ANALYTICS DATA [${requestId}]:`, {
+        totalStudents: transformedData.totalStudents,
+        averageProgress: transformedData.averageProgress,
+        batchCount: transformedData.batchAnalytics.length
+      });
+
       setAnalyticsData(transformedData);
       setSelectedCourse(course);
       setShowAnalyticsModal(true);
-    } catch (err) {
-      console.error("Error fetching course analytics:", err);
+    } catch (err: any) {
+      const duration = Date.now() - startTime;
+      
+      console.error(`❌ ALL COURSES ANALYTICS ERROR [${requestId}]:`, {
+        courseId: course.id,
+        error: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      });
+      
       alert("Failed to fetch course analytics.");
     } finally {
       setLoading(false);

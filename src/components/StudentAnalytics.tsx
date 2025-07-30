@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import apiClient from "../utils/axiosInterceptor";
 import { API_ENDPOINTS } from "../config/urls";
 
@@ -34,6 +35,7 @@ interface Course {
 }
 
 const StudentAnalytics: React.FC = () => {
+  const { data: session, status } = useSession();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [studentsData, setStudentsData] = useState<Student[]>([]);
@@ -46,142 +48,258 @@ const StudentAnalytics: React.FC = () => {
   // Fetch student analytics data
   const fetchStudentAnalytics = useCallback(
     async (batchId: string, courseId: string) => {
-      console.log(`🚀 FORCE: Starting fetchStudentAnalytics for batch: ${batchId}, course: ${courseId}`);
-      
-      if (!batchId || !courseId) {
-        console.log('❌ FORCE: Invalid params', { batchId, courseId });
+      if (!batchId || !courseId || !mountedRef.current) {
         return;
       }
 
       try {
-        console.log(`🔄 FORCE: Making API call to progress endpoint...`);
+        console.log(`📊 ANALYTICS FETCH START: Fetching student analytics for batch: ${batchId}, course: ${courseId}`);
+        console.log(`📊 ANALYTICS URLS:`, {
+          progressURL: API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(batchId, courseId),
+          studentsURL: API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId),
+          fullProgressURL: `${apiClient.defaults.baseURL}${API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(batchId, courseId)}`,
+          fullStudentsURL: `${apiClient.defaults.baseURL}${API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId)}`
+        });
         
-        const progressResponse = await apiClient.get(
-          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/progress`
+        console.log(`📊 ANALYTICS API CALLS: Making Promise.all for progress and students data...`);
+        
+        // Fetch complete student analytics with real data
+        const [progressResponse, studentsResponse] = await Promise.all([
+          apiClient.get(API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(batchId, courseId)),
+          apiClient.get(API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId))
+        ]);
+        
+        console.log(`📊 ANALYTICS RESPONSES RECEIVED:`, {
+          progressStatus: progressResponse?.status,
+          progressDataSize: progressResponse?.data ? JSON.stringify(progressResponse.data).length : 0,
+          studentsStatus: studentsResponse?.status,
+          studentsDataSize: studentsResponse?.data ? JSON.stringify(studentsResponse.data).length : 0
+        });
+
+        if (!mountedRef.current) return;
+
+        const progressData = progressResponse?.data?.report || [];
+        const studentsData = studentsResponse?.data?.students || [];
+        
+        // Create student lookup map for emails and details
+        const studentMap = new Map();
+        studentsData.forEach((student: any) => {
+          studentMap.set(student.id, {
+            email: student.email || student.user?.email || 'No email',
+            name: student.username || student.name || student.user?.username || 'Unknown Student'
+          });
+        });
+
+        // Get course details to calculate accurate progress
+        console.log(`📊 ANALYTICS COURSE FETCH: Getting course details for courseId: ${courseId}`);
+        console.log(`📊 ANALYTICS COURSE URL: ${API_ENDPOINTS.INSTRUCTOR.COURSES}/${courseId}`);
+        
+        const courseResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.COURSES + `/${courseId}`);
+        console.log(`📊 ANALYTICS COURSE RESPONSE:`, {
+          status: courseResponse?.status,
+          dataSize: courseResponse?.data ? JSON.stringify(courseResponse.data).length : 0,
+          modulesCount: courseResponse?.data?.modules?.length || 0
+        });
+        
+        const courseModules = courseResponse?.data?.modules || [];
+        const totalModules = courseModules.length || 10;
+
+        if (!mountedRef.current) return;
+
+        // Transform to complete student analytics
+        const transformedData: Student[] = await Promise.all(
+          progressData.map(async (item: any) => {
+            const studentDetails = studentMap.get(item.studentId) || { email: 'No email', name: 'Unknown Student' };
+            
+            // Calculate real progress percentage
+            const progressPercentage = totalModules > 0 
+              ? Math.min(100, Math.round((item.currentPage || 0) / totalModules * 100))
+              : 0;
+
+            // Fetch real test scores for this student
+            let averageScore = 0;
+            let quizScores: number[] = [];
+            try {
+              const scoresResponse = await apiClient.get(
+                API_ENDPOINTS.INSTRUCTOR.ANALYTICS.STUDENT_COURSE_SCORES(batchId, courseId, item.studentId)
+              );
+              const scores = scoresResponse?.data?.scores || [];
+              quizScores = scores.map((s: any) => s.percentage || 0);
+              averageScore = scoresResponse?.data?.average || 0;
+            } catch {
+              // If scores endpoint fails, calculate from available data
+              averageScore = item.averageScore || 0;
+            }
+
+            // Calculate real time spent (convert minutes to hours)
+            const timeSpentHours = Math.round((item.timeSpentMinutes || 0) / 60 * 10) / 10;
+
+            return {
+              student_id: item.studentId,
+              student_name: studentDetails.name,
+              email: studentDetails.email,
+              progress_percentage: progressPercentage,
+              modules_completed: item.currentPage || 0,
+              total_modules: totalModules,
+              last_activity: item.lastActivity || item.updatedAt || new Date().toISOString(),
+              time_spent_hours: timeSpentHours,
+              quiz_scores: quizScores,
+              average_score: averageScore,
+            };
+          })
         );
-
-        console.log('📦 FORCE: Progress API response:', progressResponse?.data);
-
-        if (progressResponse?.data?.report) {
-          const progressData = progressResponse.data.report;
-          console.log('✅ FORCE: Raw progress data:', progressData);
-          
-          // Transform backend data to match frontend interface
-          const transformedData: Student[] = progressData.map((item: any) => ({
-            student_id: item.studentId,
-            student_name: item.username || 'Unknown Student',
-            email: item.email || 'No email',
-            progress_percentage: Math.min(100, (item.currentPage || 0) * 10), // Convert currentPage to percentage
-            modules_completed: item.currentPage || 0,
-            total_modules: 10, // Default total modules
-            last_activity: new Date().toISOString(), // Mock - backend doesn't provide this
-            time_spent_hours: Math.floor(Math.random() * 50) + 10, // Mock time spent
-            quiz_scores: [], // Mock - backend doesn't provide this
-            average_score: Math.floor(Math.random() * 40) + 60, // Mock average score 60-100%
-          }));
-          
-          console.log('✅ FORCE: Transformed students data:', transformedData);
+        
+        if (mountedRef.current) {
+          console.log('✅ Student analytics data processed:', transformedData.length, 'students');
           setStudentsData(transformedData);
-        } else {
-          console.log('❌ FORCE: No report data in response');
-          setStudentsData([]);
         }
       } catch (err: any) {
-        console.error("❌ FORCE: Error in fetchStudentAnalytics:", err);
-        setError(`Failed to load student analytics: ${err.message}`);
+        console.error("❌ ANALYTICS ERROR: Error fetching student analytics:", err);
+        console.error("❌ ANALYTICS ERROR DETAILS:", {
+          message: err.message,
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          url: err.config?.url,
+          method: err.config?.method,
+          batchId,
+          courseId,
+          timestamp: new Date().toISOString(),
+          stack: err.stack
+        });
+        
+        if (mountedRef.current) {
+          setError(`Failed to load student analytics: ${err.message}`);
+          setStudentsData([]);
+        }
       }
     },
-    [],
+    [] // No dependencies to prevent infinite loops
   );
 
   // Fetch courses for batch
   const fetchCoursesForBatch = useCallback(
     async (batchId: string) => {
-      console.log(`🚀 FORCE: Starting fetchCoursesForBatch for batch: ${batchId}`);
-      
-      if (!batchId) {
-        console.log('❌ FORCE: No batchId provided');
+      if (!batchId || !mountedRef.current) {
         return;
       }
 
       try {
-        console.log(`🔄 FORCE: Making API call to courses endpoint...`);
+        console.log(`📋 Fetching courses for batch: ${batchId}`);
         const coursesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batchId));
         
-        console.log('📦 FORCE: Courses API response:', coursesResponse?.data);
+        if (!mountedRef.current) return;
 
         const courseList = coursesResponse?.data?.courses || [];
-        console.log('✅ FORCE: Setting courses:', courseList);
         setCourses(courseList);
 
         if (courseList.length > 0) {
           const firstCourse = courseList[0];
-          console.log('🔄 FORCE: Setting selected course and fetching analytics:', firstCourse.id);
           setSelectedCourse(firstCourse.id);
           
-          // Force the analytics call
+          // Fetch analytics for first course automatically
           await fetchStudentAnalytics(batchId, firstCourse.id);
         } else {
-          console.log('❌ FORCE: No courses found');
           setStudentsData([]);
+          setSelectedCourse("");
         }
       } catch (err: any) {
-        console.error("❌ FORCE: Error in fetchCoursesForBatch:", err);
-        setError(`Failed to load courses: ${err.message}`);
+        console.error("❌ Error fetching courses:", err);
+        if (mountedRef.current) {
+          setError(`Failed to load courses: ${err.message}`);
+        }
       }
     },
-    [fetchStudentAnalytics],
+    [] // No dependencies to prevent loops
   );
 
   // Fetch initial data
   const fetchInitialData = useCallback(async () => {
-    console.log('🚀 FORCE: Starting fetchInitialData');
+    console.log('🔄 fetchInitialData called');
+    console.log('🔍 Mounted:', mountedRef.current);
+    console.log('🔍 Status:', status);
+    console.log('🔍 Session:', !!session);
+    
+    if (!mountedRef.current) {
+      console.log('❌ Component not mounted, skipping');
+      console.log('🔧 Attempting to fix mountedRef...');
+      mountedRef.current = true;
+      console.log('🔧 mountedRef after fix:', mountedRef.current);
+    }
+    
+    // Less strict authentication check - let axios interceptor handle auth
+    if (status === 'loading') {
+      console.log('⏳ Still loading authentication, skipping');
+      return;
+    }
     
     try {
       setLoading(true);
       setError("");
 
-      console.log('🔄 FORCE: Making API call to batches endpoint...');
+      console.log('🚀 Making API call to fetch batches...');
       const batchesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCHES);
       
-      console.log('📦 FORCE: Batches API response:', batchesResponse?.data);
+      console.log('📦 Batches response:', batchesResponse);
+      
+      if (!mountedRef.current) return;
 
       const batchList = batchesResponse?.data?.batches || [];
-      console.log('✅ FORCE: Setting batches:', batchList);
+      console.log('✅ Batches received:', batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
         const firstBatch = batchList[0];
-        console.log('🔄 FORCE: Setting selected batch and fetching courses:', firstBatch.id);
+        console.log('🔄 Setting first batch and fetching courses:', firstBatch.id);
         setSelectedBatch(firstBatch.id);
         
-        // Force the courses call
+        // Fetch courses for first batch
         await fetchCoursesForBatch(firstBatch.id);
       } else {
-        console.log('❌ FORCE: No batches found');
+        console.log('⚠️ No batches available');
       }
     } catch (err: any) {
-      console.error("❌ FORCE: Error in fetchInitialData:", err);
-      setError(`Failed to load initial data: ${err.message}`);
+      console.error("❌ Error fetching initial data:", err);
+      console.error("❌ Error details:", err.response?.data);
+      if (mountedRef.current) {
+        setError(`Failed to load initial data: ${err.message}`);
+      }
     } finally {
-      console.log('🔄 FORCE: Setting loading to false');
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [fetchCoursesForBatch]);
+  }, []); // Remove dependencies to make it stable
 
   // Initialize data on component mount
   useEffect(() => {
-    console.log('🚀 FORCE: Component mounted, starting data fetch');
+    console.log('🚀 StudentAnalytics - Component mounted');
+    
+    // Ensure mountedRef is set to true
+    mountedRef.current = true;
+    console.log('🔧 mountedRef set to:', mountedRef.current);
+    
     fetchInitialData();
     
     return () => {
+      console.log('🧹 StudentAnalytics - Component cleanup, setting mountedRef to false');
       mountedRef.current = false;
     };
-  }, [fetchInitialData]);
+  }, []); // No dependencies - fetchInitialData handles its own conditions
 
   // Handle batch selection change
   const handleBatchChange = async (batchId: string) => {
     console.log('🚀 STUDENT ANALYTICS: Batch changed to:', batchId);
+    console.log('📍 Component state before batch change:', {
+      selectedBatch,
+      selectedCourse,
+      coursesLength: courses.length,
+      studentsDataLength: studentsData.length,
+      mountedRef: mountedRef.current,
+      loading,
+      error
+    });
+    
     setSelectedBatch(batchId);
     setSelectedCourse("");
     setCourses([]);
@@ -189,7 +307,15 @@ const StudentAnalytics: React.FC = () => {
     setLoading(true);
     
     if (batchId) {
-      await fetchCoursesForBatch(batchId);
+      console.log('📞 Calling fetchCoursesForBatch for batch:', batchId);
+      try {
+        await fetchCoursesForBatch(batchId);
+        console.log('✅ fetchCoursesForBatch completed successfully');
+      } catch (error) {
+        console.error('❌ fetchCoursesForBatch failed:', error);
+      }
+    } else {
+      console.log('⚠️ No batch ID provided, skipping course fetch');
     }
     setLoading(false);
   };
@@ -197,15 +323,53 @@ const StudentAnalytics: React.FC = () => {
   // Handle course selection change
   const handleCourseChange = async (courseId: string) => {
     console.log('🚀 STUDENT ANALYTICS: Course changed to:', courseId);
+    console.log('📍 Component state before course change:', {
+      selectedBatch,
+      selectedCourse,
+      newCourseId: courseId,
+      coursesLength: courses.length,
+      studentsDataLength: studentsData.length,
+      mountedRef: mountedRef.current,
+      loading,
+      error
+    });
+    
     setSelectedCourse(courseId);
     setStudentsData([]);
     setLoading(true);
     
     if (selectedBatch && courseId) {
-      await fetchStudentAnalytics(selectedBatch, courseId);
+      console.log('📊 ANALYTICS TRIGGER: About to fetch student analytics for:', {
+        batchId: selectedBatch,
+        courseId: courseId,
+        timestamp: new Date().toISOString()
+      });
+      
+      try {
+        await fetchStudentAnalytics(selectedBatch, courseId);
+        console.log('✅ ANALYTICS COMPLETED: fetchStudentAnalytics completed successfully');
+      } catch (error) {
+        console.error('❌ ANALYTICS FAILED: fetchStudentAnalytics failed:', error);
+      }
+    } else {
+      console.log('⚠️ ANALYTICS SKIPPED: Missing batch or course:', {
+        selectedBatch,
+        courseId,
+        reason: !selectedBatch ? 'No batch selected' : !courseId ? 'No course provided' : 'Unknown'
+      });
     }
     setLoading(false);
   };
+
+  // Show loading for authentication
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <span className="ml-3 text-gray-600">Authenticating...</span>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

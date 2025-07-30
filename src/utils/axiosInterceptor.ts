@@ -156,31 +156,58 @@ const attemptGoogleTokenRefresh = async (): Promise<string | null> => {
 // Request interceptor - Add authorization header and handle pre-flight token checks
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(36).substr(2, 9);
+    
+    // Add request tracking
+    (config as any)._requestId = requestId;
+    (config as any)._startTime = startTime;
+    
+    // Log all outgoing requests with detailed info
+    const isAnalyticsCall = config.url?.includes('analytics') || config.url?.includes('progress') || config.url?.includes('students') || config.url?.includes('tests');
+    const logPrefix = isAnalyticsCall ? '📊 ANALYTICS API' : '🌐 API';
+    
+    console.log(`${logPrefix} REQUEST [${requestId}]:`, {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      fullURL: `${config.baseURL}${config.url}`,
+      headers: {
+        ...config.headers,
+        Authorization: config.headers?.Authorization ? '[PRESENT]' : '[MISSING]'
+      },
+      timestamp: new Date().toISOString(),
+      isAnalytics: isAnalyticsCall
+    });
+    
     let token = getStoredAdminToken();
     
     // If no stored token, try to get one via Google OAuth
     if (!token) {
+      console.log(`${logPrefix} [${requestId}]: No stored token, attempting to get via Google OAuth...`);
       try {
         token = await getBackendJwt();  
         if (token) {
           storeAdminToken(token);
+          console.log(`${logPrefix} [${requestId}]: ✅ Got token via Google OAuth`);
         }
-      } catch {
-        console.log('No valid token available for request');
+      } catch (error) {
+        console.log(`${logPrefix} [${requestId}]: ❌ No valid token available for request:`, error);
       }
     }
     
     if (token) {
       // Check if token is expired before making request
       if (isJWTExpired(token)) {
-        console.log('⚠️ JWT expired before request, attempting refresh...');
+        console.log(`${logPrefix} [${requestId}]: ⚠️ JWT expired before request, attempting refresh...`);
         
         // Try refresh token first, then Google OAuth as fallback
         const refreshedToken = await attemptRefreshToken() || await attemptGoogleTokenRefresh();
         
         if (refreshedToken) {
           token = refreshedToken;
+          console.log(`${logPrefix} [${requestId}]: ✅ Token refreshed successfully`);
         } else {
+          console.log(`${logPrefix} [${requestId}]: ❌ Token refresh failed, logging out`);
           // Both refresh methods failed, logout user
           await handleLogoutAndRedirect();
           return Promise.reject(new Error('Token expired and refresh failed'));
@@ -196,13 +223,18 @@ apiClient.interceptors.request.use(
       
       if (viewAsRole && viewAsRole !== 'admin') {
         config.headers['X-View-As-Role'] = viewAsRole;
+        console.log(`${logPrefix} [${requestId}]: Adding view-as role header: ${viewAsRole}`);
       }
+      
+      console.log(`${logPrefix} [${requestId}]: ✅ Request prepared with auth token`);
+    } else {
+      console.log(`${logPrefix} [${requestId}]: ⚠️ No token available for request`);
     }
     
     return config;
   },
   (error: AxiosError) => {
-    console.error('Request interceptor error:', error);
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -210,11 +242,62 @@ apiClient.interceptors.request.use(
 // Response interceptor - Handle token expiry and authentication errors
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Request successful, return response
+    // Extract request tracking info
+    const requestId = (response.config as any)?._requestId;
+    const startTime = (response.config as any)?._startTime;
+    const duration = startTime ? Date.now() - startTime : 0;
+    
+    // Log response details
+    const isAnalyticsCall = response.config.url?.includes('analytics') || response.config.url?.includes('progress') || response.config.url?.includes('students') || response.config.url?.includes('tests');
+    const logPrefix = isAnalyticsCall ? '📊 ANALYTICS API' : '🌐 API';
+    
+    console.log(`${logPrefix} RESPONSE [${requestId}]:`, {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.config.url,
+      method: response.config.method?.toUpperCase(),
+      duration: `${duration}ms`,
+      dataSize: response.data ? JSON.stringify(response.data).length : 0,
+      timestamp: new Date().toISOString(),
+      isAnalytics: isAnalyticsCall
+    });
+    
+    // Log response data for analytics calls (truncated for readability)
+    if (isAnalyticsCall) {
+      console.log(`${logPrefix} DATA [${requestId}]:`, {
+        dataType: typeof response.data,
+        dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : 'N/A',
+        dataPreview: response.data && typeof response.data === 'object' 
+          ? JSON.stringify(response.data).substring(0, 200) + '...'
+          : response.data
+      });
+    }
+    
     return response;
   },
   async (error: AxiosError) => {
+    // Extract request tracking info
+    const requestId = (error.config as any)?._requestId;
+    const startTime = (error.config as any)?._startTime;
+    const duration = startTime ? Date.now() - startTime : 0;
+    
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const isAnalyticsCall = error.config?.url?.includes('analytics') || error.config?.url?.includes('progress') || error.config?.url?.includes('students') || error.config?.url?.includes('tests');
+    const logPrefix = isAnalyticsCall ? '📊 ANALYTICS API' : '🌐 API';
+    
+    // Log detailed error information
+    console.error(`${logPrefix} ERROR [${requestId}]:`, {
+      url: error.config?.url,
+      method: error.config?.method?.toUpperCase(),
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      duration: `${duration}ms`,
+      message: error.message,
+      errorType: error.name,
+      responseData: error.response?.data,
+      timestamp: new Date().toISOString(),
+      isAnalytics: isAnalyticsCall
+    });
     
     // Check if error is due to token expiry/invalidity
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -228,7 +311,7 @@ apiClient.interceptors.response.use(
         errorData?.code === 'TOKEN_EXPIRED' ||
         errorData?.message?.includes('jwt expired')
       ) {
-        console.log('🔄 Received 401 error, attempting token refresh...');
+        console.log(`${logPrefix} [${requestId}]: 🔄 Received 401 error, attempting token refresh...`);
         
         // Mark request as retried to prevent infinite loops
         originalRequest._retry = true;
@@ -249,29 +332,21 @@ apiClient.interceptors.response.use(
             }
             
             // Retry the original request
-            console.log('🔄 Retrying original request with refreshed token');
+            console.log(`${logPrefix} [${requestId}]: 🔄 Retrying original request with refreshed token`);
             return apiClient(originalRequest);
           } else {
             // Both refresh methods failed, logout user
+            console.log(`${logPrefix} [${requestId}]: ❌ Both refresh methods failed, logging out`);
             await handleLogoutAndRedirect();
             return Promise.reject(new Error('Authentication expired. Redirecting to login.'));
           }
         } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
+          console.error(`${logPrefix} [${requestId}]: Token refresh failed:`, refreshError);
           await handleLogoutAndRedirect();
           return Promise.reject(new Error('Authentication expired. Redirecting to login.'));
         }
       }
     }
-    
-    // Handle other errors normally
-    console.error('API Request failed:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data,
-    });
     
     return Promise.reject(error);
   }

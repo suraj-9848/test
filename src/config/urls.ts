@@ -68,6 +68,10 @@ export const API_ENDPOINTS = {
       BATCH_COURSE_LEADERBOARD: (batchId: string, courseId: string) => `/api/instructor/batches/${batchId}/courses/${courseId}/leaderboard`,
       TEST_ANALYTICS: (batchId: string, courseId: string, testId: string) => `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/analytics`,
       EVALUATION_STATISTICS: (batchId: string, courseId: string, testId: string) => `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`,
+      
+      // New analytics endpoints for complete data
+      BATCH_STUDENTS: (batchId: string) => `/api/instructor/batches/${batchId}/students`,
+      STUDENT_COURSE_SCORES: (batchId: string, courseId: string, studentId: string) => `/api/instructor/batches/${batchId}/courses/${courseId}/students/${studentId}/scores`,
     },
 
     // Dashboard

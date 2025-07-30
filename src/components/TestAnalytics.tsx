@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 import apiClient from "../utils/axiosInterceptor";
 import { API_ENDPOINTS } from "../config/urls";
 
@@ -35,6 +36,8 @@ interface TestAnalyticsProps {
 }
 
 const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
+  const { data: session, status } = useSession();
+  
   // State
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -49,12 +52,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
   // Refs for cleanup
   const mountedRef = useRef(true);
 
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // Cleanup is now handled in the main useEffect below
 
   // Fetch test results
   const fetchTestResults = useCallback(
@@ -181,18 +179,16 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
       }
 
       try {
-        console.log(`Fetching tests for batch: ${batchId}, course: ${courseId}`);
+        console.log(`📋 Fetching tests for batch: ${batchId}, course: ${courseId}`);
         const response = await apiClient.get(
-          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests`
+          API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_TESTS(batchId, courseId)
         );
         
         if (!response || !mountedRef.current) return;
 
         const responseData = response.data;
-        // The backend returns {message, data: {tests}}
         const testList = responseData.data?.tests || responseData.tests || [];
         
-        console.log('Tests received:', testList);
         setTests(testList);
 
         // If there are tests, fetch results for the first test by default
@@ -201,13 +197,13 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
           await fetchTestResults(batchId, courseId, testList[0].id);
         }
       } catch (err: any) {
-        console.error("Error fetching tests:", err);
+        console.error("❌ Error fetching tests:", err);
         if (mountedRef.current) {
           setError("Failed to load tests for the selected course");
         }
       }
     },
-    [fetchTestResults],
+    [], // Remove dependency
   );
 
   // Fetch courses for batch
@@ -227,25 +223,22 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
         console.log('📦 TEST ANALYTICS: Courses API response:', responseData);
         
         // Handle different response formats
-        const courseList = responseData.data?.courses || responseData.courses || responseData || [];
+        const courseList = responseData.courses || [];
         
-        console.log(`✅ TEST ANALYTICS: Found ${courseList.length} courses:`, courseList);
         setCourses(courseList);
 
         if (courseList.length > 0) {
           setSelectedCourse(courseList[0].id);
           await fetchTestsForCourse(batchId, courseList[0].id);
-        } else {
-          console.log('⚠️ TEST ANALYTICS: No courses found for this batch');
         }
       } catch (err: any) {
-        console.error("❌ TEST ANALYTICS: Error fetching courses:", err);
+        console.error("❌ Error fetching courses:", err);
         if (mountedRef.current) {
           setError("Failed to load courses for the selected batch");
         }
       }
     },
-    [fetchTestsForCourse],
+    [], // Remove dependency
   );
 
   // Fetch initial data
@@ -254,19 +247,24 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
       return;
     }
 
+    // Let axios interceptor handle authentication
+    if (status === 'loading') {
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
 
-      console.log('Fetching initial batches data...');
+      console.log('🚀 TestAnalytics - Fetching batches...');
       const batchesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCHES);
       
       if (!batchesResponse || !mountedRef.current) return;
 
       const responseData = batchesResponse.data;
-      const batchList = Array.isArray(responseData.batches) ? responseData.batches : [];
+      const batchList = responseData.batches || [];
       
-      console.log('Batches received:', batchList);
+      console.log('✅ TestAnalytics - Batches received:', batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
@@ -274,7 +272,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
         await fetchCoursesForBatch(batchList[0].id);
       }
     } catch (err: any) {
-      console.error("Error fetching initial data:", err);
+      console.error("❌ TestAnalytics - Error fetching initial data:", err);
       if (mountedRef.current) {
         setError("Failed to load initial data");
       }
@@ -283,14 +281,23 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
         setLoading(false);
       }
     }
-  }, [fetchCoursesForBatch]);
+  }, []); // Remove dependencies
 
   // Initialize data on component mount
   useEffect(() => {
-    if (mountedRef.current) {
-      fetchInitialData();
-    }
-  }, [fetchInitialData]);
+    console.log('🚀 TestAnalytics - Component mounted');
+    
+    // Ensure mountedRef is set to true
+    mountedRef.current = true;
+    console.log('🔧 TestAnalytics mountedRef set to:', mountedRef.current);
+    
+    fetchInitialData();
+    
+    return () => {
+      console.log('🧹 TestAnalytics - Component cleanup, setting mountedRef to false');
+      mountedRef.current = false;
+    };
+  }, []); // No dependencies - fetchInitialData handles its own conditions
 
   // Handle batch change
   const handleBatchChange = useCallback((batchId: string) => {
@@ -353,6 +360,18 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
   };
 
   const stats = calculateStats();
+
+  // Show loading for authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Render loading state
   if (loading) {
