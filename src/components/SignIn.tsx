@@ -20,11 +20,8 @@ const SignIn = () => {
   const { status } = useSession();
   const router = useRouter();
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.push("/dashboard");
-    }
-  }, [status, router]);
+  // Remove redirect logic from SignIn - let AuthContext handle all routing
+  // This prevents conflicts between SignIn and AuthContext redirects
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +30,7 @@ const SignIn = () => {
 
   const handleGoogleSignIn = () => {
     signIn("google", {
-      callbackUrl: "/dashboard",
+      callbackUrl: "/", // Let AuthContext handle the proper routing
     });
   };
 

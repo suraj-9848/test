@@ -66,41 +66,12 @@ export default function AuthValidationWrapper({
           return;
         }
 
-        // For admin users, don't force routing - let them use the role picker
+        // Let AuthContext handle all routing - AuthValidator should only validate
+        // Just reset role picker for admin users
         if (normalizedRole === "admin") {
           console.log("Admin user detected - allowing access to all views");
-          
           // Reset role picker to admin view on login for admin users
           localStorage.setItem('admin_view_as_role', 'admin');
-          
-          // Check if user is on a valid admin route
-          const currentPath = window.location.pathname;
-          if (!currentPath.startsWith('/dashboard/')) {
-            // Default to admin dashboard if not on any dashboard route
-            router.push("/dashboard/admin");
-            return;
-          }
-          // Otherwise, let them stay on their current route (instructor, admin, etc.)
-        }
-
-        // For instructor users, ensure they're on instructor dashboard
-        if (normalizedRole === "instructor") {
-          console.log("Instructor user, ensuring correct dashboard");
-          const currentPath = window.location.pathname;
-          if (!currentPath.startsWith('/dashboard/instructor')) {
-            router.push("/dashboard/instructor");
-            return;
-          }
-        }
-
-        // For recruiter users, ensure they're on admin dashboard
-        if (normalizedRole === "recruiter") {
-          console.log("Recruiter user, ensuring correct dashboard");
-          const currentPath = window.location.pathname;
-          if (!currentPath.startsWith('/dashboard/admin')) {
-            router.push("/dashboard/admin");
-            return;
-          }
         }
 
         // If we get here, user is valid and on correct page

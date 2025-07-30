@@ -53,6 +53,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { data: session, status } = useSession();
   const router = useRouter();
   
+  // Use sessionStorage to persist redirect state across page loads
+  const [hasRedirected, setHasRedirected] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('auth_redirected') === 'true';
+    }
+    return false;
+  });
+
+  // Clear redirect flag on logout or auth failure
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      setHasRedirected(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('auth_redirected');
+      }
+    }
+  }, [status]);
+  
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isLoading: true,
@@ -161,19 +179,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Route to appropriate dashboard
-      if (currentPath === '/dashboard' || currentPath === '/') {
+      // Route to appropriate dashboard - only redirect once per session
+      if ((currentPath === '/dashboard' || currentPath === '/') && !hasRedirected) {
+        let targetPath = '';
+        
         if (role === 'instructor') {
           console.log('👨‍🏫 Routing instructor to instructor dashboard');
-          router.replace('/dashboard/instructor');
+          targetPath = '/dashboard/instructor';
         } else if (['admin', 'recruiter'].includes(role)) {
           console.log('👨‍💼 Routing admin/recruiter to admin dashboard');
-          router.replace('/dashboard/admin');
+          targetPath = '/dashboard/admin';
+        }
+        
+        if (targetPath) {
+          console.log(`🚀 Redirecting to: ${targetPath}`);
+          setHasRedirected(true);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('auth_redirected', 'true');
+          }
+          
+          // Use setTimeout to ensure state is set before redirect
+          setTimeout(() => {
+            router.replace(targetPath);
+          }, 100);
         }
       }
 
     } catch (error) {
       console.error('Auth check error:', error);
+      setHasRedirected(false); // Reset redirect flag on error
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('auth_redirected');
+      }
       setAuthState({
         user: null,
         isLoading: false,

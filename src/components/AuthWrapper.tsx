@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -20,6 +20,14 @@ export default function AuthWrapper({
   const { isLoading, isAuthenticated, user } = useAuth();
   const router = useRouter();
 
+  // Handle redirect after render to avoid setState during render error
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
+      console.log('[AuthWrapper] User not authenticated, redirecting to:', redirectTo);
+      router.push(redirectTo);
+    }
+  }, [isLoading, isAuthenticated, user, router, redirectTo]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -31,8 +39,15 @@ export default function AuthWrapper({
   if (!isAuthenticated || !user) {
     if (fallback) return <>{fallback}</>;
     
-    router.push(redirectTo);
-    return null;
+    // Show loading state while redirect is happening
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   // Admin users can access any role's view, others must match required roles
