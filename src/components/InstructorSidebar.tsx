@@ -1,71 +1,74 @@
-"use client";
-
 import React, { useState } from "react";
 import {
-  FaBook,
-  FaGraduationCap,
-  FaClipboardList,
-  FaChevronDown,
-  FaChevronRight,
-  FaBars,
-  FaPlus,
-  FaList,
-  FaChartBar,
-  FaChartLine,
-  FaUsers,
-  FaQuestionCircle,
-  FaFileAlt,
-  FaTachometerAlt,
-  FaUsersCog,
-  FaPercent,
-  FaUserGraduate,
-} from "react-icons/fa";
+  Menu,
+  LayoutDashboard,
+  BookOpen,
+  GraduationCap,
+  TrendingUp,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  UserCog,
+  Settings,
+  ClipboardList,
+  Edit,
+  Users,
+  HelpCircle,
+  BarChart3,
+  Percent,
+  UserPlus,
+  ArrowRightLeft,
+  Link,
+  FileText,
+  Eye,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 
-interface SidebarProps {
+interface InstructorSidebarProps {
   activeSection: string;
   setActiveSection: (section: string) => void;
+  collapsed?: boolean;
+  setCollapsed?: (collapsed: boolean) => void;
 }
 
-const InstructorSidebar: React.FC<SidebarProps> = ({
+const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
   activeSection,
   setActiveSection,
+  collapsed = false,
+  setCollapsed = () => {},
 }) => {
   const [isCoursesExpanded, setIsCoursesExpanded] = useState(true);
   const [isTestsExpanded, setIsTestsExpanded] = useState(false);
   const [isAnalyticsExpanded, setIsAnalyticsExpanded] = useState(false);
   const [isBatchesExpanded, setIsBatchesExpanded] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [isAssigningExpanded, setIsAssigningExpanded] = useState(false);
 
   const courseMenuItems = [
     {
-      key: "all-courses",
-      label: "All Courses",
-      icon: <FaList className="w-4 h-4" />,
-    },
-    {
       key: "create-course",
       label: "Create Course",
-      icon: <FaPlus className="w-4 h-4" />,
+      icon: Plus,
+    },
+    {
+      key: "all-courses",
+      label: "Manage Courses",
+      icon: Settings,
     },
     {
       key: "manage-modules",
       label: "Manage Modules",
-      icon: <FaBook className="w-4 h-4" />,
+      icon: ClipboardList,
     },
     {
       key: "module-content",
       label: "Module Content",
-      icon: <FaFileAlt className="w-4 h-4" />,
+      icon: Edit,
     },
     {
       key: "mcq-management",
       label: "MCQ Management",
-      icon: <FaQuestionCircle className="w-4 h-4" />,
-    },
-    {
-      key: "course-assignment",
-      label: "Assign Courses",
-      icon: <FaUserGraduate className="w-4 h-4" />,
+      icon: HelpCircle,
     },
   ];
 
@@ -73,12 +76,12 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
     {
       key: "create-test",
       label: "Create Test",
-      icon: <FaPlus className="w-4 h-4" />,
+      icon: Plus,
     },
     {
-      key: "manage-test",
-      label: "Manage Tests",
-      icon: <FaClipboardList className="w-4 h-4" />,
+      key: "test-management",
+      label: "Test Management",
+      icon: Settings,
     },
   ];
 
@@ -86,22 +89,22 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
     {
       key: "student-analytics",
       label: "Student Analytics",
-      icon: <FaUsers className="w-4 h-4" />,
+      icon: Users,
     },
     {
       key: "progress-analytics",
       label: "Progress Analytics",
-      icon: <FaChartLine className="w-4 h-4" />,
+      icon: TrendingUp,
     },
     {
       key: "test-analytics",
       label: "Test Analytics",
-      icon: <FaChartBar className="w-4 h-4" />,
+      icon: BarChart3,
     },
     {
       key: "evaluation-statistics",
       label: "Evaluation Statistics",
-      icon: <FaPercent className="w-4 h-4" />,
+      icon: Percent,
     },
   ];
 
@@ -109,294 +112,257 @@ const InstructorSidebar: React.FC<SidebarProps> = ({
     {
       key: "create-batch",
       label: "Create Batch",
-      icon: <FaPlus className="w-4 h-4" />,
+      icon: Plus,
     },
     {
       key: "batch-management",
       label: "Batch Dashboard",
-      icon: <FaGraduationCap className="w-4 h-4" />,
-    },
-    {
-      key: "batch-assignments",
-      label: "Batch Assignments",
-      icon: <FaUsersCog className="w-4 h-4" />,
+      icon: GraduationCap,
     },
   ];
 
+  const assigningMenuItems = [
+    {
+      key: "course-assignment",
+      label: "Assign Courses",
+      icon: UserPlus,
+    },
+    {
+      key: "batch-assignments",
+      label: "Assign Batches",
+      icon: ArrowRightLeft,
+    },
+    {
+      key: "course-batch-assignment",
+      label: "Assign Course to Batch",
+      icon: Link,
+    },
+  ];
+
+  const MenuButton = ({ item, isActive, onClick }: any) => {
+    const IconComponent = item.icon;
+
+    return (
+      <div className="relative group">
+        <button
+          onClick={onClick}
+          className={`w-full flex items-center transition-all duration-300 rounded-xl p-3 relative overflow-hidden ${
+            isActive
+              ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
+              : "hover:bg-slate-100 text-slate-700 hover:shadow-md hover:scale-[1.01]"
+          } ${collapsed ? "justify-center" : "justify-start"}`}
+        >
+          <div className="flex items-center space-x-3 w-full">
+            <IconComponent className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && (
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium truncate">{item.label}</span>
+                {item.badge && (
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : item.badge === "New"
+                        ? "bg-green-100 text-green-700"
+                        : item.badge === "Live"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </button>
+      </div>
+    );
+  };
+
+  const CollapsibleSection = ({
+    title,
+    icon: Icon,
+    items,
+    isExpanded,
+    setIsExpanded,
+    defaultBadge,
+  }: any) => {
+    const handleSectionClick = () => {
+      if (collapsed) {
+        // If collapsed, expand the sidebar first, then expand the section
+        setCollapsed(false);
+        setIsExpanded(true);
+      } else {
+        // If expanded, toggle the section
+        setIsExpanded(!isExpanded);
+      }
+    };
+
+    return (
+      <div className="space-y-2">
+        <div className="relative group">
+          <button
+            onClick={handleSectionClick}
+            className={`w-full flex items-center hover:bg-slate-100 text-slate-700 transition-all duration-200 rounded-xl p-3 ${
+              collapsed ? "justify-center" : "justify-between"
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <Icon className="h-5 w-5 flex-shrink-0 text-slate-600" />
+              {!collapsed && (
+                <span className="font-semibold text-base truncate">
+                  {title}
+                </span>
+              )}
+            </div>
+            {!collapsed && (
+              <div className="flex items-center space-x-2">
+                {defaultBadge && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
+                    {defaultBadge}
+                  </span>
+                )}
+                <div
+                  className={`transition-transform duration-200 ${
+                    isExpanded ? "rotate-0" : "-rotate-90"
+                  }`}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+              </div>
+            )}
+          </button>
+        </div>
+
+        {!collapsed && isExpanded && (
+          <div className="space-y-1 pl-4 transition-all duration-300">
+            {items.map((item: { key: string }) => (
+              <MenuButton
+                key={item.key}
+                item={item}
+                isActive={activeSection === item.key}
+                onClick={() => setActiveSection(item.key)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
-      className={`h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-slate-100 shadow-2xl border-r border-slate-200 transition-all duration-300 ease-in-out
-        ${collapsed ? "w-20" : "w-80"} flex flex-col`}
+      className={`h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 via-white to-slate-100 shadow-2xl border-r border-slate-200 flex flex-col relative transition-all duration-300 ease-in-out ${
+        collapsed ? "w-20" : "w-80"
+      }`}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white/70 backdrop-blur-sm">
+      <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
         <div className="flex items-center space-x-3 overflow-hidden">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-xl">N</span>
-          </div>
           {!collapsed && (
-            <div className="whitespace-nowrap">
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <div className="min-w-0 transition-all duration-300">
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block truncate">
                 NIRUDHYOG
               </span>
-              <p className="text-sm text-slate-500 -mt-1">
+              <p className="text-sm text-slate-500 truncate">
                 Instructor Portal
               </p>
             </div>
           )}
         </div>
+
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-all duration-200"
+          className="p-2 hover:bg-slate-100 text-slate-600 transition-all duration-200 rounded-lg hover:shadow-md flex-shrink-0 group"
         >
-          <FaBars />
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4 group-hover:scale-110 transition-transform" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4 group-hover:scale-110 transition-transform" />
+          )}
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="mt-6 px-4 flex-1 overflow-y-auto">
-        <div className="space-y-4">
-          {/* Dashboard */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
-            <button
-              onClick={() => setActiveSection("dashboard")}
-              className={`w-full flex items-center ${
-                collapsed ? "justify-center" : "space-x-3"
-              } px-4 py-3 rounded-xl transition-all duration-200 ${
-                activeSection === "dashboard"
-                  ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
-                  : "text-slate-700 hover:bg-slate-100 hover:shadow-md"
-              }`}
-            >
-              <FaTachometerAlt className="w-5 h-5" />
-              {!collapsed && (
-                <span className="font-semibold text-lg">
-                  Dashboard
-                </span>
-              )}
-            </button>
-          </div>
+      <nav className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <MenuButton
+            item={{
+              key: "dashboard",
+              label: "Dashboard",
+              icon: LayoutDashboard,
+            }}
+            isActive={activeSection === "dashboard"}
+            onClick={() => setActiveSection("dashboard")}
+          />
+        </div>
 
-          {/* Course Management */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
-            <button
-              onClick={() =>
-                setIsCoursesExpanded(!isCoursesExpanded)
-              }
-              className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
-                collapsed ? "justify-center" : "justify-between"
-              }`}
-            >
-              <div
-                className={`flex items-center ${
-                  collapsed ? "" : "space-x-3"
-                }`}
-              >
-                <FaBook className="w-5 h-5 text-slate-700" />
-                {!collapsed && (
-                  <span className="font-semibold text-lg">
-                    Course Management
-                  </span>
-                )}
-              </div>
-              {!collapsed &&
-                (isCoursesExpanded ? (
-                  <FaChevronDown className="w-4 h-4" />
-                ) : (
-                  <FaChevronRight className="w-4 h-4" />
-                ))}
-            </button>
+        <div className="border-t border-slate-200/60 my-4"></div>
 
-            {!collapsed && isCoursesExpanded && (
-              <div className="space-y-2">
-                {courseMenuItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() =>
-                      setActiveSection(item.key)
-                    }
-                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
-                      activeSection === item.key
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="font-medium">
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <CollapsibleSection
+            title="Course Management"
+            icon={BookOpen}
+            items={courseMenuItems}
+            isExpanded={isCoursesExpanded}
+            setIsExpanded={setIsCoursesExpanded}
+          />
+        </div>
 
-          {/* Test Management */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
-            <button
-              onClick={() => setIsTestsExpanded(!isTestsExpanded)}
-              className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
-                collapsed ? "justify-center" : "justify-between"
-              }`}
-            >
-              <div
-                className={`flex items-center ${
-                  collapsed ? "" : "space-x-3"
-                }`}
-              >
-                <FaClipboardList className="w-5 h-5 text-slate-700" />
-                {!collapsed && (
-                  <span className="font-semibold text-lg">
-                    Test Management
-                  </span>
-                )}
-              </div>
-              {!collapsed &&
-                (isTestsExpanded ? (
-                  <FaChevronDown className="w-4 h-4" />
-                ) : (
-                  <FaChevronRight className="w-4 h-4" />
-                ))}
-            </button>
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <CollapsibleSection
+            title="Test Management"
+            icon={FileText}
+            items={testMenuItems}
+            isExpanded={isTestsExpanded}
+            setIsExpanded={setIsTestsExpanded}
+          />
+        </div>
 
-            {!collapsed && isTestsExpanded && (
-              <div className="space-y-2">
-                {testMenuItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => setActiveSection(item.key)}
-                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
-                      activeSection === item.key
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
-                        : item.key === "create-test"
-                        ? "bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold shadow-md border-2 border-green-500 hover:scale-105"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="font-medium flex items-center">
-                      {item.label}
-                      {item.key === "create-test" && (
-                        <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-600 text-white font-semibold">
-                          New
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <CollapsibleSection
+            title="Assigning"
+            icon={UserCog}
+            items={assigningMenuItems}
+            isExpanded={isAssigningExpanded}
+            setIsExpanded={setIsAssigningExpanded}
+          />
+        </div>
 
-          {/* Analytics */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
-            <button
-              onClick={() =>
-                setIsAnalyticsExpanded(!isAnalyticsExpanded)
-              }
-              className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
-                collapsed ? "justify-center" : "justify-between"
-              }`}
-            >
-              <div
-                className={`flex items-center ${
-                  collapsed ? "" : "space-x-3"
-                }`}
-              >
-                <FaChartLine className="w-5 h-5 text-slate-700" />
-                {!collapsed && (
-                  <span className="font-semibold text-lg">
-                    Analytics & Reports
-                  </span>
-                )}
-              </div>
-              {!collapsed &&
-                (isAnalyticsExpanded ? (
-                  <FaChevronDown className="w-4 h-4" />
-                ) : (
-                  <FaChevronRight className="w-4 h-4" />
-                ))}
-            </button>
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <CollapsibleSection
+            title="Analytics & Reports"
+            icon={TrendingUp}
+            items={analyticsMenuItems}
+            isExpanded={isAnalyticsExpanded}
+            setIsExpanded={setIsAnalyticsExpanded}
+          />
+        </div>
 
-            {!collapsed && isAnalyticsExpanded && (
-              <div className="space-y-2">
-                {analyticsMenuItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() =>
-                      setActiveSection(item.key)
-                    }
-                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
-                      activeSection === item.key
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="font-medium">
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Batch Management */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-slate-200/50">
-            <button
-              onClick={() =>
-                setIsBatchesExpanded(!isBatchesExpanded)
-              }
-              className={`w-full flex items-center text-slate-700 hover:bg-slate-100 p-3 rounded-xl transition-all duration-200 mb-3 ${
-                collapsed ? "justify-center" : "justify-between"
-              }`}
-            >
-              <div
-                className={`flex items-center ${
-                  collapsed ? "" : "space-x-3"
-                }`}
-              >
-                <FaGraduationCap className="w-5 h-5 text-slate-700" />
-                {!collapsed && (
-                  <span className="font-semibold text-lg">
-                    Batch Management
-                  </span>
-                )}
-              </div>
-              {!collapsed &&
-                (isBatchesExpanded ? (
-                  <FaChevronDown className="w-4 h-4" />
-                ) : (
-                  <FaChevronRight className="w-4 h-4" />
-                ))}
-            </button>
-
-            {!collapsed && isBatchesExpanded && (
-              <div className="space-y-2">
-                {batchMenuItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() =>
-                      setActiveSection(item.key)
-                    }
-                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl transition-all duration-200 ${
-                      activeSection === item.key
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-md"
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="font-medium">
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <CollapsibleSection
+            title="Batch Management"
+            icon={GraduationCap}
+            items={batchMenuItems}
+            isExpanded={isBatchesExpanded}
+            setIsExpanded={setIsBatchesExpanded}
+          />
         </div>
       </nav>
+      <style jsx>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1;
+          border-radius: 2px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background-color: #94a3b8;
+        }
+      `}</style>
     </div>
   );
 };

@@ -91,29 +91,29 @@ const ManageTest: React.FC = () => {
         .getCourses()
         .then((res) => {
           const batchIdStr = String(selectedBatch);
-          const filtered = (res.courses || []).filter((course) => {
-            if (String(course.batch_id) === batchIdStr) return true;
+          const filtered = (res || []).filter((course) => {
+            if (String((course as any).batch_id) === batchIdStr) return true;
             if (
               "batchId" in course &&
-              typeof course.batchId === "string" &&
-              course.batchId === batchIdStr
+              typeof (course as any).batchId === "string" &&
+              (course as any).batchId === batchIdStr
             )
               return true;
             if (
               "batch" in course &&
-              course.batch &&
-              typeof course.batch === "object" &&
-              course.batch !== null &&
-              "id" in course.batch &&
-              typeof (course.batch as { id: unknown }).id === "string" &&
-              (course.batch as { id: string }).id === batchIdStr
+              (course as any).batch &&
+              typeof (course as any).batch === "object" &&
+              (course as any).batch !== null &&
+              "id" in (course as any).batch &&
+              typeof ((course as any).batch as { id: unknown }).id === "string" &&
+              ((course as any).batch as { id: string }).id === batchIdStr
             )
               return true;
             return false;
           });
-          const sortedCourses = filtered.length === 0 ? res.courses : filtered;
+          const sortedCourses = filtered.length === 0 ? res : filtered;
           setCourses(
-            sortedCourses.sort((a, b) => a.title.localeCompare(b.title))
+            sortedCourses.sort((a: any, b: any) => a.title.localeCompare(b.title))
           );
           setLoading(false);
         })

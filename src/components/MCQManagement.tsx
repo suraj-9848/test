@@ -10,7 +10,8 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
-import axios from "axios";
+import apiClient from "../utils/axiosInterceptor";
+import { useToast } from "./ToastContext";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -577,6 +578,7 @@ const MCQEditor: React.FC<{
 
 const MCQManagement: React.FC = () => {
   const { data: session } = useSession();
+  const { showToast } = useToast();
 
   // State
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -591,94 +593,19 @@ const MCQManagement: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [backendJwt, setBackendJwt] = useState<string>("");
-
-  // API Base URL
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
-
-  // API Helper
-  const apiCall = useCallback(
-    async (endpoint: string, options: RequestInit = {}) => {
-      console.log(`Calling API: ${API_BASE_URL}${endpoint}`);
-      try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-          ...options,
-          headers: {
-            Authorization: `Bearer ${backendJwt}`,
-            "Content-Type": "application/json",
-            ...options.headers,
-          },
-        });
-
-        if (!response.ok) {
-          // Create a more informative error message
-          const errorMessage = `API Error: ${response.status} for ${endpoint}`;
-          // Only log errors for non-404s, as 404s are handled gracefully by specific functions
-          if (response.status !== 404) {
-            console.error(errorMessage);
-          }
-          const error = new Error(errorMessage);
-          (error as unknown as { status?: number }).status = response.status;
-          throw error;
-        }
-
-        const data = await response.json();
-        console.log(`API Response for ${endpoint}:`, data);
-        return data;
-      } catch (err: unknown) {
-        // Only log errors for non-404s, as 404s are handled gracefully by specific functions
-        if ((err as { status?: number }).status !== 404) {
-          console.error(`API Call Failed for ${endpoint}:`, err);
-        }
-        throw err;
-      }
-    },
-    [API_BASE_URL, backendJwt]
-  );
-
-  // Fetch user profile and get JWT
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
-        const googleIdToken = (session as { id_token?: string })?.id_token;
-        if (!googleIdToken) {
-          console.error("No Google ID token found");
-          return;
-        }
-
-        const loginRes = await axios.post(
-          `${baseUrl}/api/auth/admin-login`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${googleIdToken}` },
-            withCredentials: true,
-          },
-        );
-        const jwt = loginRes.data.token;
-        setBackendJwt(jwt);
-      } catch (err) {
-        console.error("Failed to fetch user profile:", err);
-        setError("Failed to authenticate");
-      }
-    };
-
-    if (session) fetchProfile();
-  }, [session]);
 
   const fetchMCQSet = useCallback(
     async (batchId: string, courseId: string, moduleId: string) => {
       try {
         console.log(`Fetching MCQ for Course ID: ${courseId}, Module ID: ${moduleId}`);
         // Use direct course route instead of batch-nested route
-        const response = await apiCall(
+        const response = await apiClient.get(
           `/api/instructor/courses/${courseId}/modules/${moduleId}/mcq`
         );
         
         // Validate and fix any missing IDs
-        if (response && response.questions) {
-          response.questions = response.questions.map((question: MCQQuestion, qIndex: number) => ({
+        if (response.data && response.data.questions) {
+          response.data.questions = response.data.questions.map((question: MCQQuestion, qIndex: number) => ({
             ...question,
             id: question.id || `temp-question-${Date.now()}-${qIndex}`,
             options: question.options.map((option: MCQOption, oIndex: number) => ({
@@ -688,7 +615,7 @@ const MCQManagement: React.FC = () => {
           }));
         }
         
-        setMcqSet(response);
+        setMcqSet(response.data);
       } catch (err: unknown) {
         // Check if it's a 404 (no MCQ for module) - this is normal
         if ((err as { status?: number }).status === 404) {
@@ -700,22 +627,22 @@ const MCQManagement: React.FC = () => {
         setMcqSet(null);
       }
     },
-    [apiCall],
+    [],
   );
 
   const fetchModules = useCallback(
     async (batchId: string, courseId: string) => {
       try {
         // Use direct course route instead of batch-nested route
-        const response = await apiCall(
+        const response = await apiClient.get(
           `/api/instructor/courses/${courseId}/modules`
         );
-        setModules(response.modules || response || []);
+        setModules(response.data.modules || response.data || []);
         if (
-          (response.modules || response) &&
-          (response.modules || response).length > 0
+          (response.data.modules || response.data) &&
+          (response.data.modules || response.data).length > 0
         ) {
-          const moduleList = response.modules || response;
+          const moduleList = response.data.modules || response.data;
           setSelectedModule(moduleList[0].id);
           await fetchMCQSet(batchId, courseId, moduleList[0].id);
         }
@@ -724,20 +651,20 @@ const MCQManagement: React.FC = () => {
         setError("Failed to load modules");
       }
     },
-    [apiCall, fetchMCQSet],
+    [fetchMCQSet],
   );
 
   const fetchCourses = useCallback(
     async (batchId: string) => {
       try {
-        // Use direct course route instead of batch-nested route
-        const response = await apiCall(`/api/instructor/courses`);
-        setCourses(response.courses || response || []);
+        // Use the correct endpoint for fetching all courses
+        const response = await apiClient.get('/api/instructor/fetch-all-courses');
+        setCourses(response.data.courses || response.data || []);
         if (
-          (response.courses || response) &&
-          (response.courses || response).length > 0
+          (response.data.courses || response.data) &&
+          (response.data.courses || response.data).length > 0
         ) {
-          const courseList = response.courses || response;
+          const courseList = response.data.courses || response.data;
           setSelectedCourse(courseList[0].id);
           await fetchModules(batchId, courseList[0].id);
         }
@@ -746,18 +673,18 @@ const MCQManagement: React.FC = () => {
         setError("Failed to load courses");
       }
     },
-    [apiCall, fetchModules],
+    [fetchModules],
   );
 
   const fetchBatches = useCallback(async () => {
     try {
       setLoading(true);
       // Backend returns { message: "Fetched batches", batches: Batch[] }
-      const response = await apiCall("/api/instructor/batches");
-      setBatches(response.batches || []);
-      if (response.batches && response.batches.length > 0) {
-        setSelectedBatch(response.batches[0].id);
-        await fetchCourses(response.batches[0].id);
+      const response = await apiClient.get('/api/instructor/batches');
+      setBatches(response.data.batches || []);
+      if (response.data.batches && response.data.batches.length > 0) {
+        setSelectedBatch(response.data.batches[0].id);
+        await fetchCourses(response.data.batches[0].id);
       }
     } catch (err) {
       console.error("Error fetching batches:", err);
@@ -765,14 +692,14 @@ const MCQManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [apiCall, fetchCourses]);
+  }, [fetchCourses]);
 
   // Fetch initial data
   useEffect(() => {
-    if (backendJwt) {
+    if (session) {
       fetchBatches();
     }
-  }, [backendJwt, fetchBatches]);
+  }, [session, fetchBatches]);
 
   const handleBatchChange = (batchId: string) => {
     setSelectedBatch(batchId);
@@ -807,18 +734,28 @@ const MCQManagement: React.FC = () => {
   const createMCQSet = async (mcqId: string, mcqData: Partial<MCQSet>) => {
     try {
       setSubmitting(true);
-      await apiCall(
+      await apiClient.post(
         `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq`,
-        {
-          method: "POST",
-          body: JSON.stringify(mcqData),
-        },
+        mcqData,
       );
       await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
       setIsCreating(false);
-    } catch (err) {
+      showToast("success", "MCQ set created successfully!");
+    } catch (err: any) {
       console.error("Error creating MCQ set:", err);
-      setError("Failed to create MCQ set");
+      
+      // Extract specific error message from the response
+      let errorMessage = "Failed to create MCQ set";
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      showToast("error", errorMessage);
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -827,18 +764,28 @@ const MCQManagement: React.FC = () => {
   const updateMCQSet = async (mcqId: string, mcqData: Partial<MCQSet>) => {
     try {
       setSubmitting(true);
-      await apiCall(
+      await apiClient.put(
         `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
-        {
-          method: "PUT",
-          body: JSON.stringify(mcqData),
-        },
+        mcqData,
       );
       await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
       setIsEditing(false);
-    } catch (err) {
+      showToast("success", "MCQ set updated successfully!");
+    } catch (err: any) {
       console.error("Error updating MCQ set:", err);
-      setError("Failed to update MCQ set");
+      
+      // Extract specific error message from the response
+      let errorMessage = "Failed to update MCQ set";
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      showToast("error", errorMessage);
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -847,17 +794,27 @@ const MCQManagement: React.FC = () => {
   const deleteMCQSet = async (mcqId: string) => {
     try {
       if (confirm("Are you sure you want to delete this MCQ set?")) {
-        await apiCall(
+        await apiClient.delete(
           `/api/instructor/courses/${selectedCourse}/modules/${selectedModule}/mcq/${mcqId}`,
-          {
-            method: "DELETE",
-          },
         );
         await fetchMCQSet(selectedBatch, selectedCourse, selectedModule);
+        showToast("success", "MCQ set deleted successfully!");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting MCQ set:", err);
-      setError("Failed to delete MCQ set");
+      
+      // Extract specific error message from the response
+      let errorMessage = "Failed to delete MCQ set";
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      showToast("error", errorMessage);
+      setError(errorMessage);
     }
   };
 

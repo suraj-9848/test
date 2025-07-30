@@ -85,6 +85,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
   } | null>(null);
   const [bulkUploadData, setBulkUploadData] = useState<string>("");
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [bulkUploadErrors, setBulkUploadErrors] = useState<string[]>([]);
+  const [validationResults, setValidationResults] = useState<{
+    valid: any[];
+    invalid: any[];
+  } | null>(null);
 
   // Get all users based on type
   const getAllUsersByType = (): CombinedUser[] => {
@@ -235,59 +241,178 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
     }
   };
 
+  // Handle file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const csvText = e.target?.result as string;
+        setBulkUploadData(csvText);
+        validateCSVData(csvText);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Validate CSV data
+  const validateCSVData = (csvText: string) => {
+    if (!csvText.trim()) {
+      setValidationResults(null);
+      setBulkUploadErrors([]);
+      return;
+    }
+
+    try {
+      const lines = csvText.trim().split("\n");
+      const users: any[] = [];
+      const errors: string[] = [];
+
+      // Skip header if present
+      const dataLines = lines[0].toLowerCase().includes("username")
+        ? lines.slice(1)
+        : lines;
+
+      for (let i = 0; i < dataLines.length; i++) {
+        const line = dataLines[i].trim();
+        if (!line) continue;
+
+        const parts = line.split(",").map((part) => part.trim().replace(/"/g, ""));
+        
+        if (parts.length < 4) {
+          errors.push(`Line ${i + 1}: Invalid format. Expected: username,email,org_id,role`);
+          continue;
+        }
+
+        const [username, email, org_id, role, ...batches] = parts;
+        
+        // Validate fields
+        const lineErrors: string[] = [];
+        if (!username || username.length < 3) {
+          lineErrors.push("Username must be at least 3 characters");
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          lineErrors.push("Valid email is required");
+        }
+        if (!org_id) {
+          lineErrors.push("Organization ID is required");
+        }
+        if (!role) {
+          lineErrors.push("Role is required");
+        }
+        if (!["admin", "instructor", "student", "recruiter"].includes(role.toLowerCase())) {
+          lineErrors.push("Role must be one of: admin, instructor, student, recruiter");
+        }
+
+        if (lineErrors.length > 0) {
+          errors.push(`Line ${i + 1}: ${lineErrors.join(", ")}`);
+        } else {
+          users.push({
+            username,
+            email,
+            org_id,
+            role: role.toLowerCase(),
+            batch_id: batches.filter((b) => b.length > 0),
+          });
+        }
+      }
+
+      setValidationResults({
+        valid: users,
+        invalid: errors.map(error => ({ error }))
+      });
+      setBulkUploadErrors(errors);
+    } catch (error) {
+      setBulkUploadErrors(["Failed to parse CSV data"]);
+      setValidationResults(null);
+    }
+  };
+
   // Handle bulk upload
   const handleBulkUpload = async () => {
     try {
-      if (!bulkUploadData.trim()) {
-        showToast("error", "Please enter user data");
+      if (!validationResults || validationResults.valid.length === 0) {
+        showToast("error", "No valid users to upload");
         return;
       }
 
-      const lines = bulkUploadData.trim().split("\n");
-      const users: CreateUserRequest[] = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        const parts = line.split(",").map((part) => part.trim());
-        if (parts.length < 4) {
-          showToast(
-            "error",
-            `Invalid format at line ${
-              i + 1
-            }. Expected: username,email,org_id,role`,
-          );
-          return;
-        }
-
-        const [username, email, org_id] = parts;
-        users.push({
-          username,
-          email,
-          password: "defaultPassword123", // You might want to generate random passwords
-          org_id,
-          batch_id: [],
-        });
+      if (bulkUploadErrors.length > 0) {
+        showToast("error", "Please fix validation errors before uploading");
+        return;
       }
 
+      // Convert to the format expected by the backend
+      const users = validationResults.valid.map(user => ({
+        username: user.username,
+        email: user.email,
+        password: generateRandomPassword(),
+        org_id: user.org_id,
+        batch_id: user.batch_id || [],
+        userRole: user.role, // Backend expects 'userRole' field
+      }));
+
       const result = await userApi.bulkCreateUsers(users);
+      
       showToast(
         "success",
-        `${result.created} users created successfully. ${result.errors} errors.`,
+        `${result.created} users created successfully${result.errors > 0 ? `. ${result.errors} errors occurred.` : "."}`,
       );
 
-      if (result.errorDetails.length > 0) {
+      if (result.errorDetails && result.errorDetails.length > 0) {
         console.log("Bulk upload errors:", result.errorDetails);
+        // Show first few errors to user
+        const errorMessages = result.errorDetails.slice(0, 3).map(
+          (error: any) => `User ${error.index + 1}: ${error.error}`
+        );
+        if (result.errorDetails.length > 3) {
+          errorMessages.push(`... and ${result.errorDetails.length - 3} more errors`);
+        }
+        showToast("error", errorMessages.join("\n"));
       }
 
       setBulkUploadData("");
+      setUploadFile(null);
+      setValidationResults(null);
+      setBulkUploadErrors([]);
       setShowBulkUpload(false);
       await fetchUsers(userRole === "All" ? "All" : userRole);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to bulk upload users:", err);
-      showToast("error", "Failed to bulk upload users");
+      showToast("error", err.message || "Failed to bulk upload users");
     }
+  };
+
+  // Generate random password
+  const generateRandomPassword = (length: number = 12): string => {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  };
+
+  // Download sample CSV
+  const downloadSampleCSV = () => {
+    const sampleData = [
+      ["username", "email", "org_id", "role", "batch_id"],
+      ["john_doe", "john@example.com", "org123", "student", "batch1"],
+      ["jane_smith", "jane@example.com", "org123", "instructor", ""],
+      ["admin_user", "admin@example.com", "org123", "admin", ""],
+      ["recruiter_user", "recruiter@example.com", "org123", "recruiter", ""]
+    ];
+
+    const csvContent = sampleData.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "sample_users.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Export users to CSV
@@ -1026,46 +1151,155 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       {/* Bulk Upload Modal */}
       {showBulkUpload && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-xl font-semibold text-gray-900">
                 Bulk Upload Users
               </h3>
               <button
-                onClick={() => setShowBulkUpload(false)}
+                onClick={() => {
+                  setShowBulkUpload(false);
+                  setBulkUploadData("");
+                  setUploadFile(null);
+                  setValidationResults(null);
+                  setBulkUploadErrors([]);
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <FaTimes className="w-6 h-6" />
               </button>
             </div>
             <div className="p-6">
+              {/* Instructions */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">
+                  CSV Format Instructions
+                </h4>
+                <p className="text-sm text-blue-700 mb-2">
+                  Upload a CSV file or paste CSV data with the following format:
+                </p>
+                <code className="text-xs bg-white p-2 rounded block">
+                  username,email,org_id,role,batch_id (optional)
+                </code>
+                <p className="text-xs text-blue-600 mt-2">
+                  Valid roles: admin, instructor, student, recruiter
+                </p>
+                <div className="mt-3">
+                  <button
+                    onClick={downloadSampleCSV}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded transition-colors"
+                  >
+                    Download Sample CSV
+                  </button>
+                </div>
+              </div>
+
+              {/* File Upload */}
               <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  Enter user data in CSV format (one user per line):
-                </p>
-                <p className="text-xs text-gray-500 mb-4">
-                  Format: username,email,org_id,role
-                </p>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload CSV File
+                </label>
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileUpload}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {uploadFile && (
+                    <span className="text-sm text-green-600">
+                      ✓ {uploadFile.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Manual Input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Or Paste CSV Data
+                </label>
                 <textarea
                   value={bulkUploadData}
-                  onChange={(e) => setBulkUploadData(e.target.value)}
-                  placeholder="john_doe,john@example.com,org123,student&#10;jane_smith,jane@example.com,org123,instructor"
-                  className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={(e) => {
+                    setBulkUploadData(e.target.value);
+                    validateCSVData(e.target.value);
+                  }}
+                  placeholder="username,email,org_id,role,batch_id&#10;john_doe,john@example.com,org123,student,batch1&#10;jane_smith,jane@example.com,org123,instructor"
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                 />
               </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowBulkUpload(false)}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBulkUpload}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  Upload Users
-                </button>
+
+              {/* Validation Results */}
+              {validationResults && (
+                <div className="mb-4 space-y-3">
+                  {validationResults.valid.length > 0 && (
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-green-900 mb-1">
+                        ✓ Valid Users ({validationResults.valid.length})
+                      </h4>
+                      <div className="text-xs text-green-700 max-h-20 overflow-y-auto">
+                        {validationResults.valid.slice(0, 5).map((user, index) => (
+                          <div key={index}>
+                            {user.username} ({user.email}) - {user.role}
+                          </div>
+                        ))}
+                        {validationResults.valid.length > 5 && (
+                          <div className="text-green-600">
+                            ... and {validationResults.valid.length - 5} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {bulkUploadErrors.length > 0 && (
+                    <div className="p-3 bg-red-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-red-900 mb-1">
+                        ✗ Validation Errors ({bulkUploadErrors.length})
+                      </h4>
+                      <div className="text-xs text-red-700 max-h-32 overflow-y-auto space-y-1">
+                        {bulkUploadErrors.map((error, index) => (
+                          <div key={index} className="border-l-2 border-red-200 pl-2">
+                            {error}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-between">
+                <div className="text-sm text-gray-500">
+                  {validationResults && (
+                    <span>
+                      {validationResults.valid.length} valid users, {bulkUploadErrors.length} errors
+                    </span>
+                  )}
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowBulkUpload(false);
+                      setBulkUploadData("");
+                      setUploadFile(null);
+                      setValidationResults(null);
+                      setBulkUploadErrors([]);
+                    }}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkUpload}
+                    disabled={!validationResults || validationResults.valid.length === 0 || bulkUploadErrors.length > 0}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Upload {validationResults?.valid.length || 0} Users
+                  </button>
+                </div>
               </div>
             </div>
           </div>

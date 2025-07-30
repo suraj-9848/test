@@ -5,12 +5,15 @@ import { useSession, signOut } from "next-auth/react";
 import { FiUser, FiSettings, FiLogOut } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import RolePicker from "./RolePicker";
+import { useViewAs } from "../contexts/ViewAsContext";
 
 const Navbar = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { viewAsRole, setViewAsRole } = useViewAs();
 
   const user = session?.user;
   const userInitial = user?.name?.charAt(0).toUpperCase() || "U";
@@ -38,6 +41,14 @@ const Navbar = () => {
               <span className="text-white font-bold text-sm">N</span>
             </div>
             <h1 className="text-xl font-bold text-gray-800">Nirudhyog</h1>
+          </div>
+
+          {/* Center section - Role Picker for Admin */}
+          <div className="flex-1 flex justify-center">
+            <RolePicker 
+              currentViewRole={viewAsRole}
+              onRoleChange={setViewAsRole}
+            />
           </div>
 
           {/* Right section */}
