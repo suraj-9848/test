@@ -23,6 +23,7 @@ import EvaluationStatistics from "../../../components/EvaluationStatistics";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
 import { instructorApi } from "@/api/instructorApi";
+import CourseBatchAssignment from "@/components/CourseBatchAssignment";
 
 interface DashboardStats {
   totalCourses: number;
@@ -36,6 +37,7 @@ interface DashboardStats {
 
 const InstructorDashboard: React.FC = () => {
   const { status } = useSession();
+  const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const [activeSection, setActiveSection] = useState("dashboard");
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -95,7 +97,6 @@ const InstructorDashboard: React.FC = () => {
       case "dashboard":
         return (
           <div className="p-6 space-y-6">
-            {/* Welcome Header */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 Welcome to Instructor Dashboard
@@ -105,20 +106,20 @@ const InstructorDashboard: React.FC = () => {
               </p>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 {error}
               </div>
             )}
 
-            {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-blue-100">Total Courses</p>
-                    <p className="text-2xl font-bold">{loading ? "-" : (stats?.totalCourses || 0)}</p>
+                    <p className="text-2xl font-bold">
+                      {loading ? "-" : stats?.totalCourses || 0}
+                    </p>
                   </div>
                   <FaBook className="w-8 h-8 text-blue-200" />
                 </div>
@@ -127,7 +128,9 @@ const InstructorDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-green-100">Active Students</p>
-                    <p className="text-2xl font-bold">{loading ? "-" : (stats?.totalStudents || 0)}</p>
+                    <p className="text-2xl font-bold">
+                      {loading ? "-" : stats?.totalStudents || 0}
+                    </p>
                   </div>
                   <FaUsers className="w-8 h-8 text-green-200" />
                 </div>
@@ -136,7 +139,9 @@ const InstructorDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-purple-100">Batches</p>
-                    <p className="text-2xl font-bold">{loading ? "-" : (stats?.totalBatches || 0)}</p>
+                    <p className="text-2xl font-bold">
+                      {loading ? "-" : stats?.totalBatches || 0}
+                    </p>
                   </div>
                   <FaGraduationCap className="w-8 h-8 text-purple-200" />
                 </div>
@@ -145,18 +150,21 @@ const InstructorDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-orange-100">Avg. Progress</p>
-                    <p className="text-2xl font-bold">{loading ? "-" : (stats?.averageProgress || 0)}%</p>
+                    <p className="text-2xl font-bold">
+                      {loading ? "-" : stats?.averageProgress || 0}%
+                    </p>
                   </div>
                   <FaChartLine className="w-8 h-8 text-orange-200" />
                 </div>
               </div>
             </div>
 
-            {/* Additional Stats */}
             {stats && !loading && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Course Visibility</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Course Visibility
+                  </h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Public Courses:</span>
@@ -164,17 +172,27 @@ const InstructorDashboard: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Private Courses:</span>
-                      <span className="font-medium">{stats.privateCourses}</span>
+                      <span className="font-medium">
+                        {stats.privateCourses}
+                      </span>
                     </div>
                   </div>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Recent Activity</h3>
-                  <p className="text-2xl font-bold text-blue-600">{stats.recentActivity}</p>
-                  <p className="text-sm text-gray-500">Student interactions (30 days)</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Recent Activity
+                  </h3>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {stats.recentActivity}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Student interactions (30 days)
+                  </p>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Quick Actions</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Quick Actions
+                  </h3>
                   <div className="space-y-2">
                     <button
                       onClick={() => setActiveSection("create-course")}
@@ -198,7 +216,11 @@ const InstructorDashboard: React.FC = () => {
       // Course Management
       case "all-courses":
       case "courses-overview": // Legacy support
-        return <AllCourses onCreateCourse={() => setActiveSection("create-course")} />;
+        return (
+          <AllCourses
+            onCreateCourse={() => setActiveSection("create-course")}
+          />
+        );
       case "create-course":
         return (
           <CreateCourse
@@ -212,8 +234,31 @@ const InstructorDashboard: React.FC = () => {
         return <ModuleContent onClose={() => setActiveSection("dashboard")} />;
       case "mcq-management":
         return <MCQManagement />;
+
+      // Test Management
+      case "create-test":
+        return <CreateTest setActiveSection={setActiveSection} />;
+      case "test-management":
+        return <ManageTest />;
+
       case "course-assignment":
         return <CourseAssignment />;
+      case "batch-assignments":
+        return <BatchAssign />;
+      case "course-batch-assignment":
+        return <CourseBatchAssignment />;
+
+      // Analytics & Reports
+      case "student-analytics":
+        return (
+          <StudentAnalytics/>
+        );
+      case "progress-analytics":
+        return <ProgressAnalytics />;
+      case "test-analytics":
+        return <TestAnalytics />;
+      case "evaluation-statistics":
+        return <EvaluationStatistics />;
 
       // Batch Management
       case "batch-management":
@@ -222,31 +267,8 @@ const InstructorDashboard: React.FC = () => {
         return <UnifiedBatchManagement />;
       case "create-batch":
         return <CreateBatch />;
-      case "batch-assignments":
-        return <BatchAssign />;
 
-      // Test Management
-      case "create-test":
-        return <CreateTest setActiveSection={setActiveSection} />;
-      case "manage-tests": // Consistent with bugfix branch
-      case "manage-test": // Consistent with main branch
-        return <ManageTest />;
-      // case "test-questions":
-      //   return <TestQuestionManagement />; // Commented out as component is undefined
-      // case "test-evaluation":
-      //   return <TestEvaluation />; // Commented out as component is undefined
-      // case "test-publishing":
-      //   return <TestPublishing />; // Commented out as component is undefined
-
-      // Analytics & Reports
-      case "student-analytics":
-        return <StudentAnalytics />;
-      case "progress-analytics":
-        return <ProgressAnalytics />;
-      case "test-analytics":
-        return <TestAnalytics />;
-      case "evaluation-statistics":
-        return <EvaluationStatistics />;
+      // NEW: Assigning Section
 
       default:
         return (
@@ -279,6 +301,8 @@ const InstructorDashboard: React.FC = () => {
       <InstructorSidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
       />
       <div className="flex-1 overflow-auto">{renderContent()}</div>
     </div>
