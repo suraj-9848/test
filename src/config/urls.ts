@@ -37,7 +37,7 @@ export const API_ENDPOINTS = {
   // Instructor Routes
   INSTRUCTOR: {
     // Courses
-    COURSES: '/api/instructor/fetch-all-courses',
+    COURSES: '/api/instructor/courses',
     COURSE_BY_ID: (id: string) => `/api/instructor/courses/${id}`,
     COURSE_EDIT: (id: string) => `/api/instructor/courses/${id}/edit`,
     
