@@ -23,7 +23,7 @@ const getBackendJwt = async () => {
       {
         headers: { Authorization: `Bearer ${googleIdToken}` },
         withCredentials: true,
-      }
+      },
     );
     cachedBackendJwt = loginRes.data.token;
     return cachedBackendJwt;
@@ -56,7 +56,7 @@ export const fetchBatches = async () => {
       throw new Error(
         `Failed to fetch batches: ${
           error.response.data?.message || error.response.status
-        }`
+        }`,
       );
     }
     throw new Error("Failed to fetch batches");
@@ -79,7 +79,7 @@ export const fetchStudents = async () => {
 // Assign students to a batch with improved error handling
 export const assignStudentsToBatch = async (
   batchId: string,
-  studentIds: string[]
+  studentIds: string[],
 ): Promise<{ success: boolean; message: string; details?: any }> => {
   try {
     const headers = await getAuthHeaders();
@@ -152,7 +152,7 @@ export const assignStudentsToBatch = async (
           throw new Error("Authentication failed. Please log in again.");
         } else if (response.status === 403) {
           throw new Error(
-            "Permission denied. You don't have access to this resource."
+            "Permission denied. You don't have access to this resource.",
           );
         } else if (response.status === 404) {
           throw new Error("Batch not found. Please refresh and try again.");
@@ -160,7 +160,7 @@ export const assignStudentsToBatch = async (
           throw new Error(
             `Server error: ${errorMessage}${
               errorDetails ? ` - ${errorDetails}` : ""
-            }`
+            }`,
           );
         } else {
           throw new Error(`Request failed: ${errorMessage}`);
@@ -168,7 +168,7 @@ export const assignStudentsToBatch = async (
       } else if (request) {
         console.error("Request made but no response:", request);
         throw new Error(
-          "No response from server. Please check your connection and try again."
+          "No response from server. Please check your connection and try again.",
         );
       } else {
         console.error("Request setup error:", message);

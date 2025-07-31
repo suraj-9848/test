@@ -49,5 +49,12 @@
     "prettier-plugin-tailwindcss": "^0.6.12",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "form-data": ">=4.0.4",
+      "linkifyjs": ">=4.3.2",
+      "quill": ">=2.0.0"
+    }
   }
 }

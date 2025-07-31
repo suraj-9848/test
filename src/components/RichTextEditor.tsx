@@ -23,7 +23,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const quillRef = useRef<Quill | null>(null);
     const quillContainerId = useRef<string>(
-      `quill-editor-${Math.random().toString(36).substr(2, 9)}`
+      `quill-editor-${Math.random().toString(36).substr(2, 9)}`,
     );
     const isUpdatingContent = useRef(false);
 
@@ -54,7 +54,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
                 key: 9,
                 handler: function (
                   range: { index: number; length: number },
-                  context: { quill: Quill }
+                  context: { quill: Quill },
                 ) {
                   context.quill.insertText(range.index, "    ");
                   context.quill.setSelection(range.index + 4, 0);
@@ -70,7 +70,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
       if (initialContent) {
         isUpdatingContent.current = true;
         quillInstance.setContents(
-          quillInstance.clipboard.convert({ html: initialContent || "" })
+          quillInstance.clipboard.convert({ html: initialContent || "" }),
         );
         isUpdatingContent.current = false;
       }
@@ -113,7 +113,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           isUpdatingContent.current = true;
           const selection = quillRef.current.getSelection();
           quillRef.current.setContents(
-            quillRef.current.clipboard.convert({ html: initialContent || "" })
+            quillRef.current.clipboard.convert({ html: initialContent || "" }),
           );
           if (selection) {
             quillRef.current.setSelection(selection.index, selection.length);
@@ -132,7 +132,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           isUpdatingContent.current = true;
           const selection = quillRef.current.getSelection();
           quillRef.current.setContents(
-            quillRef.current.clipboard.convert({ html: content || "" })
+            quillRef.current.clipboard.convert({ html: content || "" }),
           );
           if (selection) {
             quillRef.current.setSelection(selection.index, selection.length);
@@ -143,7 +143,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
     }));
 
     return <div ref={containerRef} />;
-  }
+  },
 );
 
 RichTextEditor.displayName = "RichTextEditor";

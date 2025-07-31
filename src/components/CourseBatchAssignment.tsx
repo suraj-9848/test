@@ -33,10 +33,10 @@ const CourseBatchAssignment: React.FC = () => {
   const [searchCourse, setSearchCourse] = useState("");
   const [searchBatch, setSearchBatch] = useState("");
   const [batchCourses, setBatchCourses] = useState<Record<string, Course[]>>(
-    {}
+    {},
   );
   const [courseBatches, setCourseBatches] = useState<Record<string, Batch[]>>(
-    {}
+    {},
   );
   const [actionMode, setActionMode] = useState<"assign" | "remove">("assign");
 
@@ -87,7 +87,7 @@ const CourseBatchAssignment: React.FC = () => {
 
   const updateCourseBatchAssignments = async (
     courseId: string,
-    batchIds: string[]
+    batchIds: string[],
   ) => {
     const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
     if (!baseUrl) {
@@ -105,14 +105,14 @@ const CourseBatchAssignment: React.FC = () => {
         body: JSON.stringify({
           batch_ids: batchIds,
         }),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
         errorData.message ||
-          `Failed to update course ${courseId}: HTTP ${response.status}`
+          `Failed to update course ${courseId}: HTTP ${response.status}`,
       );
     }
 
@@ -132,7 +132,7 @@ const CourseBatchAssignment: React.FC = () => {
       if (actionMode === "assign") {
         const updatePromises = selectedCourses.map((courseId) => {
           const existingBatchIds = (courseBatches[courseId] || []).map(
-            (batch) => batch.id
+            (batch) => batch.id,
           );
           const allBatchIds = [
             ...new Set([...existingBatchIds, ...selectedBatches]),
@@ -143,30 +143,30 @@ const CourseBatchAssignment: React.FC = () => {
         const results = await Promise.allSettled(updatePromises);
 
         const failures = results.filter(
-          (result) => result.status === "rejected"
+          (result) => result.status === "rejected",
         ) as PromiseRejectedResult[];
 
         if (failures.length > 0) {
           const errorMessages = failures.map(
-            (failure) => failure.reason?.message || "Unknown error"
+            (failure) => failure.reason?.message || "Unknown error",
           );
           throw new Error(
             `${failures.length} assignment(s) failed: ${errorMessages.join(
-              ", "
-            )}`
+              ", ",
+            )}`,
           );
         }
 
         setSuccessMessage(
-          `Successfully assigned ${selectedCourses.length} course(s) to ${selectedBatches.length} batch(es)`
+          `Successfully assigned ${selectedCourses.length} course(s) to ${selectedBatches.length} batch(es)`,
         );
       } else {
         const updatePromises = selectedCourses.map((courseId) => {
           const existingBatchIds = (courseBatches[courseId] || []).map(
-            (batch) => batch.id
+            (batch) => batch.id,
           );
           const remainingBatchIds = existingBatchIds.filter(
-            (batchId) => !selectedBatches.includes(batchId)
+            (batchId) => !selectedBatches.includes(batchId),
           );
           return updateCourseBatchAssignments(courseId, remainingBatchIds);
         });
@@ -174,20 +174,20 @@ const CourseBatchAssignment: React.FC = () => {
         const results = await Promise.allSettled(updatePromises);
 
         const failures = results.filter(
-          (result) => result.status === "rejected"
+          (result) => result.status === "rejected",
         ) as PromiseRejectedResult[];
 
         if (failures.length > 0) {
           const errorMessages = failures.map(
-            (failure) => failure.reason?.message || "Unknown error"
+            (failure) => failure.reason?.message || "Unknown error",
           );
           throw new Error(
-            `${failures.length} removal(s) failed: ${errorMessages.join(", ")}`
+            `${failures.length} removal(s) failed: ${errorMessages.join(", ")}`,
           );
         }
 
         setSuccessMessage(
-          `Successfully removed ${selectedCourses.length} course(s) from ${selectedBatches.length} batch(es)`
+          `Successfully removed ${selectedCourses.length} course(s) from ${selectedBatches.length} batch(es)`,
         );
       }
 
@@ -213,7 +213,7 @@ const CourseBatchAssignment: React.FC = () => {
     setSelectedCourses((prev) =>
       prev.includes(courseId)
         ? prev.filter((id) => id !== courseId)
-        : [...prev, courseId]
+        : [...prev, courseId],
     );
   };
 
@@ -221,47 +221,47 @@ const CourseBatchAssignment: React.FC = () => {
     setSelectedBatches((prev) =>
       prev.includes(batchId)
         ? prev.filter((id) => id !== batchId)
-        : [...prev, batchId]
+        : [...prev, batchId],
     );
   };
 
   const isCourseAlreadyAssignedToSelectedBatches = (courseId: string) => {
     if (selectedBatches.length === 0) return false;
     const courseCurrentBatches = (courseBatches[courseId] || []).map(
-      (batch) => batch.id
+      (batch) => batch.id,
     );
     return selectedBatches.every((batchId) =>
-      courseCurrentBatches.includes(batchId)
+      courseCurrentBatches.includes(batchId),
     );
   };
 
   const isCourseAssignedToSelectedBatches = (courseId: string) => {
     if (selectedBatches.length === 0) return false;
     const courseCurrentBatches = (courseBatches[courseId] || []).map(
-      (batch) => batch.id
+      (batch) => batch.id,
     );
     return selectedBatches.some((batchId) =>
-      courseCurrentBatches.includes(batchId)
+      courseCurrentBatches.includes(batchId),
     );
   };
 
   const isBatchAlreadyContainsSelectedCourses = (batchId: string) => {
     if (selectedCourses.length === 0) return false;
     const batchCurrentCourses = (batchCourses[batchId] || []).map(
-      (course) => course.id
+      (course) => course.id,
     );
     return selectedCourses.every((courseId) =>
-      batchCurrentCourses.includes(courseId)
+      batchCurrentCourses.includes(courseId),
     );
   };
 
   const isBatchContainsSelectedCourses = (batchId: string) => {
     if (selectedCourses.length === 0) return false;
     const batchCurrentCourses = (batchCourses[batchId] || []).map(
-      (course) => course.id
+      (course) => course.id,
     );
     return selectedCourses.some((courseId) =>
-      batchCurrentCourses.includes(courseId)
+      batchCurrentCourses.includes(courseId),
     );
   };
 
@@ -269,14 +269,14 @@ const CourseBatchAssignment: React.FC = () => {
     (course) =>
       course.title.toLowerCase().includes(searchCourse.toLowerCase()) ||
       (course.description &&
-        course.description.toLowerCase().includes(searchCourse.toLowerCase()))
+        course.description.toLowerCase().includes(searchCourse.toLowerCase())),
   );
 
   const filteredBatches = batches.filter(
     (batch) =>
       batch.name.toLowerCase().includes(searchBatch.toLowerCase()) ||
       (batch.description &&
-        batch.description.toLowerCase().includes(searchBatch.toLowerCase()))
+        batch.description.toLowerCase().includes(searchBatch.toLowerCase())),
   );
 
   const CourseCard: React.FC<{
@@ -302,12 +302,12 @@ const CourseBatchAssignment: React.FC = () => {
               ? "border-blue-500 bg-blue-50 shadow-md"
               : "border-red-500 bg-red-50 shadow-md"
             : actionMode === "assign" && isAlreadyAssigned
-            ? "border-green-300 bg-green-50 opacity-75"
-            : actionMode === "remove" && canBeRemoved
-            ? "border-orange-300 bg-orange-50 opacity-90"
-            : actionMode === "remove" && !canBeRemoved
-            ? "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-            : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+              ? "border-green-300 bg-green-50 opacity-75"
+              : actionMode === "remove" && canBeRemoved
+                ? "border-orange-300 bg-orange-50 opacity-90"
+                : actionMode === "remove" && !canBeRemoved
+                  ? "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
         }`}
       >
         {actionMode === "assign" && isAlreadyAssigned && (
@@ -429,12 +429,12 @@ const CourseBatchAssignment: React.FC = () => {
               ? "border-green-500 bg-green-50 shadow-md"
               : "border-red-500 bg-red-50 shadow-md"
             : actionMode === "assign" && isAlreadyContainsCourses
-            ? "border-blue-300 bg-blue-50 opacity-75"
-            : actionMode === "remove" && canBeModified
-            ? "border-orange-300 bg-orange-50 opacity-90"
-            : actionMode === "remove" && !canBeModified
-            ? "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-            : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+              ? "border-blue-300 bg-blue-50 opacity-75"
+              : actionMode === "remove" && canBeModified
+                ? "border-orange-300 bg-orange-50 opacity-90"
+                : actionMode === "remove" && !canBeModified
+                  ? "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
         }`}
       >
         {actionMode === "assign" && isAlreadyContainsCourses && (
@@ -551,7 +551,7 @@ const CourseBatchAssignment: React.FC = () => {
         if (!batch) return;
 
         const isAlreadyAssigned = (courseBatches[courseId] || []).some(
-          (b) => b.id === batchId
+          (b) => b.id === batchId,
         );
 
         if (isAlreadyAssigned) {
@@ -650,8 +650,8 @@ const CourseBatchAssignment: React.FC = () => {
                     ? "Assigning..."
                     : "Removing..."
                   : actionMode === "assign"
-                  ? "Assign Selected"
-                  : "Remove Selected"}
+                    ? "Assign Selected"
+                    : "Remove Selected"}
               </span>
             </button>
           </div>
@@ -701,10 +701,10 @@ const CourseBatchAssignment: React.FC = () => {
                               >
                             | null
                             | undefined,
-                          index: React.Key | null | undefined
+                          index: React.Key | null | undefined,
                         ) => (
                           <div key={index}>• {assignment}</div>
-                        )
+                        ),
                       )}
                     {assignmentPreview.newAssignments.length > 3 && (
                       <div>
@@ -754,10 +754,10 @@ const CourseBatchAssignment: React.FC = () => {
                               >
                             | null
                             | undefined,
-                          index: React.Key | null | undefined
+                          index: React.Key | null | undefined,
                         ) => (
                           <div key={index}>• {assignment}</div>
-                        )
+                        ),
                       )}
                     {assignmentPreview.existingAssignments.length > 3 && (
                       <div>

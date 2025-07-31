@@ -25,8 +25,8 @@ const StudentAnalyticsSimple: React.FC = () => {
           email: "test@example.com",
           totalCourses: 3,
           completedCourses: 1,
-          averageProgress: 75
-        }
+          averageProgress: 75,
+        },
       ]);
       setLoading(false);
     }, 1000);
@@ -47,24 +47,30 @@ const StudentAnalyticsSimple: React.FC = () => {
           <FaUsers className="text-blue-600" />
           System-Wide Student Analytics
         </h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-blue-900">Total Students</h3>
-                <p className="text-2xl font-bold text-blue-600">{studentsData.length}</p>
+                <h3 className="text-sm font-medium text-blue-900">
+                  Total Students
+                </h3>
+                <p className="text-2xl font-bold text-blue-600">
+                  {studentsData.length}
+                </p>
               </div>
               <FaUsers className="text-blue-600 text-2xl" />
             </div>
           </div>
-          
+
           <div className="bg-green-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-green-900">Active Students</h3>
+                <h3 className="text-sm font-medium text-green-900">
+                  Active Students
+                </h3>
                 <p className="text-2xl font-bold text-green-600">
-                  {studentsData.filter(s => s.totalCourses > 0).length}
+                  {studentsData.filter((s) => s.totalCourses > 0).length}
                 </p>
               </div>
               <FaChartLine className="text-green-600 text-2xl" />
@@ -74,15 +80,21 @@ const StudentAnalyticsSimple: React.FC = () => {
 
         <div className="space-y-4">
           {studentsData.map((student) => (
-            <div key={student.id} className="border border-gray-200 rounded-lg p-4">
+            <div
+              key={student.id}
+              className="border border-gray-200 rounded-lg p-4"
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-gray-900">{student.username}</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    {student.username}
+                  </h3>
                   <p className="text-sm text-gray-600">{student.email}</p>
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-gray-600">
-                    {student.completedCourses}/{student.totalCourses} courses completed
+                    {student.completedCourses}/{student.totalCourses} courses
+                    completed
                   </div>
                   <div className="text-sm font-medium text-blue-600">
                     {student.averageProgress}% average progress

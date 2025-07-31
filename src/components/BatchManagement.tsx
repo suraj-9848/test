@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { fetchBatches, fetchStudents, assignStudentsToBatch } from "../api/batchAssignApi";
+import {
+  fetchBatches,
+  fetchStudents,
+  assignStudentsToBatch,
+} from "../api/batchAssignApi";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -41,7 +45,7 @@ interface StudentAssignmentStatus {
 const BatchAssign: React.FC = () => {
   const searchParams = useSearchParams();
   const batchIdFromURL = searchParams.get("batchId");
-  
+
   const [batches, setBatches] = useState<Batch[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
@@ -73,10 +77,10 @@ const BatchAssign: React.FC = () => {
         fetchBatches(),
         fetchStudents(),
       ]);
-      
+
       console.log("Fetched batches:", batchesData);
       console.log("Fetched students:", studentsData);
-      
+
       if (!batchesData || batchesData.length === 0) {
         setError("No batches found. Please create a batch first.");
       }
@@ -103,43 +107,56 @@ const BatchAssign: React.FC = () => {
     setAssignmentLoading(true);
     setError("");
     setSuccess("");
-    
+
     try {
       console.log("Assignment request:", {
         batchId: selectedBatchId,
         studentIds: selectedStudents,
-        studentsCount: selectedStudents.length
+        studentsCount: selectedStudents.length,
       });
 
-      const response = await assignStudentsToBatch(selectedBatchId, selectedStudents);
-      
-      console.log("Assignment response:", response);
-      
-      setSuccess(
-        `Successfully assigned ${selectedStudents.length} student(s) to the selected batch!`
+      const response = await assignStudentsToBatch(
+        selectedBatchId,
+        selectedStudents,
       );
-      
+
+      console.log("Assignment response:", response);
+
+      setSuccess(
+        `Successfully assigned ${selectedStudents.length} student(s) to the selected batch!`,
+      );
+
       // Clear selections after successful assignment
       setSelectedStudents([]);
-      
+
       // Refresh data to show updated assignments
       setTimeout(() => {
         fetchBatchesAndStudents();
       }, 1000);
-      
     } catch (error: unknown) {
       console.error("Assignment error:", error);
       const message = error instanceof Error ? error.message : String(error);
-      
+
       // Provide more specific error messages
       if (message.includes("Internal server error")) {
-        setError("Server error occurred. This might be due to: database connectivity, missing batch/student data, or permission issues. Please try again or contact support.");
+        setError(
+          "Server error occurred. This might be due to: database connectivity, missing batch/student data, or permission issues. Please try again or contact support.",
+        );
       } else if (message.includes("Batch not found")) {
-        setError("The selected batch was not found. Please refresh and try again.");
+        setError(
+          "The selected batch was not found. Please refresh and try again.",
+        );
       } else if (message.includes("User not found")) {
-        setError("One or more selected students were not found. Please refresh and try again.");
-      } else if (message.includes("org mismatch") || message.includes("organization")) {
-        setError("Organization mismatch: Students can only be assigned to batches within their organization.");
+        setError(
+          "One or more selected students were not found. Please refresh and try again.",
+        );
+      } else if (
+        message.includes("org mismatch") ||
+        message.includes("organization")
+      ) {
+        setError(
+          "Organization mismatch: Students can only be assigned to batches within their organization.",
+        );
       } else if (message.includes("already assigned")) {
         setError("Some students are already assigned to this batch.");
       } else {
@@ -152,7 +169,7 @@ const BatchAssign: React.FC = () => {
 
   const toggleStudentSelection = (studentId: string) => {
     // Don't allow selection of already assigned students
-    const student = students.find(s => s.id === studentId);
+    const student = students.find((s) => s.id === studentId);
     if (student && isStudentAssignedToBatch(student, selectedBatchId)) {
       return; // Don't toggle if already assigned
     }
@@ -166,19 +183,22 @@ const BatchAssign: React.FC = () => {
 
   const selectAllStudents = () => {
     // Only select students who are not already assigned
-    const availableStudents = filteredStudents.filter(student => 
-      !isStudentAssignedToBatch(student, selectedBatchId)
+    const availableStudents = filteredStudents.filter(
+      (student) => !isStudentAssignedToBatch(student, selectedBatchId),
     );
-    
+
     if (selectedStudents.length === availableStudents.length) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(availableStudents.map(student => student.id));
+      setSelectedStudents(availableStudents.map((student) => student.id));
     }
   };
 
   // Check if student is already assigned to the selected batch
-  const isStudentAssignedToBatch = (student: Student, batchId: string): boolean => {
+  const isStudentAssignedToBatch = (
+    student: Student,
+    batchId: string,
+  ): boolean => {
     if (!student.batch_id || !batchId) return false;
     return student.batch_id.includes(batchId);
   };
@@ -187,7 +207,7 @@ const BatchAssign: React.FC = () => {
   const getStudentStatus = (student: Student): StudentAssignmentStatus => {
     const isAssigned = isStudentAssignedToBatch(student, selectedBatchId);
     const isSelected = selectedStudents.includes(student.id);
-    
+
     return { isAssigned, isSelected };
   };
 
@@ -203,7 +223,7 @@ const BatchAssign: React.FC = () => {
     onClick: () => void;
   }> = ({ student, status, onClick }) => {
     const { isAssigned, isSelected } = status;
-    
+
     return (
       <div
         onClick={isAssigned ? undefined : onClick}
@@ -223,14 +243,23 @@ const BatchAssign: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {/* Diagonal Hash Pattern for Assigned Students */}
         {isAssigned && (
           <div className="absolute inset-0 opacity-20 pointer-events-none">
             <svg width="100%" height="100%" className="rounded-xl">
               <defs>
-                <pattern id="diagonalHatch" patternUnits="userSpaceOnUse" width="4" height="4">
-                  <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#666" strokeWidth="0.5"/>
+                <pattern
+                  id="diagonalHatch"
+                  patternUnits="userSpaceOnUse"
+                  width="4"
+                  height="4"
+                >
+                  <path
+                    d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2"
+                    stroke="#666"
+                    strokeWidth="0.5"
+                  />
                 </pattern>
               </defs>
               <rect width="100%" height="100%" fill="url(#diagonalHatch)" />
@@ -240,30 +269,40 @@ const BatchAssign: React.FC = () => {
 
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              isAssigned 
-                ? "bg-gray-400" 
-                : "bg-gradient-to-br from-blue-500 to-purple-600"
-            }`}>
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isAssigned
+                  ? "bg-gray-400"
+                  : "bg-gradient-to-br from-blue-500 to-purple-600"
+              }`}
+            >
               <FaUser className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className={`font-semibold ${isAssigned ? 'text-gray-600' : 'text-slate-800'}`}>
+              <h3
+                className={`font-semibold ${isAssigned ? "text-gray-600" : "text-slate-800"}`}
+              >
                 {student.name}
-                {isAssigned && <span className="ml-2 text-xs text-green-600">(Already Assigned)</span>}
+                {isAssigned && (
+                  <span className="ml-2 text-xs text-green-600">
+                    (Already Assigned)
+                  </span>
+                )}
               </h3>
-              <p className={`text-sm ${isAssigned ? 'text-gray-500' : 'text-slate-600'}`}>
+              <p
+                className={`text-sm ${isAssigned ? "text-gray-500" : "text-slate-600"}`}
+              >
                 {student.email}
               </p>
             </div>
           </div>
-          
+
           {isSelected && !isAssigned && (
             <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
               <FaCheck className="w-3 h-3 text-white" />
             </div>
           )}
-          
+
           {isAssigned && (
             <div className="flex items-center text-green-600">
               <FaCheckCircle className="w-5 h-5" />
@@ -275,10 +314,10 @@ const BatchAssign: React.FC = () => {
   };
 
   const SelectionSummary: React.FC = () => {
-    const availableStudents = filteredStudents.filter(student => 
-      !isStudentAssignedToBatch(student, selectedBatchId)
+    const availableStudents = filteredStudents.filter(
+      (student) => !isStudentAssignedToBatch(student, selectedBatchId),
     );
-    
+
     return (
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-200">
         <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -302,8 +341,12 @@ const BatchAssign: React.FC = () => {
                   return batch ? (
                     <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
                       <div>
-                        <span className="font-medium text-slate-700">{batch.name}</span>
-                        <p className="text-xs text-slate-500 mt-1">{batch.description}</p>
+                        <span className="font-medium text-slate-700">
+                          {batch.name}
+                        </span>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {batch.description}
+                        </p>
                       </div>
                       <button
                         onClick={() => setSelectedBatchId("")}
@@ -354,26 +397,38 @@ const BatchAssign: React.FC = () => {
             )}
           </div>
         </div>
-        
+
         {/* Assignment Statistics */}
         {selectedBatchId && (
           <div className="mt-4 p-3 bg-white rounded-lg border">
-            <h5 className="font-medium text-slate-700 mb-2">Assignment Statistics</h5>
+            <h5 className="font-medium text-slate-700 mb-2">
+              Assignment Statistics
+            </h5>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold text-blue-600">
-                  {filteredStudents.filter(s => !isStudentAssignedToBatch(s, selectedBatchId)).length}
+                  {
+                    filteredStudents.filter(
+                      (s) => !isStudentAssignedToBatch(s, selectedBatchId),
+                    ).length
+                  }
                 </p>
                 <p className="text-xs text-slate-500">Available</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-600">
-                  {filteredStudents.filter(s => isStudentAssignedToBatch(s, selectedBatchId)).length}
+                  {
+                    filteredStudents.filter((s) =>
+                      isStudentAssignedToBatch(s, selectedBatchId),
+                    ).length
+                  }
                 </p>
                 <p className="text-xs text-slate-500">Already Assigned</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-purple-600">{selectedStudents.length}</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {selectedStudents.length}
+                </p>
                 <p className="text-xs text-slate-500">Selected</p>
               </div>
             </div>
@@ -384,7 +439,9 @@ const BatchAssign: React.FC = () => {
           <button
             onClick={handleAssign}
             disabled={
-              assignmentLoading || selectedBatchId === "" || selectedStudents.length === 0
+              assignmentLoading ||
+              selectedBatchId === "" ||
+              selectedStudents.length === 0
             }
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -423,8 +480,8 @@ const BatchAssign: React.FC = () => {
     );
   }
 
-  const availableStudentsCount = filteredStudents.filter(student => 
-    !isStudentAssignedToBatch(student, selectedBatchId)
+  const availableStudentsCount = filteredStudents.filter(
+    (student) => !isStudentAssignedToBatch(student, selectedBatchId),
   ).length;
 
   return (
@@ -447,7 +504,7 @@ const BatchAssign: React.FC = () => {
             <FaArrowLeft className="w-4 h-4" />
             Back
           </button>
-          <Link 
+          <Link
             href="/dashboard/instructor?section=batch-management"
             className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition"
           >
@@ -464,7 +521,7 @@ const BatchAssign: React.FC = () => {
             <p className="font-medium">Assignment Failed</p>
             <p className="text-sm mt-1">{error}</p>
           </div>
-          <button 
+          <button
             onClick={() => setError("")}
             className="text-red-500 hover:text-red-700"
           >
@@ -478,7 +535,7 @@ const BatchAssign: React.FC = () => {
         <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-3">
           <FaCheck className="w-5 h-5" />
           <p className="flex-1">{success}</p>
-          <button 
+          <button
             onClick={() => setSuccess("")}
             className="text-green-500 hover:text-green-700"
           >
@@ -491,9 +548,12 @@ const BatchAssign: React.FC = () => {
       {isNewBatch && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg flex items-center gap-3">
           <FaInfo className="w-5 h-5" />
-          <p className="flex-1">Your new batch has been created successfully! Now you can assign students to this batch.</p>
-          <button 
-            onClick={() => setIsNewBatch(false)} 
+          <p className="flex-1">
+            Your new batch has been created successfully! Now you can assign
+            students to this batch.
+          </p>
+          <button
+            onClick={() => setIsNewBatch(false)}
             className="text-blue-700 hover:text-blue-900"
           >
             <FaTimes className="w-4 h-4" />
@@ -526,7 +586,9 @@ const BatchAssign: React.FC = () => {
                 <div className="text-center py-8 text-slate-500">
                   <FaGraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <p>No batches available</p>
-                  <p className="text-sm mt-1">Create a batch first to assign students</p>
+                  <p className="text-sm mt-1">
+                    Create a batch first to assign students
+                  </p>
                 </div>
               ) : (
                 batches.map((batch) => (
@@ -573,12 +635,17 @@ const BatchAssign: React.FC = () => {
                 </span>
                 {selectedBatchId && (
                   <span className="text-sm text-green-500 bg-green-100 px-2 py-1 rounded">
-                    {filteredStudents.filter(s => isStudentAssignedToBatch(s, selectedBatchId)).length} assigned
+                    {
+                      filteredStudents.filter((s) =>
+                        isStudentAssignedToBatch(s, selectedBatchId),
+                      ).length
+                    }{" "}
+                    assigned
                   </span>
                 )}
               </div>
             </div>
-            
+
             {/* Search and Select All */}
             <div className="space-y-3 mb-4">
               <div className="relative">
@@ -591,16 +658,15 @@ const BatchAssign: React.FC = () => {
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              
+
               {availableStudentsCount > 0 && (
                 <button
                   onClick={selectAllStudents}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  {selectedStudents.length === availableStudentsCount 
-                    ? "Deselect All" 
-                    : `Select All Available (${availableStudentsCount})`
-                  }
+                  {selectedStudents.length === availableStudentsCount
+                    ? "Deselect All"
+                    : `Select All Available (${availableStudentsCount})`}
                 </button>
               )}
             </div>
@@ -610,13 +676,14 @@ const BatchAssign: React.FC = () => {
                 <div className="text-center py-8 text-slate-500">
                   <FaUser className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <p>
-                    {students.length === 0 
-                      ? "No students available" 
-                      : "No students match your search"
-                    }
+                    {students.length === 0
+                      ? "No students available"
+                      : "No students match your search"}
                   </p>
                   {students.length === 0 && (
-                    <p className="text-sm mt-1">Ensure students are registered in the system</p>
+                    <p className="text-sm mt-1">
+                      Ensure students are registered in the system
+                    </p>
                   )}
                 </div>
               ) : (

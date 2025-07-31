@@ -134,9 +134,16 @@ const EvaluationStatistics: React.FC = () => {
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const testsRef = useRef<Test[]>([]);
-  const fetchStatisticsRef = useRef<((batchId: string, courseId: string, testId: string) => Promise<void>) | null>(null);
-  const fetchTestsRef = useRef<((batchId: string, courseId: string) => Promise<void>) | null>(null);
-  const fetchCoursesRef = useRef<((batchId: string) => Promise<void>) | null>(null);
+  const fetchStatisticsRef = useRef<
+    | ((batchId: string, courseId: string, testId: string) => Promise<void>)
+    | null
+  >(null);
+  const fetchTestsRef = useRef<
+    ((batchId: string, courseId: string) => Promise<void>) | null
+  >(null);
+  const fetchCoursesRef = useRef<((batchId: string) => Promise<void>) | null>(
+    null,
+  );
 
   // State
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -164,14 +171,19 @@ const EvaluationStatistics: React.FC = () => {
 
   // Initialize component mounting and cleanup
   useEffect(() => {
-    console.log('🚀 EvaluationStatistics - Component mounted');
-    
+    console.log("🚀 EvaluationStatistics - Component mounted");
+
     // Ensure mountedRef is set to true
     mountedRef.current = true;
-    console.log('🔧 EvaluationStatistics mountedRef set to:', mountedRef.current);
-    
+    console.log(
+      "🔧 EvaluationStatistics mountedRef set to:",
+      mountedRef.current,
+    );
+
     return () => {
-      console.log('🧹 EvaluationStatistics - Component cleanup, setting mountedRef to false');
+      console.log(
+        "🧹 EvaluationStatistics - Component cleanup, setting mountedRef to false",
+      );
       mountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -184,25 +196,28 @@ const EvaluationStatistics: React.FC = () => {
     async (endpoint: string, options: RequestInit = {}) => {
       const startTime = Date.now();
       const requestId = Math.random().toString(36).substr(2, 9);
-      
+
       // Abort previous request if exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      
+
       abortControllerRef.current = new AbortController();
 
       // Log outgoing request
-      const isAnalyticsCall = endpoint.includes('evaluation-statistics') || endpoint.includes('analytics') || endpoint.includes('tests');
-      const logPrefix = isAnalyticsCall ? '📊 EVALUATION API' : '🌐 EVAL API';
-      
+      const isAnalyticsCall =
+        endpoint.includes("evaluation-statistics") ||
+        endpoint.includes("analytics") ||
+        endpoint.includes("tests");
+      const logPrefix = isAnalyticsCall ? "📊 EVALUATION API" : "🌐 EVAL API";
+
       console.log(`${logPrefix} REQUEST [${requestId}]:`, {
         endpoint,
         fullURL: `${API_BASE_URL}${endpoint}`,
-        method: options.method || 'GET',
+        method: options.method || "GET",
         hasToken: !!backendJwt,
         timestamp: new Date().toISOString(),
-        isAnalytics: isAnalyticsCall
+        isAnalytics: isAnalyticsCall,
       });
 
       try {
@@ -224,13 +239,15 @@ const EvaluationStatistics: React.FC = () => {
             status: response.status,
             statusText: response.statusText,
             duration: `${duration}ms`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+          throw new Error(
+            `API Error: ${response.status} ${response.statusText}`,
+          );
         }
 
         const data = await response.json();
-        
+
         // Log successful response
         console.log(`${logPrefix} RESPONSE [${requestId}]:`, {
           status: response.status,
@@ -239,41 +256,43 @@ const EvaluationStatistics: React.FC = () => {
           duration: `${duration}ms`,
           dataSize: JSON.stringify(data).length,
           timestamp: new Date().toISOString(),
-          isAnalytics: isAnalyticsCall
+          isAnalytics: isAnalyticsCall,
         });
 
         // Log response data for analytics calls
         if (isAnalyticsCall) {
           console.log(`${logPrefix} DATA [${requestId}]:`, {
             dataType: typeof data,
-            dataKeys: data && typeof data === 'object' ? Object.keys(data) : 'N/A',
-            dataPreview: data && typeof data === 'object' 
-              ? JSON.stringify(data).substring(0, 200) + '...'
-              : data
+            dataKeys:
+              data && typeof data === "object" ? Object.keys(data) : "N/A",
+            dataPreview:
+              data && typeof data === "object"
+                ? JSON.stringify(data).substring(0, 200) + "..."
+                : data,
           });
         }
 
         return data;
       } catch (err: any) {
         const duration = Date.now() - startTime;
-        
-        if (err.name === 'AbortError') {
+
+        if (err.name === "AbortError") {
           console.log(`${logPrefix} ABORTED [${requestId}]:`, {
             endpoint,
             duration: `${duration}ms`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
           return null;
         }
-        
+
         console.error(`${logPrefix} ERROR [${requestId}]:`, {
           endpoint,
           error: err.message,
           duration: `${duration}ms`,
           timestamp: new Date().toISOString(),
-          isAnalytics: isAnalyticsCall
+          isAnalytics: isAnalyticsCall,
         });
-        
+
         throw err;
       }
     },
@@ -321,23 +340,32 @@ const EvaluationStatistics: React.FC = () => {
   // Fetch statistics
   const fetchStatistics = useCallback(
     async (batchId: string, courseId: string, testId: string) => {
-      console.log('📊 EVALUATION STATISTICS FETCH START:', {
+      console.log("📊 EVALUATION STATISTICS FETCH START:", {
         batchId,
         courseId,
         testId,
         hasJWT: !!backendJwt,
         mounted: mountedRef.current,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
-      if (!batchId || !courseId || !testId || !backendJwt || !mountedRef.current) {
-        console.log('⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:', {
-          batchId: !!batchId,
-          courseId: !!courseId,
-          testId: !!testId,
-          backendJwt: !!backendJwt,
-          mounted: mountedRef.current
-        });
+
+      if (
+        !batchId ||
+        !courseId ||
+        !testId ||
+        !backendJwt ||
+        !mountedRef.current
+      ) {
+        console.log(
+          "⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:",
+          {
+            batchId: !!batchId,
+            courseId: !!courseId,
+            testId: !!testId,
+            backendJwt: !!backendJwt,
+            mounted: mountedRef.current,
+          },
+        );
         return;
       }
 
@@ -346,30 +374,33 @@ const EvaluationStatistics: React.FC = () => {
         setError("");
 
         const endpoint = `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`;
-        console.log('📊 EVALUATION STATISTICS URL:', {
+        console.log("📊 EVALUATION STATISTICS URL:", {
           endpoint,
-          fullURL: `${API_BASE_URL}${endpoint}`
+          fullURL: `${API_BASE_URL}${endpoint}`,
         });
 
-        console.log('📊 EVALUATION STATISTICS API CALL: Making request...');
+        console.log("📊 EVALUATION STATISTICS API CALL: Making request...");
         const response = await apiCall(endpoint);
 
         if (!response || !mountedRef.current) {
-          console.log('❌ EVALUATION STATISTICS: No response or component unmounted');
+          console.log(
+            "❌ EVALUATION STATISTICS: No response or component unmounted",
+          );
           return;
         }
 
-        console.log('📊 EVALUATION STATISTICS RESPONSE RECEIVED:', {
+        console.log("📊 EVALUATION STATISTICS RESPONSE RECEIVED:", {
           status: response.status,
           dataSize: response.data ? JSON.stringify(response.data).length : 0,
           hasData: !!response.data,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         // Process the statistics data
         const processedStats: EvaluationStatistics = {
           testId,
-          testTitle: testsRef.current.find((t) => t.id === testId)?.title || "Test",
+          testTitle:
+            testsRef.current.find((t) => t.id === testId)?.title || "Test",
           totalQuestions: response.data?.totalQuestions || 0,
           totalMarks: response.data?.totalMarks || 0,
           passingMarks: response.data?.passingMarks || 0,
@@ -401,9 +432,16 @@ const EvaluationStatistics: React.FC = () => {
                 marks: 1, // Default marks
                 correctAnswers: q.correctAttempts,
                 incorrectAnswers: q.totalAttempts - q.correctAttempts,
-                accuracyRate: q.totalAttempts > 0 ? (q.correctAttempts / q.totalAttempts) * 100 : 0,
-                averageMarks: q.totalAttempts > 0 ? q.correctAttempts / q.totalAttempts : 0,
-                difficulty: q.difficultyLevel.toLowerCase() as "easy" | "medium" | "hard",
+                accuracyRate:
+                  q.totalAttempts > 0
+                    ? (q.correctAttempts / q.totalAttempts) * 100
+                    : 0,
+                averageMarks:
+                  q.totalAttempts > 0 ? q.correctAttempts / q.totalAttempts : 0,
+                difficulty: q.difficultyLevel.toLowerCase() as
+                  | "easy"
+                  | "medium"
+                  | "hard",
               }),
             ) || [],
           difficultyAnalysis: response.data?.difficultyAnalysis || {
@@ -430,7 +468,10 @@ const EvaluationStatistics: React.FC = () => {
           setStatistics(processedStats);
         }
       } catch (err: any) {
-        console.error("❌ EVALUATION STATISTICS ERROR: Error fetching evaluation statistics:", err);
+        console.error(
+          "❌ EVALUATION STATISTICS ERROR: Error fetching evaluation statistics:",
+          err,
+        );
         console.error("❌ EVALUATION STATISTICS ERROR DETAILS:", {
           message: err.message,
           status: err.response?.status,
@@ -440,10 +481,10 @@ const EvaluationStatistics: React.FC = () => {
           courseId,
           testId,
           timestamp: new Date().toISOString(),
-          stack: err.stack
+          stack: err.stack,
         });
-        
-        if (mountedRef.current && err.name !== 'AbortError') {
+
+        if (mountedRef.current && err.name !== "AbortError") {
           setError("Failed to load evaluation statistics");
         }
       } finally {
@@ -468,12 +509,19 @@ const EvaluationStatistics: React.FC = () => {
       }
 
       try {
-        const response = await apiCall(`/api/instructor/batches/${batchId}/courses/${courseId}/tests`);
+        const response = await apiCall(
+          `/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
+        );
         if (!response || !mountedRef.current) return;
 
         // Handle different response formats: {data: {tests}} or {tests} or direct array
-        const testList = response.data?.tests || response.tests || response.data || response || [];
-        console.log('Tests received for evaluation:', testList);
+        const testList =
+          response.data?.tests ||
+          response.tests ||
+          response.data ||
+          response ||
+          [];
+        console.log("Tests received for evaluation:", testList);
 
         setTests(testList);
         testsRef.current = testList; // Keep ref in sync
@@ -486,7 +534,7 @@ const EvaluationStatistics: React.FC = () => {
         }
       } catch (err: any) {
         console.error("Error fetching tests:", err);
-        if (mountedRef.current && err.name !== 'AbortError') {
+        if (mountedRef.current && err.name !== "AbortError") {
           setError("Failed to load tests for the selected course");
         }
       }
@@ -507,12 +555,19 @@ const EvaluationStatistics: React.FC = () => {
       }
 
       try {
-        const response = await apiCall(`/api/instructor/batches/${batchId}/courses`);
+        const response = await apiCall(
+          `/api/instructor/batches/${batchId}/courses`,
+        );
         if (!response || !mountedRef.current) return;
 
         // Handle different response formats from backend
-        const courseList = response.data?.courses || response.courses || response.data || response || [];
-        console.log('Courses received for evaluation:', courseList);
+        const courseList =
+          response.data?.courses ||
+          response.courses ||
+          response.data ||
+          response ||
+          [];
+        console.log("Courses received for evaluation:", courseList);
 
         setCourses(courseList);
 
@@ -524,7 +579,7 @@ const EvaluationStatistics: React.FC = () => {
         }
       } catch (err: any) {
         console.error("Error fetching courses:", err);
-        if (mountedRef.current && err.name !== 'AbortError') {
+        if (mountedRef.current && err.name !== "AbortError") {
           setError("Failed to load courses for the selected batch");
         }
       }
@@ -544,16 +599,21 @@ const EvaluationStatistics: React.FC = () => {
 
   // Fetch initial data
   const fetchInitialData = useCallback(async () => {
-    console.log('🔄 EvaluationStatistics fetchInitialData called');
-    console.log('🔍 EvaluationStatistics Mounted:', mountedRef.current);
-    console.log('🔍 EvaluationStatistics Has JWT:', !!backendJwt);
-    
+    console.log("🔄 EvaluationStatistics fetchInitialData called");
+    console.log("🔍 EvaluationStatistics Mounted:", mountedRef.current);
+    console.log("🔍 EvaluationStatistics Has JWT:", !!backendJwt);
+
     if (!backendJwt || !mountedRef.current) {
-      console.log('❌ EvaluationStatistics: Missing JWT or not mounted, skipping');
+      console.log(
+        "❌ EvaluationStatistics: Missing JWT or not mounted, skipping",
+      );
       if (!mountedRef.current) {
-        console.log('🔧 EvaluationStatistics: Attempting to fix mountedRef...');
+        console.log("🔧 EvaluationStatistics: Attempting to fix mountedRef...");
         mountedRef.current = true;
-        console.log('🔧 EvaluationStatistics: mountedRef after fix:', mountedRef.current);
+        console.log(
+          "🔧 EvaluationStatistics: mountedRef after fix:",
+          mountedRef.current,
+        );
       }
       return;
     }
@@ -562,40 +622,58 @@ const EvaluationStatistics: React.FC = () => {
       setLoading(true);
       setError("");
 
-      console.log('🚀 EvaluationStatistics: Making API call to fetch batches...');
+      console.log(
+        "🚀 EvaluationStatistics: Making API call to fetch batches...",
+      );
       const batchesResponse = await apiCall("/api/instructor/batches");
-      
+
       if (!batchesResponse || !mountedRef.current) {
-        console.log('❌ EvaluationStatistics: No response or component unmounted');
+        console.log(
+          "❌ EvaluationStatistics: No response or component unmounted",
+        );
         return;
       }
 
       // Handle different response formats
-      const batchList = batchesResponse.data?.batches || batchesResponse.batches || batchesResponse.data || batchesResponse || [];
-      console.log('✅ EvaluationStatistics: Batches received:', batchList.length);
+      const batchList =
+        batchesResponse.data?.batches ||
+        batchesResponse.batches ||
+        batchesResponse.data ||
+        batchesResponse ||
+        [];
+      console.log(
+        "✅ EvaluationStatistics: Batches received:",
+        batchList.length,
+      );
 
       setBatches(batchList);
 
       if (batchList.length > 0) {
         const firstBatch = batchList[0];
-        console.log('🔄 EvaluationStatistics: Setting first batch and fetching courses:', firstBatch.id);
+        console.log(
+          "🔄 EvaluationStatistics: Setting first batch and fetching courses:",
+          firstBatch.id,
+        );
         setSelectedBatch(firstBatch.id);
         if (fetchCoursesRef.current) {
           await fetchCoursesRef.current(firstBatch.id);
         }
       } else {
-        console.log('⚠️ EvaluationStatistics: No batches available');
+        console.log("⚠️ EvaluationStatistics: No batches available");
       }
     } catch (err: any) {
-      console.error("❌ EvaluationStatistics: Error fetching initial data:", err);
+      console.error(
+        "❌ EvaluationStatistics: Error fetching initial data:",
+        err,
+      );
       console.error("❌ EvaluationStatistics: Error details:", {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
-      if (mountedRef.current && err.name !== 'AbortError') {
+
+      if (mountedRef.current && err.name !== "AbortError") {
         setError("Failed to load initial data");
       }
     } finally {
@@ -613,85 +691,114 @@ const EvaluationStatistics: React.FC = () => {
   }, [backendJwt, fetchInitialData]);
 
   // Handle batch change
-  const handleBatchChange = useCallback((batchId: string) => {
-    if (!mountedRef.current) return;
+  const handleBatchChange = useCallback(
+    (batchId: string) => {
+      if (!mountedRef.current) return;
 
-    setSelectedBatch(batchId);
-    setSelectedCourse("");
-    setSelectedTest("");
-    setCourses([]);
-    setTests([]);
-    setStatistics(null);
+      setSelectedBatch(batchId);
+      setSelectedCourse("");
+      setSelectedTest("");
+      setCourses([]);
+      setTests([]);
+      setStatistics(null);
 
-    if (batchId && backendJwt && fetchCoursesRef.current) {
-      fetchCoursesRef.current(batchId);
-    }
-  }, [backendJwt]);
+      if (batchId && backendJwt && fetchCoursesRef.current) {
+        fetchCoursesRef.current(batchId);
+      }
+    },
+    [backendJwt],
+  );
 
   // Handle course change
-  const handleCourseChange = useCallback((courseId: string) => {
-    if (!mountedRef.current) return;
+  const handleCourseChange = useCallback(
+    (courseId: string) => {
+      if (!mountedRef.current) return;
 
-    setSelectedCourse(courseId);
-    setSelectedTest("");
-    setTests([]);
-    setStatistics(null);
+      setSelectedCourse(courseId);
+      setSelectedTest("");
+      setTests([]);
+      setStatistics(null);
 
-    if (selectedBatch && courseId && backendJwt && fetchTestsRef.current) {
-      fetchTestsRef.current(selectedBatch, courseId);
-    }
-  }, [selectedBatch, backendJwt]);
+      if (selectedBatch && courseId && backendJwt && fetchTestsRef.current) {
+        fetchTestsRef.current(selectedBatch, courseId);
+      }
+    },
+    [selectedBatch, backendJwt],
+  );
 
   // Handle test change
-  const handleTestChange = useCallback((testId: string) => {
-    console.log('🚀 EVALUATION STATISTICS: Test changed to:', testId);
-    console.log('📍 EVALUATION STATISTICS: Component state before test change:', {
-      selectedBatch,
-      selectedCourse,
-      newTestId: testId,
-      mountedRef: mountedRef.current,
-      hasJWT: !!backendJwt,
-      testsLength: tests.length
-    });
-    
-    if (!mountedRef.current) {
-      console.log('⚠️ EVALUATION STATISTICS: Component not mounted, skipping');
-      return;
-    }
+  const handleTestChange = useCallback(
+    (testId: string) => {
+      console.log("🚀 EVALUATION STATISTICS: Test changed to:", testId);
+      console.log(
+        "📍 EVALUATION STATISTICS: Component state before test change:",
+        {
+          selectedBatch,
+          selectedCourse,
+          newTestId: testId,
+          mountedRef: mountedRef.current,
+          hasJWT: !!backendJwt,
+          testsLength: tests.length,
+        },
+      );
 
-    setSelectedTest(testId);
-    setStatistics(null);
-
-    if (selectedBatch && selectedCourse && testId && backendJwt) {
-      console.log('📊 EVALUATION STATISTICS TRIGGER: About to fetch evaluation statistics for:', {
-        batchId: selectedBatch,
-        courseId: selectedCourse,
-        testId: testId,
-        timestamp: new Date().toISOString()
-      });
-      
-      try {
-        if (fetchStatisticsRef.current) {
-          fetchStatisticsRef.current(selectedBatch, selectedCourse, testId);
-        }
-        console.log('✅ EVALUATION STATISTICS TRIGGERED: fetchStatistics called successfully');
-      } catch (error) {
-        console.error('❌ EVALUATION STATISTICS FAILED: fetchStatistics failed:', error);
+      if (!mountedRef.current) {
+        console.log(
+          "⚠️ EVALUATION STATISTICS: Component not mounted, skipping",
+        );
+        return;
       }
-    } else {
-      console.log('⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:', {
-        selectedBatch: !!selectedBatch,
-        selectedCourse: !!selectedCourse,
-        testId: !!testId,
-        backendJwt: !!backendJwt,
-        reason: !selectedBatch ? 'No batch selected' 
-               : !selectedCourse ? 'No course selected'
-               : !testId ? 'No test provided'
-               : !backendJwt ? 'No JWT token'
-               : 'Unknown'
-      });
-    }
-  }, [selectedBatch, selectedCourse, backendJwt]);
+
+      setSelectedTest(testId);
+      setStatistics(null);
+
+      if (selectedBatch && selectedCourse && testId && backendJwt) {
+        console.log(
+          "📊 EVALUATION STATISTICS TRIGGER: About to fetch evaluation statistics for:",
+          {
+            batchId: selectedBatch,
+            courseId: selectedCourse,
+            testId: testId,
+            timestamp: new Date().toISOString(),
+          },
+        );
+
+        try {
+          if (fetchStatisticsRef.current) {
+            fetchStatisticsRef.current(selectedBatch, selectedCourse, testId);
+          }
+          console.log(
+            "✅ EVALUATION STATISTICS TRIGGERED: fetchStatistics called successfully",
+          );
+        } catch (error) {
+          console.error(
+            "❌ EVALUATION STATISTICS FAILED: fetchStatistics failed:",
+            error,
+          );
+        }
+      } else {
+        console.log(
+          "⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:",
+          {
+            selectedBatch: !!selectedBatch,
+            selectedCourse: !!selectedCourse,
+            testId: !!testId,
+            backendJwt: !!backendJwt,
+            reason: !selectedBatch
+              ? "No batch selected"
+              : !selectedCourse
+                ? "No course selected"
+                : !testId
+                  ? "No test provided"
+                  : !backendJwt
+                    ? "No JWT token"
+                    : "Unknown",
+          },
+        );
+      }
+    },
+    [selectedBatch, selectedCourse, backendJwt],
+  );
 
   const exportStatistics = () => {
     if (!statistics) return;

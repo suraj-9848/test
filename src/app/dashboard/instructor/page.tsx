@@ -250,9 +250,7 @@ const InstructorDashboard: React.FC = () => {
 
       // Analytics & Reports
       case "student-analytics":
-        return (
-          <StudentAnalytics/>
-        );
+        return <StudentAnalytics />;
       case "progress-analytics":
         return <ProgressAnalytics />;
       case "test-analytics":

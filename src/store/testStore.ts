@@ -1,9 +1,5 @@
-import { create } from 'zustand';
-import {
-  instructorApi,
-  Test,
-  Question,
-} from "../api/instructorApi";
+import { create } from "zustand";
+import { instructorApi, Test, Question } from "../api/instructorApi";
 
 // Simple stub types for missing interfaces
 interface TestStatistics {
@@ -29,7 +25,7 @@ interface CreateTestRequest {
 interface CreateQuestionRequest {
   testId: string;
   question_text: string;
-  type: 'MCQ' | 'DESCRIPTIVE' | 'CODE';
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
   marks: number;
   options?: { text: string; correct: boolean }[];
 }
@@ -51,7 +47,10 @@ interface TestState {
 
   fetchQuestions: (testId: string) => Promise<void>;
   createQuestion: (questionData: CreateQuestionRequest) => Promise<void>;
-  updateQuestion: (questionId: string, questionData: Partial<Question>) => Promise<void>;
+  updateQuestion: (
+    questionId: string,
+    questionData: Partial<Question>,
+  ) => Promise<void>;
   deleteQuestion: (questionId: string) => Promise<void>;
 
   fetchStatistics: (batchId: string, courseId: string) => Promise<void>;
@@ -86,14 +85,14 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Fetching tests for batch:', batchId, 'course:', courseId);
+      console.log("Fetching tests for batch:", batchId, "course:", courseId);
       set({
         tests: [], // Mock empty tests
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to fetch tests',
+        error: error.message || "Failed to fetch tests",
         loading: false,
       });
     }
@@ -103,13 +102,13 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Creating test:', testData);
+      console.log("Creating test:", testData);
       set({
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to create test',
+        error: error.message || "Failed to create test",
         loading: false,
       });
     }
@@ -119,13 +118,13 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Updating test:', testId, testData);
+      console.log("Updating test:", testId, testData);
       set({
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to update test',
+        error: error.message || "Failed to update test",
         loading: false,
       });
     }
@@ -135,14 +134,14 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Deleting test:', testId);
+      console.log("Deleting test:", testId);
       set({
-        tests: get().tests.filter(test => test.id !== testId),
+        tests: get().tests.filter((test) => test.id !== testId),
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to delete test',
+        error: error.message || "Failed to delete test",
         loading: false,
       });
     }
@@ -152,13 +151,13 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Publishing test:', testId);
+      console.log("Publishing test:", testId);
       set({
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to publish test',
+        error: error.message || "Failed to publish test",
         loading: false,
       });
     }
@@ -168,14 +167,14 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Fetching questions for test:', testId);
+      console.log("Fetching questions for test:", testId);
       set({
         questions: [], // Mock empty questions
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to fetch questions',
+        error: error.message || "Failed to fetch questions",
         loading: false,
       });
     }
@@ -185,29 +184,32 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Creating question:', questionData);
+      console.log("Creating question:", questionData);
       set({
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to create question',
+        error: error.message || "Failed to create question",
         loading: false,
       });
     }
   },
 
-  updateQuestion: async (questionId: string, questionData: Partial<Question>) => {
+  updateQuestion: async (
+    questionId: string,
+    questionData: Partial<Question>,
+  ) => {
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Updating question:', questionId, questionData);
+      console.log("Updating question:", questionId, questionData);
       set({
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to update question',
+        error: error.message || "Failed to update question",
         loading: false,
       });
     }
@@ -217,14 +219,14 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Deleting question:', questionId);
+      console.log("Deleting question:", questionId);
       set({
-        questions: get().questions.filter(q => q.id !== questionId),
+        questions: get().questions.filter((q) => q.id !== questionId),
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to delete question',
+        error: error.message || "Failed to delete question",
         loading: false,
       });
     }
@@ -234,7 +236,12 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Fetching statistics for batch:', batchId, 'course:', courseId);
+      console.log(
+        "Fetching statistics for batch:",
+        batchId,
+        "course:",
+        courseId,
+      );
       set({
         statistics: {
           totalTests: 5,
@@ -246,7 +253,7 @@ export const useTestStore = create<TestState>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to fetch statistics',
+        error: error.message || "Failed to fetch statistics",
         loading: false,
       });
     }
@@ -256,7 +263,7 @@ export const useTestStore = create<TestState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Mock implementation - replace with actual API when available
-      console.log('Fetching analytics for test:', testId);
+      console.log("Fetching analytics for test:", testId);
       set({
         analytics: {
           averageScore: 78.5,
@@ -267,7 +274,7 @@ export const useTestStore = create<TestState>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.message || 'Failed to fetch analytics',
+        error: error.message || "Failed to fetch analytics",
         loading: false,
       });
     }

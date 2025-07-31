@@ -1,4 +1,4 @@
-import AuthWrapper from '../../../components/AuthWrapper';
+import AuthWrapper from "../../../components/AuthWrapper";
 
 export default function AdminLayout({
   children,
@@ -6,10 +6,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthWrapper requiredRoles={['admin', 'recruiter']}>
-      <div className="admin-layout">
-        {children}
-      </div>
+    <AuthWrapper requiredRoles={["admin", "recruiter"]}>
+      <div className="admin-layout">{children}</div>
     </AuthWrapper>
   );
 }

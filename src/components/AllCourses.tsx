@@ -106,7 +106,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         const jwt = loginRes.data.token;
         setBackendJwt(jwt);
@@ -127,7 +127,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
         `${API_BASE_URL}/api/instructor/batches`,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
-        }
+        },
       );
 
       const batchList = response.data.batches || [];
@@ -149,7 +149,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
           `${API_BASE_URL}/api/instructor/courses`,
           {
             headers: { Authorization: `Bearer ${backendJwt}` },
-          }
+          },
         );
 
         const allCourses = response.data.courses || response.data || [];
@@ -161,7 +161,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
         setError("Failed to fetch courses");
       }
     },
-    [backendJwt, API_BASE_URL]
+    [backendJwt, API_BASE_URL],
   );
 
   useEffect(() => {
@@ -182,7 +182,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
     setSelectedCourses((prev) =>
       prev.includes(courseId)
         ? prev.filter((id) => id !== courseId)
-        : [...prev, courseId]
+        : [...prev, courseId],
     );
   };
 
@@ -202,7 +202,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
 
     if (
       !confirm(
-        `Are you sure you want to delete ${selectedCourses.length} courses? This action cannot be undone.`
+        `Are you sure you want to delete ${selectedCourses.length} courses? This action cannot be undone.`,
       )
     ) {
       return;
@@ -216,7 +216,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
         const batchId = course?.batches?.[0]?.id || batches[0]?.id;
         return axios.delete(
           `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}`,
-          { headers: { Authorization: `Bearer ${backendJwt}` } }
+          { headers: { Authorization: `Bearer ${backendJwt}` } },
         );
       });
 
@@ -225,7 +225,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
       await fetchBatches();
       setSelectedCourses([]);
       setSuccessMessage(
-        `Successfully deleted ${selectedCourses.length} courses`
+        `Successfully deleted ${selectedCourses.length} courses`,
       );
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
@@ -251,7 +251,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
 
       await axios.delete(
         `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseToDelete}`,
-        { headers: { Authorization: `Bearer ${backendJwt}` } }
+        { headers: { Authorization: `Bearer ${backendJwt}` } },
       );
 
       await fetchBatches();
@@ -274,14 +274,14 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
 
   const updateCourseBatches = async (
     courseId: string,
-    newBatchIds: string[]
+    newBatchIds: string[],
   ) => {
     try {
       setLoading(true);
       const response = await axios.put(
         `${API_BASE_URL}/api/instructor/courses/${courseId}`,
         { batch_ids: newBatchIds },
-        { headers: { Authorization: `Bearer ${backendJwt}` } }
+        { headers: { Authorization: `Bearer ${backendJwt}` } },
       );
 
       if (response.data && response.data.course) {
@@ -294,7 +294,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
               };
             }
             return course;
-          })
+          }),
         );
       }
 
@@ -318,8 +318,8 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
         axios.put(
           `${API_BASE_URL}/api/instructor/courses/${courseId}`,
           { batch_ids: batchIds },
-          { headers: { Authorization: `Bearer ${backendJwt}` } }
-        )
+          { headers: { Authorization: `Bearer ${backendJwt}` } },
+        ),
       );
 
       await Promise.all(updatePromises);
@@ -328,7 +328,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
       setSelectedCourses([]);
       setShowBulkBatchAssignModal(false);
       setSuccessMessage(
-        `Successfully updated batch assignments for ${selectedCourses.length} courses`
+        `Successfully updated batch assignments for ${selectedCourses.length} courses`,
       );
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
@@ -728,15 +728,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
                             : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
-                        {course.is_public ? (
-                          <>
-                            Public
-                          </>
-                        ) : (
-                          <>
-                            Private
-                          </>
-                        )}
+                        {course.is_public ? <>Public</> : <>Private</>}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -760,7 +752,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
                         <button
                           onClick={() =>
                             router.push(
-                              `/dashboard/instructor/courses/${course.id}/edit`
+                              `/dashboard/instructor/courses/${course.id}/edit`,
                             )
                           }
                           className="p-2 text-yellow-600 hover:bg-yellow-100 rounded-lg transition-colors"
@@ -851,7 +843,7 @@ const BatchAssignmentModal: React.FC<{
   onSave: (courseId: string, batchIds: string[]) => void;
 }> = ({ course, batches, onClose, onSave }) => {
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>(
-    course.batches?.map((b) => b.id) || []
+    course.batches?.map((b) => b.id) || [],
   );
   const [modalError, setModalError] = useState<string>("");
 
@@ -859,7 +851,7 @@ const BatchAssignmentModal: React.FC<{
     setSelectedBatchIds((prev) =>
       prev.includes(batchId)
         ? prev.filter((id) => id !== batchId)
-        : [...prev, batchId]
+        : [...prev, batchId],
     );
     if (modalError) setModalError("");
   };
@@ -962,7 +954,7 @@ const BulkBatchAssignmentModal: React.FC<{
     setSelectedBatchIds((prev) =>
       prev.includes(batchId)
         ? prev.filter((id) => id !== batchId)
-        : [...prev, batchId]
+        : [...prev, batchId],
     );
     if (modalError) setModalError("");
   };
