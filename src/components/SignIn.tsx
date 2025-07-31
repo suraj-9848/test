@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   AiOutlineEye,
   AiOutlineEyeInvisible,
@@ -18,10 +19,10 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
 
   const { status } = useSession();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
 
-  // Remove redirect logic from SignIn - let AuthContext handle all routing
-  // This prevents conflicts between SignIn and AuthContext redirects
+  // Show authenticated status when user is logged in
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +39,63 @@ const SignIn = () => {
       callbackUrl: "/", // Let AuthContext handle the proper routing
     });
   };
+
+  // Show authenticated status and navigation options
+  if (isAuthenticated && user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white border border-gray-200 rounded-3xl shadow-2xl p-8">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-green-600 text-2xl">✓</span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Welcome Back!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              You're logged in as <strong>{user.userRole}</strong>
+            </p>
+            
+            <div className="space-y-3">
+              {user.userRole.toLowerCase() === 'admin' && (
+                <button
+                  onClick={() => router.push('/dashboard/admin')}
+                  className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Go to Admin Dashboard
+                </button>
+              )}
+              
+              {user.userRole.toLowerCase() === 'instructor' && (
+                <button
+                  onClick={() => router.push('/dashboard/instructor')}
+                  className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Go to Instructor Dashboard
+                </button>
+              )}
+              
+              {user.userRole.toLowerCase() === 'recruiter' && (
+                <button
+                  onClick={() => router.push('/dashboard/recruiter')}
+                  className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Go to Recruiter Dashboard
+                </button>
+              )}
+              
+              {/* <button
+                onClick={() => router.push('/dashboard')}
+                className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Go to Dashboard
+              </button> */}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-300 flex items-center justify-center px-4">

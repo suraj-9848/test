@@ -53,25 +53,9 @@ export const useAuth = (): AuthContextType => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
-  // Use sessionStorage to persist redirect state across page loads
-  const [hasRedirected, setHasRedirected] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('auth_redirected') === 'true';
-    }
-    return false;
-  });
 
-  // Clear redirect flag on logout or auth failure
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      setHasRedirected(false);
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('auth_redirected');
-      }
-    }
-  }, [status]);
-  
+  // Removed redirect state management - no longer needed
+
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isLoading: true,
@@ -179,73 +163,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('🔍 [AUTH DEBUG] Auth state updated - isAuthenticated: true, user role:', userInfo.userRole);
 
-      // Handle role-based routing
+      // Handle role-based routing - simplified (no automatic redirects)
       const role = userInfo.userRole.toLowerCase();
       const currentPath = window.location.pathname;
 
-      console.log('🔍 [AUTH DEBUG] Role-based routing analysis:');
-      console.log('  - Original role:', userInfo.userRole);
-      console.log('  - Normalized role:', role);
-      console.log('  - Current path:', currentPath);
-      console.log('  - hasRedirected:', hasRedirected);
-      console.log('  - sessionStorage auth_redirected:', sessionStorage.getItem('auth_redirected'));
+      console.log("🔍 [AUTH DEBUG] User authenticated successfully:");
+      console.log("  - Role:", userInfo.userRole);
+      console.log("  - Current path:", currentPath);
+      console.log("  - No automatic redirects - user stays on current page");
 
-      if (role === 'student') {
-        console.log('👨‍🎓 Student detected, redirecting to main LMS');
+      // Only redirect students to main LMS (they shouldn't access admin panel)
+      if (role === "student") {
+        console.log("👨‍🎓 Student detected, redirecting to main LMS");
         await signOut({ redirect: false });
         window.location.href = 'https://lms.nirudhyog.com/';
         return;
       }
 
-      // Route to appropriate dashboard - only redirect once per session
-      if ((currentPath === '/dashboard' || currentPath === '/') && !hasRedirected) {
-        let targetPath = '';
-        
-        console.log('🔍 [AUTH DEBUG] Evaluating redirect conditions:');
-        console.log('  - Path matches dashboard/root:', (currentPath === '/dashboard' || currentPath === '/'));
-        console.log('  - hasRedirected:', hasRedirected);
-        console.log('  - Role for routing:', role);
-        
-        if (role === 'instructor') {
-          console.log('👨‍🏫 Routing instructor to instructor dashboard');
-          targetPath = '/dashboard/instructor';
-        } else if (['admin', 'recruiter'].includes(role)) {
-          console.log('👨‍💼 Routing admin/recruiter to admin dashboard');
-          targetPath = '/dashboard/admin';
-        } else {
-          console.log('❓ Unknown role, no specific routing:', role);
-        }
-        
-        console.log('🔍 [AUTH DEBUG] Target path determined:', targetPath);
-        
-        if (targetPath) {
-          console.log(`🚀 Redirecting to: ${targetPath}`);
-          console.log('🔍 [AUTH DEBUG] Setting hasRedirected = true and updating sessionStorage');
-          setHasRedirected(true);
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('auth_redirected', 'true');
-          }
-          
-          // Use setTimeout to ensure state is set before redirect
-          setTimeout(() => {
-            console.log('🔍 [AUTH DEBUG] Executing router.replace to:', targetPath);
-            router.replace(targetPath);
-          }, 100);
-        } else {
-          console.log('⚠️ [AUTH DEBUG] No target path set - user will stay on current page');
-        }
-      } else {
-        console.log('🔍 [AUTH DEBUG] Skipping redirect due to conditions:');
-        console.log('  - Current path is not dashboard/root:', !(currentPath === '/dashboard' || currentPath === '/'));
-        console.log('  - Already redirected:', hasRedirected);
-      }
-
+      // For admin/instructor/recruiter - no automatic redirects
+      // They can manually navigate to their dashboard
+      console.log("✅ Admin/Instructor/Recruiter authenticated - staying on current page");
     } catch (error) {
-      console.error('Auth check error:', error);
-      setHasRedirected(false); // Reset redirect flag on error
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('auth_redirected');
-      }
+      console.error("Auth check error:", error);
       setAuthState({
         user: null,
         isLoading: false,
