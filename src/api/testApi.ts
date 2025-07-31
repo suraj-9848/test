@@ -2,12 +2,12 @@
 export async function fetchTestAnalytics(
   batchId: string,
   courseId: string,
-  testId: string
+  testId: string,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
     `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/analytics`,
-    { method: "GET", headers }
+    { method: "GET", headers },
   );
   if (!res.ok) throw new Error("Failed to fetch test analytics");
   return res.json();
@@ -49,7 +49,7 @@ export async function fetchTests(batchId: string, courseId: string) {
   const headers = await getAuthHeaders();
   const res = await fetch(
     `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
-    { method: "GET", headers }
+    { method: "GET", headers },
   );
   if (!res.ok) throw new Error("Failed to fetch tests");
   return res.json();
@@ -60,7 +60,7 @@ import type { CreateTestRequest, CreateQuestionRequest } from "./instructorApi";
 export async function createTest(
   batchId: string,
   courseIds: string[] | string,
-  data: CreateTestRequest
+  data: CreateTestRequest,
 ) {
   const headers = await getAuthHeaders();
   // Always send courseIds as array for multi-course support
@@ -74,7 +74,7 @@ export async function createTest(
       method: "POST",
       headers,
       body: JSON.stringify(payload),
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to create test");
   return res.json();
@@ -83,12 +83,12 @@ export async function createTest(
 export async function fetchTestById(
   batchId: string,
   courseId: string,
-  testId: string
+  testId: string,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
     `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}`,
-    { method: "GET", headers }
+    { method: "GET", headers },
   );
   if (!res.ok) throw new Error("Failed to fetch test");
   return res.json();
@@ -98,7 +98,7 @@ export async function updateTest(
   batchId: string,
   courseId: string,
   testId: string,
-  data: CreateTestRequest
+  data: CreateTestRequest,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -107,7 +107,7 @@ export async function updateTest(
       method: "PUT",
       headers,
       body: JSON.stringify(data),
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to update test");
   return res.json();
@@ -116,7 +116,7 @@ export async function updateTest(
 export async function deleteTest(
   batchId: string,
   courseId: string,
-  testId: string
+  testId: string,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -124,7 +124,7 @@ export async function deleteTest(
     {
       method: "DELETE",
       headers,
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to delete test");
   return res.json();
@@ -133,7 +133,7 @@ export async function deleteTest(
 export async function publishTest(
   batchId: string,
   courseId: string,
-  testId: string
+  testId: string,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -141,7 +141,7 @@ export async function publishTest(
     {
       method: "PATCH",
       headers,
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to publish test");
   return res.json();
@@ -161,7 +161,7 @@ export async function evaluateTest(
   batchId: string,
   courseId: string,
   testId: string,
-  data: EvaluateTestRequest
+  data: EvaluateTestRequest,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -170,7 +170,7 @@ export async function evaluateTest(
       method: "POST",
       headers,
       body: JSON.stringify(data),
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to evaluate test");
   return res.json();
@@ -179,12 +179,12 @@ export async function evaluateTest(
 export async function getSubmissionCount(
   batchId: string,
   courseId: string,
-  testId: string
+  testId: string,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
     `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/submission-count`,
-    { method: "GET", headers }
+    { method: "GET", headers },
   );
   if (!res.ok) throw new Error("Failed to get submission count");
   return res.json();
@@ -194,7 +194,7 @@ export async function addQuestionToTest(
   batchId: string,
   courseId: string,
   testId: string,
-  questionData: CreateQuestionRequest
+  questionData: CreateQuestionRequest,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -203,7 +203,7 @@ export async function addQuestionToTest(
       method: "POST",
       headers,
       body: JSON.stringify(questionData),
-    }
+    },
   );
   if (!res.ok) {
     const errorText = await res.text();
@@ -218,7 +218,7 @@ export async function updateQuestionInTest(
   courseId: string,
   testId: string,
   questionId: string,
-  questionData: Partial<CreateQuestionRequest>
+  questionData: Partial<CreateQuestionRequest>,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -227,7 +227,7 @@ export async function updateQuestionInTest(
       method: "PUT",
       headers,
       body: JSON.stringify(questionData),
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to update question in test");
   return res.json();
@@ -237,7 +237,7 @@ export async function deleteQuestionFromTest(
   batchId: string,
   courseId: string,
   testId: string,
-  questionId: string
+  questionId: string,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -245,7 +245,7 @@ export async function deleteQuestionFromTest(
     {
       method: "DELETE",
       headers,
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to delete question from test");
   return res.json();
@@ -254,7 +254,7 @@ export async function deleteQuestionFromTest(
 export async function getQuestions(
   batchId: string,
   courseId: string,
-  testId: string
+  testId: string,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(
@@ -262,7 +262,7 @@ export async function getQuestions(
     {
       method: "GET",
       headers,
-    }
+    },
   );
   if (!res.ok) throw new Error("Failed to fetch questions");
   return res.json();

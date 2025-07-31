@@ -105,7 +105,8 @@ const ManageTest: React.FC = () => {
               typeof (course as any).batch === "object" &&
               (course as any).batch !== null &&
               "id" in (course as any).batch &&
-              typeof ((course as any).batch as { id: unknown }).id === "string" &&
+              typeof ((course as any).batch as { id: unknown }).id ===
+                "string" &&
               ((course as any).batch as { id: string }).id === batchIdStr
             )
               return true;
@@ -113,7 +114,9 @@ const ManageTest: React.FC = () => {
           });
           const sortedCourses = filtered.length === 0 ? res : filtered;
           setCourses(
-            sortedCourses.sort((a: any, b: any) => a.title.localeCompare(b.title))
+            sortedCourses.sort((a: any, b: any) =>
+              a.title.localeCompare(b.title),
+            ),
           );
           setLoading(false);
         })
@@ -136,7 +139,9 @@ const ManageTest: React.FC = () => {
             ? res.data.tests
             : [];
           setTests(
-            safeTests.sort((a: Test, b: Test) => a.title.localeCompare(b.title))
+            safeTests.sort((a: Test, b: Test) =>
+              a.title.localeCompare(b.title),
+            ),
           );
           setLoading(false);
         })
@@ -176,13 +181,13 @@ const ManageTest: React.FC = () => {
     setEditDescription(test?.description || "");
     setEditMaxMarks(typeof test?.maxMarks === "number" ? test.maxMarks : 1);
     setEditPassingMarks(
-      typeof test?.passingMarks === "number" ? test.passingMarks : 0
+      typeof test?.passingMarks === "number" ? test.passingMarks : 0,
     );
     setEditDuration(
-      typeof test?.durationInMinutes === "number" ? test.durationInMinutes : 1
+      typeof test?.durationInMinutes === "number" ? test.durationInMinutes : 1,
     );
     setEditStartDate(
-      test?.startDate ? utcToLocalDatetimeInput(test.startDate) : ""
+      test?.startDate ? utcToLocalDatetimeInput(test.startDate) : "",
     );
     setEditEndDate(test?.endDate ? utcToLocalDatetimeInput(test.endDate) : "");
     setEditShuffleQuestions(!!test?.shuffleQuestions);
@@ -205,7 +210,7 @@ const ManageTest: React.FC = () => {
       if (isPublished) {
         if (!editStartDate || !editEndDate) {
           throw new Error(
-            "Both start and end date/time are required for published tests."
+            "Both start and end date/time are required for published tests.",
           );
         }
         const startDateISO = localDatetimeInputToUTC(editStartDate) || "";
@@ -240,7 +245,7 @@ const ManageTest: React.FC = () => {
       setSuccess("Test updated successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
+        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
       );
       setSelectedTestId("");
       setEditTitle("");
@@ -274,7 +279,7 @@ const ManageTest: React.FC = () => {
       setSelectedTestId("");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
+        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
       );
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -333,7 +338,7 @@ const ManageTest: React.FC = () => {
           selectedCourse,
           questionEditTestId,
           editingQuestionId,
-          payload
+          payload,
         );
         setSuccess("Question updated successfully!");
       } else {
@@ -341,17 +346,17 @@ const ManageTest: React.FC = () => {
           selectedBatch,
           selectedCourse,
           questionEditTestId,
-          payload
+          payload,
         );
         setSuccess("Question added successfully!");
       }
       const res = await getQuestions(
         selectedBatch,
         selectedCourse,
-        questionEditTestId
+        questionEditTestId,
       );
       setQuestions(
-        Array.isArray(res.data?.questions) ? res.data.questions : []
+        Array.isArray(res.data?.questions) ? res.data.questions : [],
       );
       setQuestionForm({
         question_text: "",
@@ -404,15 +409,15 @@ const ManageTest: React.FC = () => {
         selectedBatch,
         selectedCourse,
         questionEditTestId,
-        qid
+        qid,
       );
       const res = await getQuestions(
         selectedBatch,
         selectedCourse,
-        questionEditTestId
+        questionEditTestId,
       );
       setQuestions(
-        Array.isArray(res.data?.questions) ? res.data.questions : []
+        Array.isArray(res.data?.questions) ? res.data.questions : [],
       );
       setSuccess("Question deleted successfully!");
     } catch (err: unknown) {
@@ -429,7 +434,7 @@ const ManageTest: React.FC = () => {
   const handleOptionChange = (
     idx: number,
     field: "text" | "correct",
-    value: string | boolean
+    value: string | boolean,
   ) => {
     setQuestionForm((prev) => {
       const options = [...prev.options];
@@ -470,14 +475,14 @@ const ManageTest: React.FC = () => {
       const mcqWithNoCorrect = testQuestions.filter(
         (q: { type: string; options?: { correct: boolean }[] }) =>
           q.type === "MCQ" &&
-          (!q.options || q.options.filter((o) => o.correct).length === 0)
+          (!q.options || q.options.filter((o) => o.correct).length === 0),
       );
       if (mcqWithNoCorrect.length > 0) {
         setError(
           "Cannot publish: All MCQ questions must have at least one correct answer. Debug: Offending question(s): " +
             mcqWithNoCorrect
               .map((q: Question) => q.question_text || q.id)
-              .join(", ")
+              .join(", "),
         );
         setLoading(false);
         return;
@@ -486,7 +491,7 @@ const ManageTest: React.FC = () => {
       setSuccess("Test published successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
+        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
       );
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -751,7 +756,7 @@ const ManageTest: React.FC = () => {
                       disabled={Boolean(
                         test.status === "PUBLISHED" &&
                           test.endDate &&
-                          new Date(test.endDate) > new Date()
+                          new Date(test.endDate) > new Date(),
                       )}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300"
                     >

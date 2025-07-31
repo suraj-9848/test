@@ -30,11 +30,11 @@ const SignIn = () => {
   };
 
   const handleGoogleSignIn = () => {
-    console.log('🔍 [SIGNIN] Google Sign-In button clicked');
-    console.log('🔍 [SIGNIN] Current session status:', status);
-    console.log('🔍 [SIGNIN] Current URL:', window.location.href);
-    console.log('🔍 [SIGNIN] Callback URL will be: /');
-    
+    console.log("🔍 [SIGNIN] Google Sign-In button clicked");
+    console.log("🔍 [SIGNIN] Current session status:", status);
+    console.log("🔍 [SIGNIN] Current URL:", window.location.href);
+    console.log("🔍 [SIGNIN] Callback URL will be: /");
+
     signIn("google", {
       callbackUrl: "/", // Let AuthContext handle the proper routing
     });

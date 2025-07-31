@@ -500,9 +500,7 @@ const MCQModal: React.FC<{
     setFormData((prev) => ({
       ...prev,
       questions: prev.questions.map((q, i) =>
-        i === questionIndex
-          ? { ...q, options: [...q.options, newOption] }
-          : q
+        i === questionIndex ? { ...q, options: [...q.options, newOption] } : q,
       ),
     }));
   };
@@ -516,7 +514,7 @@ const MCQModal: React.FC<{
               ...q,
               options: q.options.filter((_, oi) => oi !== optionIndex),
             }
-          : q
+          : q,
       ),
     }));
   };
@@ -548,9 +546,7 @@ const MCQModal: React.FC<{
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-slate-900">
-            Create MCQ Test
-          </h3>
+          <h3 className="text-xl font-bold text-slate-900">Create MCQ Test</h3>
           <button
             onClick={onClose}
             className="text-slate-500 hover:text-slate-700"
@@ -657,7 +653,11 @@ const MCQModal: React.FC<{
                       <DynamicRichTextEditor
                         value={deltaToHtml(question.question)}
                         onChange={(content: string) =>
-                          updateQuestion(qIndex, "question", htmlToDelta(content))
+                          updateQuestion(
+                            qIndex,
+                            "question",
+                            htmlToDelta(content),
+                          )
                         }
                         placeholder="Enter question..."
                         className="h-[150px]"
@@ -744,7 +744,11 @@ const MCQModal: React.FC<{
                       <DynamicRichTextEditor
                         value={deltaToHtml(question.explanation)}
                         onChange={(content: string) =>
-                          updateQuestion(qIndex, "explanation", htmlToDelta(content))
+                          updateQuestion(
+                            qIndex,
+                            "explanation",
+                            htmlToDelta(content),
+                          )
                         }
                         placeholder="Enter explanation..."
                         className="h-[150px]"
@@ -803,7 +807,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
   const [backendJwt, setBackendJwt] = useState<string>("");
   const [showContentModal, setShowContentModal] = useState(false);
   const [showMCQModal, setShowMCQModal] = useState(false);
-  const [editingDay, setEditingDay] = useState<CreateDayContentData | null>(null);
+  const [editingDay, setEditingDay] = useState<CreateDayContentData | null>(
+    null,
+  );
   const [dayContentForm, setDayContentForm] = useState<CreateDayContentData>({
     content: "",
     dayNumber: 1,
@@ -884,7 +890,13 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
       setSelectedModuleId("");
       setSelectedModule(null);
     }
-  }, [selectedBatchId, selectedCourseId, backendJwt, fetchModules, setSelectedModule]);
+  }, [
+    selectedBatchId,
+    selectedCourseId,
+    backendJwt,
+    fetchModules,
+    setSelectedModule,
+  ]);
 
   useEffect(() => {
     if (selectedModuleId && modules.length > 0) {
@@ -1058,10 +1070,14 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
 
       {/* Selection Controls */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Select Module</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          Select Module
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Batch</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Batch
+            </label>
             <select
               value={selectedBatchId}
               onChange={(e) => setSelectedBatchId(e.target.value)}
@@ -1076,7 +1092,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Course</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Course
+            </label>
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
@@ -1092,7 +1110,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Module</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Module
+            </label>
             <select
               value={selectedModuleId}
               onChange={(e) => setSelectedModuleId(e.target.value)}
@@ -1259,7 +1279,9 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
                           </div>
                         </div>
                         <div className="prose prose-slate max-w-none">
-                          <div dangerouslySetInnerHTML={{ __html: day.content }} />
+                          <div
+                            dangerouslySetInnerHTML={{ __html: day.content }}
+                          />
                         </div>
                       </div>
                     ))}
@@ -1363,7 +1385,8 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
                           className="bg-white rounded-lg p-4 border"
                         >
                           <h5 className="text-md font-medium text-gray-900 mb-2">
-                            Question {index + 1}: {deltaToHtml(question.question)}
+                            Question {index + 1}:{" "}
+                            {deltaToHtml(question.question)}
                           </h5>
                           <div className="space-y-2">
                             {question.options.map((option, optIndex) => (

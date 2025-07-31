@@ -66,7 +66,7 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, type, value } = e.target;
     if (type === "checkbox" && name !== "courseCheckbox") {
@@ -92,7 +92,7 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
     setSelectedCourses((prev) =>
       prev.includes(courseId)
         ? prev.filter((id) => id !== courseId)
-        : [...prev, courseId]
+        : [...prev, courseId],
     );
   };
 
@@ -114,7 +114,7 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
       selectedCourses.length === 0
     ) {
       setError(
-        "Please fill all required fields, including number of attempts and select at least one course."
+        "Please fill all required fields, including number of attempts and select at least one course.",
       );
       setLoading(false);
       return;

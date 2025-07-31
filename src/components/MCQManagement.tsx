@@ -222,22 +222,27 @@ const MCQEditor: React.FC<{
   }, []);
 
   // Helper function to ensure all questions and options have valid IDs
-  const validateAndFixQuestions = useCallback((questionList: MCQQuestion[]): MCQQuestion[] => {
-    return questionList.map((question) => ({
-      ...question,
-      id: question.id || `question-${generateUniqueId()}`,
-      options: question.options.map((option, oIndex) => ({
-        ...option,
-        id: option.id || `option-${generateUniqueId()}-${oIndex}`,
-      })),
-    }));
-  }, [generateUniqueId]);
+  const validateAndFixQuestions = useCallback(
+    (questionList: MCQQuestion[]): MCQQuestion[] => {
+      return questionList.map((question) => ({
+        ...question,
+        id: question.id || `question-${generateUniqueId()}`,
+        options: question.options.map((option, oIndex) => ({
+          ...option,
+          id: option.id || `option-${generateUniqueId()}-${oIndex}`,
+        })),
+      }));
+    },
+    [generateUniqueId],
+  );
 
   // Initialize with existing data if editing
   useEffect(() => {
     if (isEditing && existingMCQSet && existingMCQSet.questions) {
       setPassingScore(existingMCQSet.passingScore);
-      const validatedQuestions = validateAndFixQuestions(existingMCQSet.questions);
+      const validatedQuestions = validateAndFixQuestions(
+        existingMCQSet.questions,
+      );
       setQuestions(validatedQuestions);
       setActiveQuestionIndex(0);
     } else {
@@ -343,9 +348,10 @@ const MCQEditor: React.FC<{
     }
   };
 
-  const activeQuestion = questions.length > 0 && activeQuestionIndex < questions.length 
-    ? questions[activeQuestionIndex] 
-    : null;
+  const activeQuestion =
+    questions.length > 0 && activeQuestionIndex < questions.length
+      ? questions[activeQuestionIndex]
+      : null;
 
   return (
     <div className="space-y-6">
@@ -597,31 +603,42 @@ const MCQManagement: React.FC = () => {
   const fetchMCQSet = useCallback(
     async (batchId: string, courseId: string, moduleId: string) => {
       try {
-        console.log(`Fetching MCQ for Course ID: ${courseId}, Module ID: ${moduleId}`);
+        console.log(
+          `Fetching MCQ for Course ID: ${courseId}, Module ID: ${moduleId}`,
+        );
         // Use direct course route instead of batch-nested route
         const response = await apiClient.get(
-          `/api/instructor/courses/${courseId}/modules/${moduleId}/mcq`
+          `/api/instructor/courses/${courseId}/modules/${moduleId}/mcq`,
         );
-        
+
         // Validate and fix any missing IDs
         if (response.data && response.data.questions) {
-          response.data.questions = response.data.questions.map((question: MCQQuestion, qIndex: number) => ({
-            ...question,
-            id: question.id || `temp-question-${Date.now()}-${qIndex}`,
-            options: question.options.map((option: MCQOption, oIndex: number) => ({
-              ...option,
-              id: option.id || `temp-option-${Date.now()}-${qIndex}-${oIndex}`,
-            })),
-          }));
+          response.data.questions = response.data.questions.map(
+            (question: MCQQuestion, qIndex: number) => ({
+              ...question,
+              id: question.id || `temp-question-${Date.now()}-${qIndex}`,
+              options: question.options.map(
+                (option: MCQOption, oIndex: number) => ({
+                  ...option,
+                  id:
+                    option.id ||
+                    `temp-option-${Date.now()}-${qIndex}-${oIndex}`,
+                }),
+              ),
+            }),
+          );
         }
-        
+
         setMcqSet(response.data);
       } catch (err: unknown) {
         // Check if it's a 404 (no MCQ for module) - this is normal
         if ((err as { status?: number }).status === 404) {
           console.log(`No MCQ found for module ${moduleId} - this is normal`);
         } else {
-          console.error(`Error fetching MCQ set for Course ${courseId}, Module ${moduleId}:`, err);
+          console.error(
+            `Error fetching MCQ set for Course ${courseId}, Module ${moduleId}:`,
+            err,
+          );
         }
         // Don't set error here, as it's normal to not have an MCQ set yet
         setMcqSet(null);
@@ -635,7 +652,7 @@ const MCQManagement: React.FC = () => {
       try {
         // Use direct course route instead of batch-nested route
         const response = await apiClient.get(
-          `/api/instructor/courses/${courseId}/modules`
+          `/api/instructor/courses/${courseId}/modules`,
         );
         setModules(response.data.modules || response.data || []);
         if (
@@ -658,7 +675,9 @@ const MCQManagement: React.FC = () => {
     async (batchId: string) => {
       try {
         // Use the correct endpoint for fetching all courses
-        const response = await apiClient.get('/api/instructor/fetch-all-courses');
+        const response = await apiClient.get(
+          "/api/instructor/fetch-all-courses",
+        );
         setCourses(response.data.courses || response.data || []);
         if (
           (response.data.courses || response.data) &&
@@ -680,7 +699,7 @@ const MCQManagement: React.FC = () => {
     try {
       setLoading(true);
       // Backend returns { message: "Fetched batches", batches: Batch[] }
-      const response = await apiClient.get('/api/instructor/batches');
+      const response = await apiClient.get("/api/instructor/batches");
       setBatches(response.data.batches || []);
       if (response.data.batches && response.data.batches.length > 0) {
         setSelectedBatch(response.data.batches[0].id);
@@ -743,7 +762,7 @@ const MCQManagement: React.FC = () => {
       showToast("success", "MCQ set created successfully!");
     } catch (err: any) {
       console.error("Error creating MCQ set:", err);
-      
+
       // Extract specific error message from the response
       let errorMessage = "Failed to create MCQ set";
       if (err?.response?.data?.error) {
@@ -753,7 +772,7 @@ const MCQManagement: React.FC = () => {
       } else if (err?.message) {
         errorMessage = err.message;
       }
-      
+
       showToast("error", errorMessage);
       setError(errorMessage);
     } finally {
@@ -773,7 +792,7 @@ const MCQManagement: React.FC = () => {
       showToast("success", "MCQ set updated successfully!");
     } catch (err: any) {
       console.error("Error updating MCQ set:", err);
-      
+
       // Extract specific error message from the response
       let errorMessage = "Failed to update MCQ set";
       if (err?.response?.data?.error) {
@@ -783,7 +802,7 @@ const MCQManagement: React.FC = () => {
       } else if (err?.message) {
         errorMessage = err.message;
       }
-      
+
       showToast("error", errorMessage);
       setError(errorMessage);
     } finally {
@@ -802,7 +821,7 @@ const MCQManagement: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Error deleting MCQ set:", err);
-      
+
       // Extract specific error message from the response
       let errorMessage = "Failed to delete MCQ set";
       if (err?.response?.data?.error) {
@@ -812,7 +831,7 @@ const MCQManagement: React.FC = () => {
       } else if (err?.message) {
         errorMessage = err.message;
       }
-      
+
       showToast("error", errorMessage);
       setError(errorMessage);
     }
@@ -867,7 +886,9 @@ const MCQManagement: React.FC = () => {
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Batch</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Batch
+              </label>
               <select
                 value={selectedBatch}
                 onChange={(e) => handleBatchChange(e.target.value)}
@@ -882,7 +903,9 @@ const MCQManagement: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Course</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Course
+              </label>
               <select
                 value={selectedCourse}
                 onChange={(e) => handleCourseChange(e.target.value)}
@@ -898,7 +921,9 @@ const MCQManagement: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Module</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Module
+              </label>
               <select
                 value={selectedModule}
                 onChange={(e) => handleModuleChange(e.target.value)}
@@ -919,15 +944,23 @@ const MCQManagement: React.FC = () => {
           {!selectedModule ? (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 text-center">
               <FaQuestionCircle className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">Select a Module</h3>
-              <p className="text-slate-600">Please select a batch, course, and module to view MCQ sets.</p>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                Select a Module
+              </h3>
+              <p className="text-slate-600">
+                Please select a batch, course, and module to view MCQ sets.
+              </p>
             </div>
           ) : mcqSet ? (
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">MCQ Set for {mcqSet.module.title}</h2>
-                  <p className="text-slate-600">Passing Score: {mcqSet.passingScore}%</p>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    MCQ Set for {mcqSet.module.title}
+                  </h2>
+                  <p className="text-slate-600">
+                    Passing Score: {mcqSet.passingScore}%
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
@@ -947,7 +980,9 @@ const MCQManagement: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-slate-900">Questions ({mcqSet.questions.length})</h3>
+                <h3 className="text-lg font-medium text-slate-900">
+                  Questions ({mcqSet.questions.length})
+                </h3>
                 {mcqSet.questions.length === 0 ? (
                   <div className="text-center py-8">
                     <FaQuestionCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
@@ -961,8 +996,12 @@ const MCQManagement: React.FC = () => {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h4 className="font-medium text-slate-900 mb-2">Question {index + 1}</h4>
-                          <p className="text-slate-700 mb-3">{extractText(question.question)}</p>
+                          <h4 className="font-medium text-slate-900 mb-2">
+                            Question {index + 1}
+                          </h4>
+                          <p className="text-slate-700 mb-3">
+                            {extractText(question.question)}
+                          </p>
                           <div className="space-y-2">
                             {question.options.map((option, optIndex) => (
                               <div
@@ -977,7 +1016,8 @@ const MCQManagement: React.FC = () => {
                                   )}
                                 </div>
                                 <span className="text-slate-700">
-                                  {String.fromCharCode(65 + optIndex)}. {extractText(option.text)}
+                                  {String.fromCharCode(65 + optIndex)}.{" "}
+                                  {extractText(option.text)}
                                 </span>
                               </div>
                             ))}
@@ -985,7 +1025,8 @@ const MCQManagement: React.FC = () => {
                           {question.explanation && (
                             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                               <p className="text-sm text-blue-800">
-                                <strong>Explanation:</strong> {extractText(question.explanation)}
+                                <strong>Explanation:</strong>{" "}
+                                {extractText(question.explanation)}
                               </p>
                             </div>
                           )}
@@ -999,8 +1040,12 @@ const MCQManagement: React.FC = () => {
           ) : (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
               <FaQuestionCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No MCQ Set Found</h3>
-              <p className="text-slate-600 mb-4">There are no MCQ sets for this module yet.</p>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                No MCQ Set Found
+              </h3>
+              <p className="text-slate-600 mb-4">
+                There are no MCQ sets for this module yet.
+              </p>
               <button
                 onClick={() => setIsCreating(true)}
                 className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors mx-auto"
