@@ -62,7 +62,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Removed redirect state management - no longer needed
+  // Use sessionStorage to persist redirect state across page loads
+  const [hasRedirected, setHasRedirected] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("auth_redirected") === "true";
+    }
+    return false;
+  });
+
+  // Clear redirect flag on logout or auth failure
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      setHasRedirected(false);
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("auth_redirected");
+      }
+    }
+  }, [status]);
 
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
