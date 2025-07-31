@@ -39,7 +39,8 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
     if (selectedBatch) {
       instructorApi
         .getCourses()
-        .then((courses: Course[]) => {
+        .then((response: { courses: Course[] }) => {
+          const courses = response.courses;
           const batchIdStr = String(selectedBatch);
           const filtered = courses.filter((course) => {
             const batch_id = (course as { batch_id?: string }).batch_id;

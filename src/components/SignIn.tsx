@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +19,7 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
 
   const { status } = useSession();
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
 
   // Show authenticated status when user is logged in
@@ -53,7 +53,7 @@ const SignIn = () => {
               Welcome Back!
             </h2>
             <p className="text-gray-600 mb-6">
-              You're logged in as <strong>{user.userRole}</strong>
+              You&apos;re logged in as <strong>{user.userRole}</strong>
             </p>
             
             <div className="space-y-3">

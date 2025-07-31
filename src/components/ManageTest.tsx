@@ -89,9 +89,10 @@ const ManageTest: React.FC = () => {
       setLoading(true);
       instructorApi
         .getCourses()
-        .then((res) => {
+        .then((res: { courses: Course[] }) => {
           const batchIdStr = String(selectedBatch);
-          const filtered = (res || []).filter((course) => {
+          const courses = res.courses || [];
+          const filtered = courses.filter((course) => {
             if (String((course as any).batch_id) === batchIdStr) return true;
             if (
               "batchId" in course &&
@@ -112,7 +113,7 @@ const ManageTest: React.FC = () => {
               return true;
             return false;
           });
-          const sortedCourses = filtered.length === 0 ? res : filtered;
+          const sortedCourses = filtered.length === 0 ? courses : filtered;
           setCourses(
             sortedCourses.sort((a: any, b: any) =>
               a.title.localeCompare(b.title),
