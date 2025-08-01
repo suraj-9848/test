@@ -212,12 +212,12 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
       const mappedUser = mapApiUserToStoreUser(response.user, role);
       set((state) => ({
         [key]: [
-          ...(state[key] as (
+          ...((state[key] as (
             | AdminUser
             | InstructorUser
             | StudentUser
             | RecruiterUser
-          )[]),
+          )[]) || []),
           mappedUser,
         ],
         loading: false,
@@ -235,12 +235,12 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
       const key = mapTypeToKey(roleToCategory(role));
       set((state) => ({
         [key]: (
-          state[key] as (
+          (state[key] as (
             | AdminUser
             | InstructorUser
             | StudentUser
             | RecruiterUser
-          )[]
+          )[]) || []
         ).filter((user) => String(user.id) !== id),
         loading: false,
       }));
@@ -311,7 +311,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
             console.log(`Moving user ${id} from ${currentKey} to ${newKey}`);
             return {
               // Remove from current category
-              [currentKey]: state[currentKey].filter(
+              [currentKey]: (state[currentKey] || []).filter(
                 (user) => String(user.id) !== id,
               ),
               // Add to new category
@@ -321,7 +321,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
           } else {
             // User staying in same category, just update
             return {
-              [newKey]: state[newKey].map((user) =>
+              [newKey]: (state[newKey] || []).map((user) =>
                 String(user.id) === id ? mappedUser : user,
               ),
               loading: false,

@@ -26,7 +26,6 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  
 
   // Fetch user profile and get JWT
   useEffect(() => {
@@ -39,8 +38,8 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
         }
 
         // Use session storage for instructor name
-        const adminToken = sessionStorage.getItem('adminToken');
-        const instructorName = adminToken ? 'Current User' : 'Unknown';
+        const adminToken = sessionStorage.getItem("adminToken");
+        const instructorName = adminToken ? "Current User" : "Unknown";
         setFormData((prev) => ({
           ...prev,
           instructor_name: instructorName,
@@ -85,8 +84,12 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
     if (!formData.title.trim()) newErrors.title = "Course title is required";
     if (!formData.start_date) newErrors.start_date = "Start date is required";
     if (!formData.end_date) newErrors.end_date = "End date is required";
-    if (!formData.is_public && (!formData.batch_ids || formData.batch_ids.length === 0))
-      newErrors.batch_ids = "At least one batch is required for private courses";
+    if (
+      !formData.is_public &&
+      (!formData.batch_ids || formData.batch_ids.length === 0)
+    )
+      newErrors.batch_ids =
+        "At least one batch is required for private courses";
     if (!formData.instructor_name.trim())
       newErrors.instructor_name = "Instructor name is required";
     if (formData.start_date && formData.end_date) {
@@ -114,7 +117,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
         is_public: false,
         instructor_name: formData.instructor_name,
       });
-      
+
       // Call success callback if provided (for dashboard usage)
       if (onSuccess) {
         onSuccess();
@@ -180,8 +183,19 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
             tabIndex={-1}
           >
             <div className="flex items-center justify-center space-x-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               <span>Create Course</span>
             </div>
@@ -200,7 +214,9 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Course Title *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Course Title *
+                </label>
                 <input
                   type="text"
                   name="title"
@@ -210,10 +226,14 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
                   placeholder="Enter course title"
                   disabled={submitting}
                 />
-                {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+                {errors.title && (
+                  <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Logo URL
+                </label>
                 <input
                   type="url"
                   name="logo"
@@ -225,7 +245,9 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Start Date *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Start Date *
+                </label>
                 <input
                   type="date"
                   name="start_date"
@@ -234,10 +256,16 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
                   className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200 ${errors.start_date ? "border-red-300 focus:ring-red-500" : ""}`}
                   disabled={submitting}
                 />
-                {errors.start_date && <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>}
+                {errors.start_date && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.start_date}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">End Date *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  End Date *
+                </label>
                 <input
                   type="date"
                   name="end_date"
@@ -246,10 +274,15 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
                   className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-slate-900 transition-all duration-200 ${errors.end_date ? "border-red-300 focus:ring-red-500" : ""}`}
                   disabled={submitting}
                 />
-                {errors.end_date && <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>}
+                {errors.end_date && (
+                  <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>
+                )}
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Select Batches {formData.is_public ? "(optional for public courses)" : "*"}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Select Batches{" "}
+                  {formData.is_public ? "(optional for public courses)" : "*"}
+                </label>
                 {!formData.is_public && (
                   <select
                     name="batch_ids"
@@ -267,10 +300,16 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
                     ))}
                   </select>
                 )}
-                {errors.batch_ids && <p className="mt-1 text-sm text-red-600">{errors.batch_ids}</p>}
+                {errors.batch_ids && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.batch_ids}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Instructor Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Instructor Name *
+                </label>
                 <input
                   type="text"
                   name="instructor_name"
@@ -280,7 +319,11 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
                   placeholder="Enter instructor name"
                   disabled={submitting}
                 />
-                {errors.instructor_name && <p className="mt-1 text-sm text-red-600">{errors.instructor_name}</p>}
+                {errors.instructor_name && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.instructor_name}
+                  </p>
+                )}
               </div>
               <div className="flex items-center h-full">
                 <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">

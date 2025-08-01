@@ -106,7 +106,7 @@ const DayContentModal: React.FC<{
       // Last resort: get from DOM
       if (!finalContent || finalContent.trim() === "") {
         const editorElement = document.querySelector(
-          '[contenteditable="true"]'
+          '[contenteditable="true"]',
         );
         if (editorElement && editorElement.closest(".fixed")) {
           finalContent = editorElement.innerHTML || "";
@@ -156,7 +156,7 @@ const DayContentModal: React.FC<{
       alert(
         error instanceof Error
           ? error.message
-          : "Failed to save content. Please try again."
+          : "Failed to save content. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -280,8 +280,8 @@ const DayContentModal: React.FC<{
               {isSubmitting
                 ? "Saving..."
                 : editingDay
-                ? "Update Day Content"
-                : "Create Day Content"}
+                  ? "Update Day Content"
+                  : "Create Day Content"}
             </button>
           </div>
         </form>
@@ -318,7 +318,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
   const [showContentModal, setShowContentModal] = useState(false);
   const [showMCQModal, setShowMCQModal] = useState(false);
   const [editingDay, setEditingDay] = useState<CreateDayContentData | null>(
-    null
+    null,
   );
   const [authError, setAuthError] = useState<string>("");
 
@@ -335,7 +335,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
 
   // Utility functions
   const deltaToHtml = (
-    delta: QuillDelta | string | { ops: { insert: string }[] } | undefined
+    delta: QuillDelta | string | { ops: { insert: string }[] } | undefined,
   ): string => {
     if (!delta) return "";
     if (typeof delta === "string") return delta;
@@ -370,7 +370,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
 
         if (!googleIdToken) {
           setAuthError(
-            "Authentication token not found. Please try logging out and back in."
+            "Authentication token not found. Please try logging out and back in.",
           );
           return;
         }
@@ -446,7 +446,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
 
   // BULLETPROOF content save handler with correct function signatures
   const handleCreateDayContent = async (
-    formDataToSubmit: CreateDayContentData
+    formDataToSubmit: CreateDayContentData,
   ): Promise<CreateDayContentData> => {
     if (
       !backendJwt ||
@@ -475,7 +475,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           selectedModuleId,
           editingDay.id,
           formDataToSubmit, // This is Partial<CreateDayContentData>
-          backendJwt
+          backendJwt,
         );
       } else {
         console.log("➕ Creating new content...");
@@ -485,7 +485,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           selectedCourseId,
           selectedModuleId,
           formDataToSubmit, // This is CreateDayContentData
-          backendJwt
+          backendJwt,
         );
       }
 
@@ -554,7 +554,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
           selectedCourseId,
           selectedModuleId,
           dayId,
-          backendJwt
+          backendJwt,
         );
         console.log("🗑️ Day content deleted successfully");
       } catch (err: any) {
@@ -806,7 +806,7 @@ const ModuleContent: React.FC<ModuleContentProps> = ({ onClose }) => {
                             </button>
                           </div>
                         </div>
-                        
+
                         {/* FIXED: Content rendering with proper styles */}
                         <div className="content-display">
                           <div

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import axios from "axios";
 import {
   FaSave,
   FaTimes,
@@ -21,7 +21,7 @@ import {
   FaEdit,
   FaTrash,
   FaExchangeAlt,
-} from 'react-icons/fa';
+} from "react-icons/fa";
 
 interface Course {
   id: string;
@@ -66,26 +66,27 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
-  const [backendJwt, setBackendJwt] = useState<string>('');
+  const [error, setError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [backendJwt, setBackendJwt] = useState<string>("");
 
   // Form state
   const [formData, setFormData] = useState<CourseFormData>({
-    title: '',
-    description: '',
-    logo: '',
-    start_date: '',
-    end_date: '',
+    title: "",
+    description: "",
+    logo: "",
+    start_date: "",
+    end_date: "",
     is_public: false,
-    instructor_name: '',
+    instructor_name: "",
     batch_ids: [],
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showBatchManager, setShowBatchManager] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3000';
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
 
   // Initialize authentication
   useEffect(() => {
@@ -100,12 +101,12 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
             withCredentials: true,
-          }
+          },
         );
         setBackendJwt(loginRes.data.token);
       } catch (err) {
-        console.error('Failed to fetch user profile:', err);
-        setError('Failed to authenticate');
+        console.error("Failed to fetch user profile:", err);
+        setError("Failed to authenticate");
       }
     };
 
@@ -119,37 +120,40 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
 
       try {
         setLoading(true);
-        
+
         // Fetch batches
         const batchesResponse = await axios.get(
           `${API_BASE_URL}/api/instructor/batches`,
-          { headers: { Authorization: `Bearer ${backendJwt}` } }
+          { headers: { Authorization: `Bearer ${backendJwt}` } },
         );
         setBatches(batchesResponse.data.batches || []);
 
         // Fetch course details
         const courseResponse = await axios.get(
           `${API_BASE_URL}/api/instructor/courses/${courseId}`,
-          { headers: { Authorization: `Bearer ${backendJwt}` } }
+          { headers: { Authorization: `Bearer ${backendJwt}` } },
         );
-        
+
         const courseData = courseResponse.data.course || courseResponse.data;
         setCourse(courseData);
 
         // Initialize form data
         setFormData({
-          title: courseData.title || '',
-          description: courseData.description || '',
-          logo: courseData.logo || '',
-          start_date: formatDateForInput(courseData.start_date) || '',
-          end_date: formatDateForInput(courseData.end_date) || '',
+          title: courseData.title || "",
+          description: courseData.description || "",
+          logo: courseData.logo || "",
+          start_date: formatDateForInput(courseData.start_date) || "",
+          end_date: formatDateForInput(courseData.end_date) || "",
           is_public: courseData.is_public || false,
-          instructor_name: courseData.instructor_name || '',
-          batch_ids: courseData.batches?.map((b: Batch) => b.id) || courseData.batch_ids || [],
+          instructor_name: courseData.instructor_name || "",
+          batch_ids:
+            courseData.batches?.map((b: Batch) => b.id) ||
+            courseData.batch_ids ||
+            [],
         });
       } catch (err) {
-        console.error('Error fetching course data:', err);
-        setError('Failed to load course data. Please try again.');
+        console.error("Error fetching course data:", err);
+        setError("Failed to load course data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -162,37 +166,40 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
   const formatDateForInput = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toISOString().split('T')[0];
+      return date.toISOString().split("T")[0];
     } catch {
-      return '';
+      return "";
     }
   };
 
   // Validate form
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    
+
     if (!formData.title?.trim()) {
-      errors.title = 'Course title is required';
+      errors.title = "Course title is required";
     }
-    
+
     if (!formData.start_date) {
-      errors.start_date = 'Start date is required';
+      errors.start_date = "Start date is required";
     }
-    
+
     if (!formData.end_date) {
-      errors.end_date = 'End date is required';
+      errors.end_date = "End date is required";
     }
-    
-    if (formData.start_date && formData.end_date && 
-        new Date(formData.start_date) >= new Date(formData.end_date)) {
-      errors.end_date = 'End date must be after start date';
+
+    if (
+      formData.start_date &&
+      formData.end_date &&
+      new Date(formData.start_date) >= new Date(formData.end_date)
+    ) {
+      errors.end_date = "End date must be after start date";
     }
-    
+
     if (!formData.instructor_name?.trim()) {
-      errors.instructor_name = 'Instructor name is required';
+      errors.instructor_name = "Instructor name is required";
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -200,30 +207,30 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setSaving(true);
-    setError('');
-    
+    setError("");
+
     try {
       await axios.put(
         `${API_BASE_URL}/api/instructor/courses/${courseId}`,
         formData,
-        { headers: { Authorization: `Bearer ${backendJwt}` } }
+        { headers: { Authorization: `Bearer ${backendJwt}` } },
       );
-      
-      setSuccessMessage('Course updated successfully!');
+
+      setSuccessMessage("Course updated successfully!");
       setTimeout(() => {
-        router.push('/dashboard/instructor');
+        router.push("/dashboard/instructor");
       }, 1500);
     } catch (err: any) {
-      console.error('Error updating course:', err);
+      console.error("Error updating course:", err);
       setError(
-        err.response?.data?.message || 
-        'Failed to update course. Please try again.'
+        err.response?.data?.message ||
+          "Failed to update course. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -232,49 +239,53 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
 
   // Handle input changes
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value, type } = e.target;
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' 
-        ? (e.target as HTMLInputElement).checked
-        : value
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
 
     // Clear specific field error when user starts typing
     if (formErrors[name]) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
 
   // Batch management functions
   const handleBatchToggle = (batchId: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       batch_ids: prev.batch_ids.includes(batchId)
-        ? prev.batch_ids.filter(id => id !== batchId)
-        : [...prev.batch_ids, batchId]
+        ? prev.batch_ids.filter((id) => id !== batchId)
+        : [...prev.batch_ids, batchId],
     }));
   };
 
   const handleSelectAllBatches = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      batch_ids: prev.batch_ids.length === batches.length ? [] : batches.map(b => b.id)
+      batch_ids:
+        prev.batch_ids.length === batches.length
+          ? []
+          : batches.map((b) => b.id),
     }));
   };
 
   const getSelectedBatches = () => {
-    return batches.filter(batch => formData.batch_ids.includes(batch.id));
+    return batches.filter((batch) => formData.batch_ids.includes(batch.id));
   };
 
   const getUnselectedBatches = () => {
-    return batches.filter(batch => !formData.batch_ids.includes(batch.id));
+    return batches.filter((batch) => !formData.batch_ids.includes(batch.id));
   };
 
   if (loading) {
@@ -293,10 +304,14 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <FaTimes className="text-6xl text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Course Not Found</h2>
-          <p className="text-gray-600 mb-4">The requested course could not be found.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Course Not Found
+          </h2>
+          <p className="text-gray-600 mb-4">
+            The requested course could not be found.
+          </p>
           <button
-            onClick={() => router.push('/dashboard/instructor/courses')}
+            onClick={() => router.push("/dashboard/instructor/courses")}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Back to Courses
@@ -313,7 +328,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => router.push('/dashboard/instructor')}
+              onClick={() => router.push("/dashboard/instructor")}
               className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <FaArrowLeft className="w-5 h-5" />
@@ -323,12 +338,16 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                 <FaEdit className="text-blue-600" />
                 <span>Edit Course</span>
               </h1>
-              <p className="text-gray-600 mt-1">Update course details and batch assignments</p>
+              <p className="text-gray-600 mt-1">
+                Update course details and batch assignments
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => router.push(`/dashboard/instructor/courses/${courseId}`)}
+              onClick={() =>
+                router.push(`/dashboard/instructor/courses/${courseId}`)
+              }
               className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <FaBook className="w-4 h-4" />
@@ -393,7 +412,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                 value={formData.title}
                 onChange={handleInputChange}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  formErrors.title ? 'border-red-300' : 'border-gray-300'
+                  formErrors.title ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="Enter course title"
               />
@@ -448,12 +467,14 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                   value={formData.start_date}
                   onChange={handleInputChange}
                   className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    formErrors.start_date ? 'border-red-300' : 'border-gray-300'
+                    formErrors.start_date ? "border-red-300" : "border-gray-300"
                   }`}
                 />
               </div>
               {formErrors.start_date && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.start_date}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {formErrors.start_date}
+                </p>
               )}
             </div>
 
@@ -470,12 +491,14 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                   value={formData.end_date}
                   onChange={handleInputChange}
                   className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    formErrors.end_date ? 'border-red-300' : 'border-gray-300'
+                    formErrors.end_date ? "border-red-300" : "border-gray-300"
                   }`}
                 />
               </div>
               {formErrors.end_date && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.end_date}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {formErrors.end_date}
+                </p>
               )}
             </div>
 
@@ -492,13 +515,17 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                   value={formData.instructor_name}
                   onChange={handleInputChange}
                   className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    formErrors.instructor_name ? 'border-red-300' : 'border-gray-300'
+                    formErrors.instructor_name
+                      ? "border-red-300"
+                      : "border-gray-300"
                   }`}
                   placeholder="Enter instructor name"
                 />
               </div>
               {formErrors.instructor_name && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.instructor_name}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {formErrors.instructor_name}
+                </p>
               )}
             </div>
 
@@ -513,22 +540,30 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                     type="radio"
                     name="is_public"
                     checked={formData.is_public}
-                    onChange={() => setFormData(prev => ({ ...prev, is_public: true }))}
+                    onChange={() =>
+                      setFormData((prev) => ({ ...prev, is_public: true }))
+                    }
                     className="text-blue-600 focus:ring-blue-500"
                   />
                   <FaGlobe className="text-green-600" />
-                  <span className="text-sm font-medium text-gray-700">Public</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Public
+                  </span>
                 </label>
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="radio"
                     name="is_public"
                     checked={!formData.is_public}
-                    onChange={() => setFormData(prev => ({ ...prev, is_public: false }))}
+                    onChange={() =>
+                      setFormData((prev) => ({ ...prev, is_public: false }))
+                    }
                     className="text-blue-600 focus:ring-blue-500"
                   />
                   <FaLock className="text-yellow-600" />
-                  <span className="text-sm font-medium text-gray-700">Private</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Private
+                  </span>
                 </label>
               </div>
             </div>
@@ -548,7 +583,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <FaExchangeAlt className="w-4 h-4" />
-              <span>{showBatchManager ? 'Hide' : 'Manage'} Batches</span>
+              <span>{showBatchManager ? "Hide" : "Manage"} Batches</span>
             </button>
           </div>
 
@@ -567,9 +602,13 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                     <div className="flex items-center space-x-3">
                       <FaGraduationCap className="text-green-600" />
                       <div>
-                        <h4 className="font-medium text-green-900">{batch.name}</h4>
+                        <h4 className="font-medium text-green-900">
+                          {batch.name}
+                        </h4>
                         {batch.description && (
-                          <p className="text-sm text-green-700">{batch.description}</p>
+                          <p className="text-sm text-green-700">
+                            {batch.description}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -587,7 +626,9 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
             ) : (
               <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
                 <FaGraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600">No batches assigned to this course</p>
+                <p className="text-gray-600">
+                  No batches assigned to this course
+                </p>
               </div>
             )}
           </div>
@@ -628,9 +669,13 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                       <div className="flex items-center space-x-3">
                         <FaGraduationCap className="text-gray-600" />
                         <div>
-                          <h4 className="font-medium text-gray-900">{batch.name}</h4>
+                          <h4 className="font-medium text-gray-900">
+                            {batch.name}
+                          </h4>
                           {batch.description && (
-                            <p className="text-sm text-gray-700">{batch.description}</p>
+                            <p className="text-sm text-gray-700">
+                              {batch.description}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -648,7 +693,9 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
               ) : (
                 <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
                   <FaCheck className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                  <p className="text-gray-600">All available batches are already assigned</p>
+                  <p className="text-gray-600">
+                    All available batches are already assigned
+                  </p>
                 </div>
               )}
             </div>
@@ -660,13 +707,13 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
           <div className="flex items-center justify-between">
             <button
               type="button"
-              onClick={() => router.push('/dashboard/instructor')}
+              onClick={() => router.push("/dashboard/instructor")}
               className="flex items-center space-x-2 px-6 py-3 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <FaTimes className="w-4 h-4" />
               <span>Cancel</span>
             </button>
-            
+
             <div className="flex items-center space-x-3">
               <button
                 type="button"
@@ -685,7 +732,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                 ) : (
                   <FaSave className="w-4 h-4" />
                 )}
-                <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+                <span>{saving ? "Saving..." : "Save Changes"}</span>
               </button>
             </div>
           </div>

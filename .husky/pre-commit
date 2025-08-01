@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Run format and typecheck before commit
+pnpm format
+pnpm typecheck

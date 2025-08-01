@@ -23,7 +23,7 @@ const getBackendJwt = async () => {
       {
         headers: { Authorization: `Bearer ${googleIdToken}` },
         withCredentials: true,
-      }
+      },
     );
     cachedBackendJwt = loginRes.data.token;
     return cachedBackendJwt;
@@ -56,7 +56,7 @@ export const fetchBatches = async () => {
       throw new Error(
         `Failed to fetch batches: ${
           error.response.data?.message || error.response.status
-        }`
+        }`,
       );
     }
     throw new Error("Failed to fetch batches");
@@ -65,7 +65,7 @@ export const fetchBatches = async () => {
 
 export const removeStudentsFromBatch = async (
   batchId: string,
-  studentIds: string[]
+  studentIds: string[],
 ): Promise<{ success: boolean; message: string; details?: any }> => {
   try {
     const headers = await getAuthHeaders();
@@ -76,7 +76,7 @@ export const removeStudentsFromBatch = async (
       {
         headers,
         data: { userIds: studentIds },
-      }
+      },
     );
 
     console.log("Remove students response:", response.data);
@@ -120,7 +120,7 @@ export const getBatchStudents = async (batchId: string) => {
       throw new Error(
         `Failed to fetch batch students: ${
           error.response.data?.message || error.response.status
-        }`
+        }`,
       );
     }
     throw new Error("Failed to fetch batch students");
@@ -136,7 +136,7 @@ export const fetchStudentsWithBatchInfo = async () => {
       `${baseUrl}/api/instructor/students-with-batches`,
       {
         headers,
-      }
+      },
     );
 
     console.log("Students with batch info response:", response.data);
@@ -148,7 +148,7 @@ export const fetchStudentsWithBatchInfo = async () => {
         email: student.email,
         username: student.username,
         batch_id: Array.isArray(student.batch_id) ? student.batch_id : [],
-      })
+      }),
     );
 
     return students;
@@ -176,7 +176,7 @@ const fetchStudentsLegacy = async () => {
           const headers = await getAuthHeaders();
           const userResponse = await axios.get(
             `${baseUrl}/api/instructor/users/${student.id}/batches`,
-            { headers }
+            { headers },
           );
 
           return {
@@ -186,14 +186,14 @@ const fetchStudentsLegacy = async () => {
         } catch (err) {
           console.warn(
             `Failed to get batch info for student ${student.id}:`,
-            err
+            err,
           );
           return {
             ...student,
             batch_id: [],
           };
         }
-      })
+      }),
     );
 
     return studentsWithBatchInfo;
@@ -205,14 +205,14 @@ const fetchStudentsLegacy = async () => {
 
 export const isStudentInBatch = async (
   studentId: string,
-  batchId: string
+  batchId: string,
 ): Promise<boolean> => {
   try {
     const headers = await getAuthHeaders();
 
     const response = await axios.get(
       `${API_URL}/${batchId}/students/${studentId}/check`,
-      { headers }
+      { headers },
     );
 
     return response.data.isAssigned || false;
@@ -240,7 +240,7 @@ export const fetchBatchesWithStudentCounts = async () => {
       throw new Error(
         `Failed to fetch batches: ${
           error.response.data?.message || error.response.status
-        }`
+        }`,
       );
     }
     throw new Error("Failed to fetch batches");
@@ -249,7 +249,7 @@ export const fetchBatchesWithStudentCounts = async () => {
 
 // Bulk operations for multiple batches and students
 export const bulkAssignStudentsToBatches = async (
-  assignments: { batchId: string; studentIds: string[] }[]
+  assignments: { batchId: string; studentIds: string[] }[],
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   try {
     const headers = await getAuthHeaders();
@@ -257,7 +257,7 @@ export const bulkAssignStudentsToBatches = async (
     const response = await axios.post(
       `${API_URL}/bulk-assign`,
       { assignments },
-      { headers }
+      { headers },
     );
 
     return {
@@ -279,7 +279,7 @@ export const bulkAssignStudentsToBatches = async (
 export const transferStudentBetweenBatches = async (
   studentId: string,
   fromBatchId: string,
-  toBatchId: string
+  toBatchId: string,
 ): Promise<{ success: boolean; message: string }> => {
   try {
     const headers = await getAuthHeaders();
@@ -291,7 +291,7 @@ export const transferStudentBetweenBatches = async (
         fromBatchId,
         toBatchId,
       },
-      { headers }
+      { headers },
     );
 
     return {
@@ -303,7 +303,7 @@ export const transferStudentBetweenBatches = async (
 
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(
-        error.response.data?.message || "Student transfer failed"
+        error.response.data?.message || "Student transfer failed",
       );
     }
     throw new Error("Failed to transfer student");
@@ -326,7 +326,7 @@ export const fetchStudents = async () => {
 // Assign students to a batch with improved error handling
 export const assignStudentsToBatch = async (
   batchId: string,
-  studentIds: string[]
+  studentIds: string[],
 ): Promise<{ success: boolean; message: string; details?: any }> => {
   try {
     const headers = await getAuthHeaders();
@@ -399,7 +399,7 @@ export const assignStudentsToBatch = async (
           throw new Error("Authentication failed. Please log in again.");
         } else if (response.status === 403) {
           throw new Error(
-            "Permission denied. You don't have access to this resource."
+            "Permission denied. You don't have access to this resource.",
           );
         } else if (response.status === 404) {
           throw new Error("Batch not found. Please refresh and try again.");
@@ -407,7 +407,7 @@ export const assignStudentsToBatch = async (
           throw new Error(
             `Server error: ${errorMessage}${
               errorDetails ? ` - ${errorDetails}` : ""
-            }`
+            }`,
           );
         } else {
           throw new Error(`Request failed: ${errorMessage}`);
@@ -415,7 +415,7 @@ export const assignStudentsToBatch = async (
       } else if (request) {
         console.error("Request made but no response:", request);
         throw new Error(
-          "No response from server. Please check your connection and try again."
+          "No response from server. Please check your connection and try again.",
         );
       } else {
         console.error("Request setup error:", message);

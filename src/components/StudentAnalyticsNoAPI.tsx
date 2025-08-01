@@ -50,29 +50,36 @@ const StudentAnalytics: React.FC = () => {
               courseName: "Test Course",
               assignedAt: "2024-01-01",
               completed: false,
-              progress: 75
-            }
+              progress: 75,
+            },
           ],
           totalCourses: 1,
           completedCourses: 0,
-          averageProgress: 75
-        }
+          averageProgress: 75,
+        },
       ]);
       setLoading(false);
     }, 1000);
   }, []);
 
-  const filteredStudents = studentsData.filter(student =>
-    student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = studentsData.filter(
+    (student) =>
+      student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const totalStudents = studentsData.length;
-  const activeStudents = studentsData.filter(s => s.totalCourses > 0).length;
-  const completedStudents = studentsData.filter(s => s.completedCourses > 0).length;
-  const overallAverageProgress = totalStudents > 0 
-    ? Math.round(studentsData.reduce((sum, s) => sum + s.averageProgress, 0) / totalStudents)
-    : 0;
+  const activeStudents = studentsData.filter((s) => s.totalCourses > 0).length;
+  const completedStudents = studentsData.filter(
+    (s) => s.completedCourses > 0,
+  ).length;
+  const overallAverageProgress =
+    totalStudents > 0
+      ? Math.round(
+          studentsData.reduce((sum, s) => sum + s.averageProgress, 0) /
+            totalStudents,
+        )
+      : 0;
 
   if (loading) {
     return (
@@ -111,38 +118,54 @@ const StudentAnalytics: React.FC = () => {
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-blue-900">Total Students</h3>
-                <p className="text-2xl font-bold text-blue-600">{totalStudents}</p>
+                <h3 className="text-sm font-medium text-blue-900">
+                  Total Students
+                </h3>
+                <p className="text-2xl font-bold text-blue-600">
+                  {totalStudents}
+                </p>
               </div>
               <FaUsers className="text-blue-600 text-2xl" />
             </div>
           </div>
-          
+
           <div className="bg-green-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-green-900">Active Students</h3>
-                <p className="text-2xl font-bold text-green-600">{activeStudents}</p>
+                <h3 className="text-sm font-medium text-green-900">
+                  Active Students
+                </h3>
+                <p className="text-2xl font-bold text-green-600">
+                  {activeStudents}
+                </p>
               </div>
               <FaUserCheck className="text-green-600 text-2xl" />
             </div>
           </div>
-          
+
           <div className="bg-yellow-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-yellow-900">Completed Courses</h3>
-                <p className="text-2xl font-bold text-yellow-600">{completedStudents}</p>
+                <h3 className="text-sm font-medium text-yellow-900">
+                  Completed Courses
+                </h3>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {completedStudents}
+                </p>
               </div>
               <FaTrophy className="text-yellow-600 text-2xl" />
             </div>
           </div>
-          
+
           <div className="bg-purple-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-purple-900">Avg Progress</h3>
-                <p className="text-2xl font-bold text-purple-600">{overallAverageProgress}%</p>
+                <h3 className="text-sm font-medium text-purple-900">
+                  Avg Progress
+                </h3>
+                <p className="text-2xl font-bold text-purple-600">
+                  {overallAverageProgress}%
+                </p>
               </div>
               <FaChartLine className="text-purple-600 text-2xl" />
             </div>
@@ -165,9 +188,13 @@ const StudentAnalytics: React.FC = () => {
         {filteredStudents.length === 0 ? (
           <div className="text-center py-8">
             <FaUsers className="mx-auto text-gray-400 text-4xl mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No students found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No students found
+            </h3>
             <p className="text-gray-600">
-              {searchTerm ? "Try adjusting your search terms." : "No students are enrolled in any courses yet."}
+              {searchTerm
+                ? "Try adjusting your search terms."
+                : "No students are enrolled in any courses yet."}
             </p>
           </div>
         ) : (
@@ -194,40 +221,56 @@ const StudentAnalytics: React.FC = () => {
                   <tr key={student.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{student.username}</div>
-                        <div className="text-sm text-gray-500">{student.email}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {student.username}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {student.email}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <FaBook className="text-blue-500 mr-2" />
                         <span className="text-sm text-gray-900">
-                          {student.completedCourses}/{student.totalCourses} completed
+                          {student.completedCourses}/{student.totalCourses}{" "}
+                          completed
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {student.courses.slice(0, 2).map(course => course.courseName).join(", ")}
-                        {student.courses.length > 2 && ` +${student.courses.length - 2} more`}
+                        {student.courses
+                          .slice(0, 2)
+                          .map((course) => course.courseName)
+                          .join(", ")}
+                        {student.courses.length > 2 &&
+                          ` +${student.courses.length - 2} more`}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-1">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-900">{student.averageProgress}%</span>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              student.averageProgress >= 80 
-                                ? 'bg-green-100 text-green-800'
+                            <span className="text-gray-900">
+                              {student.averageProgress}%
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                student.averageProgress >= 80
+                                  ? "bg-green-100 text-green-800"
+                                  : student.averageProgress >= 60
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {student.averageProgress >= 80
+                                ? "Excellent"
                                 : student.averageProgress >= 60
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {student.averageProgress >= 80 ? 'Excellent' : 
-                               student.averageProgress >= 60 ? 'Good' : 'Needs Improvement'}
+                                  ? "Good"
+                                  : "Needs Improvement"}
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                            <div 
+                            <div
                               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${student.averageProgress}%` }}
                             ></div>

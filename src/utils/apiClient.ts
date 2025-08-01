@@ -3,7 +3,7 @@
  * This file is kept for compatibility but functionality has been moved to axiosInterceptor.ts
  */
 
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from "../contexts/AuthContext";
 
 // Simple stub class to prevent build errors
 class ApiClient {
@@ -15,7 +15,7 @@ class ApiClient {
 
   init(): void {
     this.initialized = true;
-    console.log('ApiClient initialized (stub implementation)');
+    console.log("ApiClient initialized (stub implementation)");
   }
 
   // Stub methods
@@ -55,4 +55,4 @@ export const useApiClient = () => {
   };
 };
 
-export default apiClient; 
+export default apiClient;

@@ -32,7 +32,7 @@ interface ProgressAnalyticsProps {
 
 const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
   const { data: session, status } = useSession();
-  
+
   // State
   const [progressData, setProgressData] = useState<ProgressData[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -58,25 +58,29 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         setLoading(true);
         setError("");
 
-        console.log(`Fetching progress for batch: ${batchId}, course: ${courseId}`);
+        console.log(
+          `Fetching progress for batch: ${batchId}, course: ${courseId}`,
+        );
 
         const progressResponse = await apiClient.get(
-          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/progress`
+          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/progress`,
         );
 
         if (mountedRef.current && progressResponse.data) {
           const progressData = progressResponse.data.report || [];
-          console.log('Progress data received:', progressData);
+          console.log("Progress data received:", progressData);
           // Transform the data to match the expected ProgressData interface
-          const transformedData: ProgressData[] = progressData.map((item: any) => ({
-            studentId: item.studentId,
-            studentName: item.username,
-            progress: item.currentPage || 0,
-            modulesCompleted: item.currentPage || 0, // Use currentPage as modules completed
-            totalModules: 10, // Mock total - adjust based on your course structure
-            lastActivity: new Date().toISOString(), // Mock - backend doesn't provide this
-            status: item.status || 'not-started'
-          }));
+          const transformedData: ProgressData[] = progressData.map(
+            (item: any) => ({
+              studentId: item.studentId,
+              studentName: item.username,
+              progress: item.currentPage || 0,
+              modulesCompleted: item.currentPage || 0, // Use currentPage as modules completed
+              totalModules: 10, // Mock total - adjust based on your course structure
+              lastActivity: new Date().toISOString(), // Mock - backend doesn't provide this
+              status: item.status || "not-started",
+            }),
+          );
           setProgressData(transformedData);
         }
       } catch (err: any) {
@@ -102,13 +106,15 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
 
       try {
         console.log(`📋 Fetching courses for batch: ${batchId}`);
-        const coursesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batchId));
-        
+        const coursesResponse = await apiClient.get(
+          API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batchId),
+        );
+
         if (!coursesResponse || !mountedRef.current) return;
 
         const responseData = coursesResponse.data;
         const courseList = responseData.courses || [];
-        
+
         setCourses(courseList);
 
         if (courseList.length > 0) {
@@ -122,7 +128,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         }
       }
     },
-    [] // Remove dependency to prevent loops
+    [], // Remove dependency to prevent loops
   );
 
   // Fetch initial data
@@ -132,7 +138,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
     }
 
     // Let axios interceptor handle authentication
-    if (status === 'loading') {
+    if (status === "loading") {
       return;
     }
 
@@ -140,15 +146,17 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
       setLoading(true);
       setError("");
 
-      console.log('🚀 ProgressAnalytics - Fetching batches...');
-      const batchesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCHES);
-      
+      console.log("🚀 ProgressAnalytics - Fetching batches...");
+      const batchesResponse = await apiClient.get(
+        API_ENDPOINTS.INSTRUCTOR.BATCHES,
+      );
+
       if (!batchesResponse || !mountedRef.current) return;
 
       const responseData = batchesResponse.data;
       const batchList = responseData.batches || [];
-      
-      console.log('✅ ProgressAnalytics - Batches received:', batchList.length);
+
+      console.log("✅ ProgressAnalytics - Batches received:", batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
@@ -169,16 +177,18 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
 
   // Initialize data on component mount
   useEffect(() => {
-    console.log('🚀 ProgressAnalytics - Component mounted');
-    
+    console.log("🚀 ProgressAnalytics - Component mounted");
+
     // Ensure mountedRef is set to true
     mountedRef.current = true;
-    console.log('🔧 ProgressAnalytics mountedRef set to:', mountedRef.current);
-    
+    console.log("🔧 ProgressAnalytics mountedRef set to:", mountedRef.current);
+
     fetchInitialData();
-    
+
     return () => {
-      console.log('🧹 ProgressAnalytics - Component cleanup, setting mountedRef to false');
+      console.log(
+        "🧹 ProgressAnalytics - Component cleanup, setting mountedRef to false",
+      );
       mountedRef.current = false;
     };
   }, []); // No dependencies - fetchInitialData handles its own conditions
@@ -186,38 +196,52 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
   // Handle batch change
   const handleBatchChange = useCallback((batchId: string) => {
     if (!mountedRef.current) return;
-    
+
     setSelectedBatch(batchId);
     setSelectedCourse("");
     setCourses([]);
     setProgressData([]);
-    
+
     if (batchId) {
       fetchCoursesForBatch(batchId);
     }
   }, []); // Remove dependency
 
   // Handle course change
-  const handleCourseChange = useCallback(async (courseId: string) => {
-    if (!mountedRef.current) return;
-    
-    setSelectedCourse(courseId);
-    setProgressData([]);
-    
-    if (selectedBatch && courseId) {
-      console.log('📊 PROGRESS ANALYTICS: Fetching progress data for batch:', selectedBatch, 'course:', courseId);
-      await fetchProgressData(selectedBatch, courseId);
-    }
-  }, [selectedBatch]); // Keep selectedBatch dependency but remove fetchProgressData
+  const handleCourseChange = useCallback(
+    async (courseId: string) => {
+      if (!mountedRef.current) return;
+
+      setSelectedCourse(courseId);
+      setProgressData([]);
+
+      if (selectedBatch && courseId) {
+        console.log(
+          "📊 PROGRESS ANALYTICS: Fetching progress data for batch:",
+          selectedBatch,
+          "course:",
+          courseId,
+        );
+        await fetchProgressData(selectedBatch, courseId);
+      }
+    },
+    [selectedBatch],
+  ); // Keep selectedBatch dependency but remove fetchProgressData
 
   // Calculate statistics
   const calculateStats = () => {
     if (!progressData.length) return null;
 
     const totalStudents = progressData.length;
-    const completedStudents = progressData.filter(p => p.status === 'completed').length;
-    const inProgressStudents = progressData.filter(p => p.status === 'in-progress').length;
-    const averageProgress = progressData.reduce((sum, p) => sum + p.progressPercentage, 0) / totalStudents;
+    const completedStudents = progressData.filter(
+      (p) => p.status === "completed",
+    ).length;
+    const inProgressStudents = progressData.filter(
+      (p) => p.status === "in-progress",
+    ).length;
+    const averageProgress =
+      progressData.reduce((sum, p) => sum + p.progressPercentage, 0) /
+      totalStudents;
 
     return {
       totalStudents,
@@ -230,7 +254,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
   const stats = calculateStats();
 
   // Show loading for authentication
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -260,7 +284,9 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         <div className="bg-white rounded-lg shadow-sm border border-red-200 p-6 max-w-md w-full mx-4">
           <div className="text-center">
             <div className="text-red-600 text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Progress Analytics</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Error Loading Progress Analytics
+            </h2>
             <p className="text-red-600 mb-4">{error}</p>
             <button
               onClick={() => {
@@ -286,8 +312,12 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
             <div className="flex items-center space-x-3">
               <FaChartLine className="text-2xl text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Progress Analytics</h1>
-                <p className="text-gray-600">Track student progress across courses and modules</p>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Progress Analytics
+                </h1>
+                <p className="text-gray-600">
+                  Track student progress across courses and modules
+                </p>
               </div>
             </div>
             {onClose && (
@@ -305,7 +335,9 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Batch</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Batch
+              </label>
               <select
                 value={selectedBatch}
                 onChange={(e) => handleBatchChange(e.target.value)}
@@ -320,7 +352,9 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Course
+              </label>
               <select
                 value={selectedCourse}
                 onChange={(e) => handleCourseChange(e.target.value)}
@@ -344,8 +378,12 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Students</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Students
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {stats.totalStudents}
+                  </p>
                 </div>
                 <FaUsers className="text-2xl text-blue-600" />
               </div>
@@ -354,7 +392,9 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.completedStudents}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {stats.completedStudents}
+                  </p>
                 </div>
                 <FaBook className="text-2xl text-green-600" />
               </div>
@@ -362,8 +402,12 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">In Progress</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.inProgressStudents}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    In Progress
+                  </p>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {stats.inProgressStudents}
+                  </p>
                 </div>
                 <FaSpinner className="text-2xl text-yellow-600" />
               </div>
@@ -371,8 +415,12 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg Progress</p>
-                  <p className="text-2xl font-bold text-purple-600">{stats.averageProgress}%</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg Progress
+                  </p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {stats.averageProgress}%
+                  </p>
                 </div>
                 <FaChartLine className="text-2xl text-purple-600" />
               </div>
@@ -384,14 +432,22 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         {!selectedBatch || !selectedCourse ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div className="text-gray-400 text-4xl mb-4">📊</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Select Batch and Course</h3>
-            <p className="text-gray-600">Please select both a batch and course to view progress analytics</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Select Batch and Course
+            </h3>
+            <p className="text-gray-600">
+              Please select both a batch and course to view progress analytics
+            </p>
           </div>
         ) : progressData.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div className="text-gray-400 text-4xl mb-4">📈</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Progress Data</h3>
-            <p className="text-gray-600">No progress data found for the selected batch and course</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Progress Data
+            </h3>
+            <p className="text-gray-600">
+              No progress data found for the selected batch and course
+            </p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -426,35 +482,51 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {progressData.map((progress) => (
-                    <tr key={`${progress.studentId}-${progress.courseId}`} className="hover:bg-gray-50">
+                    <tr
+                      key={`${progress.studentId}-${progress.courseId}`}
+                      className="hover:bg-gray-50"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{progress.username}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {progress.username}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{progress.courseName}</div>
+                        <div className="text-sm text-gray-900">
+                          {progress.courseName}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                             <div
                               className="bg-blue-600 h-2 rounded-full"
-                              style={{ width: `${progress.progressPercentage}%` }}
+                              style={{
+                                width: `${progress.progressPercentage}%`,
+                              }}
                             ></div>
                           </div>
-                          <span className="text-sm text-gray-900">{progress.progressPercentage}%</span>
+                          <span className="text-sm text-gray-900">
+                            {progress.progressPercentage}%
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          progress.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          progress.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            progress.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : progress.status === "in-progress"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
                           {progress.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {Math.round(progress.timeSpent / 60)}h {progress.timeSpent % 60}m
+                        {Math.round(progress.timeSpent / 60)}h{" "}
+                        {progress.timeSpent % 60}m
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(progress.lastAccessed).toLocaleDateString()}

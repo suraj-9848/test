@@ -118,7 +118,7 @@ export const useInstructorStore = create<InstructorStoreState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await instructorApi.getCourses();
-      const backendCourses = response || [];
+      const backendCourses = response?.courses || [];
 
       // Get total students count - placeholder for now
       let totalStudents = 0;

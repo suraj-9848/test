@@ -53,7 +53,7 @@ const getBackendJwt = async () => {
       {
         headers: { Authorization: `Bearer ${googleIdToken}` },
         withCredentials: true,
-      }
+      },
     );
     cachedBackendJwt = loginRes.data.token;
     return cachedBackendJwt;
@@ -139,8 +139,9 @@ const BatchAssign: React.FC = () => {
         (student: { batch_id: any }) => ({
           ...student,
           batch_id: Array.isArray(student.batch_id) ? student.batch_id : [],
-        })
+        }),
       );
+      console.log("Fetched students:", studentsData);
 
       if (!batchesData || batchesData.length === 0) {
         setError("No batches found. Please create a batch first.");
@@ -171,18 +172,18 @@ const BatchAssign: React.FC = () => {
     let filteredStudents = students.filter(
       (student) =>
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase())
+        student.email.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
     if (selectedBatchId && assignmentMode === "assign") {
       // In assign mode: show students NOT in the selected batch
       filteredStudents = filteredStudents.filter(
-        (student) => !isStudentInBatch(student.id)
+        (student) => !isStudentInBatch(student.id),
       );
     } else if (selectedBatchId && assignmentMode === "remove") {
       // In remove mode: show students IN the selected batch
       filteredStudents = filteredStudents.filter((student) =>
-        isStudentInBatch(student.id)
+        isStudentInBatch(student.id),
       );
     }
 
@@ -210,21 +211,21 @@ const BatchAssign: React.FC = () => {
       if (assignmentMode === "assign") {
         const response = await assignStudentsToBatch(
           selectedBatchId,
-          selectedStudents
+          selectedStudents,
         );
         console.log("Assignment response:", response);
         setSuccess(
-          `Successfully assigned ${selectedStudents.length} student(s) to the selected batch!`
+          `Successfully assigned ${selectedStudents.length} student(s) to the selected batch!`,
         );
       } else {
         // Remove mode - call remove API
         const response = await removeStudentsFromBatch(
           selectedBatchId,
-          selectedStudents
+          selectedStudents,
         );
         console.log("Removal response:", response);
         setSuccess(
-          `Successfully removed ${selectedStudents.length} student(s) from the selected batch!`
+          `Successfully removed ${selectedStudents.length} student(s) from the selected batch!`,
         );
       }
 
@@ -244,22 +245,22 @@ const BatchAssign: React.FC = () => {
       // Provide more specific error messages
       if (message.includes("Internal server error")) {
         setError(
-          `${operation} failed: Server error occurred. This might be due to database connectivity, missing batch/student data, or permission issues. Please try again or contact support.`
+          `${operation} failed: Server error occurred. This might be due to database connectivity, missing batch/student data, or permission issues. Please try again or contact support.`,
         );
       } else if (message.includes("Batch not found")) {
         setError(
-          "The selected batch was not found. Please refresh and try again."
+          "The selected batch was not found. Please refresh and try again.",
         );
       } else if (message.includes("User not found")) {
         setError(
-          "One or more selected students were not found. Please refresh and try again."
+          "One or more selected students were not found. Please refresh and try again.",
         );
       } else if (
         message.includes("org mismatch") ||
         message.includes("organization")
       ) {
         setError(
-          "Organization mismatch: Students can only be managed within their organization."
+          "Organization mismatch: Students can only be managed within their organization.",
         );
       } else if (message.includes("already assigned")) {
         setError("Some students are already assigned to this batch.");
@@ -276,7 +277,7 @@ const BatchAssign: React.FC = () => {
   // New API function for removing students from batch
   const removeStudentsFromBatch = async (
     batchId: string,
-    studentIds: string[]
+    studentIds: string[],
   ) => {
     try {
       const headers = await getAuthHeaders();
@@ -287,7 +288,7 @@ const BatchAssign: React.FC = () => {
         {
           headers,
           data: { userIds: studentIds }, // DELETE requests with body use 'data' in axios
-        }
+        },
       );
 
       console.log("Remove students response:", response.data);
@@ -317,7 +318,7 @@ const BatchAssign: React.FC = () => {
     setSelectedStudents((prev) =>
       prev.includes(studentId)
         ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
+        : [...prev, studentId],
     );
   };
 
@@ -697,8 +698,8 @@ const BatchAssign: React.FC = () => {
                                 isSelected
                                   ? "bg-blue-600 text-white"
                                   : isInBatch
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-slate-100 text-slate-600"
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-slate-100 text-slate-600"
                               }`}
                             >
                               {isSelected ? (

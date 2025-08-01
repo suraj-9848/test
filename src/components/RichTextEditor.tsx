@@ -48,12 +48,12 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
       height = "300px",
       minHeight = "150px",
     },
-    ref
+    ref,
   ) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const [isEditorReady, setIsEditorReady] = useState(false);
     const [editorContent, setEditorContent] = useState(
-      value || initialContent || ""
+      value || initialContent || "",
     );
 
     useEffect(() => {
@@ -101,7 +101,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           setTimeout(() => {
             if (editorRef.current) {
               const headings = editorRef.current.querySelectorAll(
-                "h1, h2, h3, h4, h5, h6"
+                "h1, h2, h3, h4, h5, h6",
               );
               headings.forEach((heading) => {
                 const headingElement = heading as HTMLElement;
@@ -186,7 +186,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           if (editorRef.current) {
             // Re-apply styles to any new elements that might need them
             const headings = editorRef.current.querySelectorAll(
-              "h1:not([data-styled]), h2:not([data-styled]), h3:not([data-styled])"
+              "h1:not([data-styled]), h2:not([data-styled]), h3:not([data-styled])",
             );
             headings.forEach((heading) => {
               const headingElement = heading as HTMLElement;
@@ -202,7 +202,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
             });
 
             const lists = editorRef.current.querySelectorAll(
-              "ul:not([data-styled]), ol:not([data-styled])"
+              "ul:not([data-styled]), ol:not([data-styled])",
             );
             lists.forEach((list) => {
               const listElement = list as HTMLElement;
@@ -356,7 +356,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
             const element = blockElement as Element;
             if (
               ["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "LI"].includes(
-                element.tagName
+                element.tagName,
               )
             ) {
               break;
@@ -456,7 +456,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
 
         // If we're inside a list or other block element, insert after it
         const blockParent = (currentElement as Element)?.closest(
-          "li, blockquote, h1, h2, h3, h4, h5, h6"
+          "li, blockquote, h1, h2, h3, h4, h5, h6",
         );
 
         const pre = document.createElement("pre");
@@ -646,7 +646,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
         return () => {
           document.removeEventListener(
             "selectionchange",
-            handleSelectionChange
+            handleSelectionChange,
           );
           editor.removeEventListener("input", updateFormatState);
           editor.removeEventListener("keyup", updateFormatState);
@@ -973,7 +973,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
         `}</style>
       </div>
     );
-  }
+  },
 );
 
 RichTextEditor.displayName = "RichTextEditor";

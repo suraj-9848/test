@@ -25,7 +25,7 @@ type CombinedUser = AdminUser | InstructorUser | StudentUser | RecruiterUser;
 
 // Helper function to safely extract role from CombinedUser
 const getUserRole = (user: CombinedUser): UserRole | "" => {
-  return 'role' in user ? (user.role as UserRole) : "";
+  return "role" in user ? (user.role as UserRole) : "";
 };
 
 // Helper function to safely extract batch_id from user (if it exists)
@@ -89,14 +89,15 @@ const UserForm: React.FC<UserFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const submissionData: Partial<FormData> = {
-      name: formData.name,
+    // Map frontend form fields to backend expected fields
+    const submissionData = {
+      username: formData.name, // Backend expects 'username', not 'name'
       email: formData.email || undefined,
-      password: isEdit ? undefined : formData.password || undefined,
-      college: formData.college || undefined,
+      password: formData.password || undefined, // Now optional for both create and edit
+      org_id: formData.college || undefined, // Backend expects 'org_id', not 'college'
       batch_id: formData.userRole === "student" ? formData.batch_id : [],
-      userRole: formData.userRole || undefined,
-      role: formData.userRole || undefined, // Role is same as userRole
+      // Note: 'role' field will be added by the API function from the userRole parameter
+      userRole: formData.userRole || undefined, // This tells the parent component what role to pass to API
       status: formData.status,
     };
 
@@ -200,22 +201,24 @@ const UserForm: React.FC<UserFormProps> = ({
         </div>
 
         {/* Password */}
-        {!isEdit && (
-          <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-black mb-1">
-              <FaUser className="w-3 h-3 text-blue-600" />
-              <span>Password *</span>
-            </label>
-            <input
-              type="password"
-              value={formData.password || ""}
-              onChange={(e) => handleInputChange("password", e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-black"
-              placeholder="Enter password"
-              required={!isEdit}
-            />
-          </div>
-        )}
+        <div>
+          <label className="flex items-center space-x-2 text-sm font-medium text-black mb-1">
+            <FaUser className="w-3 h-3 text-blue-600" />
+            <span>Password {isEdit ? "(optional)" : "(optional)"}</span>
+          </label>
+          <input
+            type="password"
+            value={formData.password || ""}
+            onChange={(e) => handleInputChange("password", e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-black"
+            placeholder={
+              isEdit
+                ? "Leave blank to keep current password"
+                : "Enter password (optional)"
+            }
+            required={false}
+          />
+        </div>
 
         {/* Organization */}
         <div>

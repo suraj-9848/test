@@ -55,8 +55,12 @@ interface ModuleStore {
   error: string | null;
 
   setSelectedModule: (module: Module | null) => void;
-  fetchModules: (batchId: string, courseId: string, jwt: string) => Promise<void>;
-  
+  fetchModules: (
+    batchId: string,
+    courseId: string,
+    jwt: string,
+  ) => Promise<void>;
+
   createDayContent: (
     batchId: string,
     courseId: string,
@@ -64,7 +68,7 @@ interface ModuleStore {
     dayData: CreateDayContentData,
     jwt: string,
   ) => Promise<any>;
-  
+
   updateDayContent: (
     batchId: string,
     courseId: string,
@@ -73,7 +77,7 @@ interface ModuleStore {
     dayData: Partial<CreateDayContentData>,
     jwt: string,
   ) => Promise<any>;
-  
+
   deleteDayContent: (
     batchId: string,
     courseId: string,
@@ -89,7 +93,7 @@ interface ModuleStore {
     mcqData: CreateMCQData,
     jwt: string,
   ) => Promise<any>;
-  
+
   deleteMCQ: (
     batchId: string,
     courseId: string,
@@ -106,11 +110,16 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
   error: null,
 
   setSelectedModule: (module: Module | null) => {
-    console.log("Setting selected module:", module ? {
-      id: module.id,
-      title: module.title,
-      daysCount: module.days?.length || 0
-    } : null);
+    console.log(
+      "Setting selected module:",
+      module
+        ? {
+            id: module.id,
+            title: module.title,
+            daysCount: module.days?.length || 0,
+          }
+        : null,
+    );
     set({ selectedModule: module });
   },
 
@@ -118,25 +127,28 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       console.log("Fetching modules with params:", { batchId, courseId });
-      
+
       const response = await axios.get(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${jwt}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
           timeout: 30000,
         },
       );
-      
+
       const fetchedModules = response.data.modules || response.data || [];
-      console.log("Fetched modules:", fetchedModules.map((m: Module) => ({
-        id: m.id,
-        title: m.title,
-        daysCount: m.days?.length || 0
-      })));
-      
+      console.log(
+        "Fetched modules:",
+        fetchedModules.map((m: Module) => ({
+          id: m.id,
+          title: m.title,
+          daysCount: m.days?.length || 0,
+        })),
+      );
+
       set({
         modules: fetchedModules,
         loading: false,
@@ -168,31 +180,31 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
         moduleId,
         title: dayData.title,
         dayNumber: dayData.dayNumber,
-        contentLength: dayData.content.length
+        contentLength: dayData.content.length,
       });
-      
+
       const response = await axios.post(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content`,
         {
           content: dayData.content,
           dayNumber: dayData.dayNumber,
-          title: dayData.title
+          title: dayData.title,
         },
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${jwt}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
           timeout: 30000,
         },
       );
-      
+
       const newDayContent = response.data.dayContent;
       console.log("Created day content successfully:", {
         id: newDayContent.id,
         title: newDayContent.title,
         dayNumber: newDayContent.dayNumber,
-        contentLength: newDayContent.content?.length || 0
+        contentLength: newDayContent.content?.length || 0,
       });
 
       // Update state with the new day content
@@ -201,17 +213,23 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
           module.id === moduleId
             ? {
                 ...module,
-                days: [...(module.days || []), newDayContent].sort((a, b) => a.dayNumber - b.dayNumber),
+                days: [...(module.days || []), newDayContent].sort(
+                  (a, b) => a.dayNumber - b.dayNumber,
+                ),
               }
             : module,
         );
 
-        const updatedSelectedModule = state.selectedModule?.id === moduleId
-          ? {
-              ...state.selectedModule,
-              days: [...(state.selectedModule.days || []), newDayContent].sort((a, b) => a.dayNumber - b.dayNumber),
-            }
-          : state.selectedModule;
+        const updatedSelectedModule =
+          state.selectedModule?.id === moduleId
+            ? {
+                ...state.selectedModule,
+                days: [
+                  ...(state.selectedModule.days || []),
+                  newDayContent,
+                ].sort((a, b) => a.dayNumber - b.dayNumber),
+              }
+            : state.selectedModule;
 
         return {
           modules: updatedModules,
@@ -226,9 +244,15 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
         response?: { data?: { message?: string }; status?: number };
         message?: string;
       };
-      console.error("Day content create error:", err.response?.data || err.message);
-      
-      const errorMessage = err?.response?.data?.message || err.message || "Failed to create day content";
+      console.error(
+        "Day content create error:",
+        err.response?.data || err.message,
+      );
+
+      const errorMessage =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to create day content";
       set({
         error: errorMessage,
         loading: false,
@@ -255,29 +279,30 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
           hasContent: !!dayData.content,
           hasTitle: !!dayData.title,
           hasDayNumber: !!dayData.dayNumber,
-          contentLength: dayData.content?.length || 0
-        }
+          contentLength: dayData.content?.length || 0,
+        },
       });
-      
+
       const response = await axios.put(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content/${dayId}`,
         dayData,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${jwt}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
           timeout: 30000,
         },
       );
-      
+
       const updatedDayContent = response.data.dayContent;
       console.log("Updated day content successfully:", {
         id: updatedDayContent.id,
         title: updatedDayContent.title,
         dayNumber: updatedDayContent.dayNumber,
         contentLength: updatedDayContent.content?.length || 0,
-        contentPreview: updatedDayContent.content?.substring(0, 100) + "..." || "No content"
+        contentPreview:
+          updatedDayContent.content?.substring(0, 100) + "..." || "No content",
       });
 
       // CRITICAL: Update state with the response from backend
@@ -286,26 +311,27 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
           module.id === moduleId
             ? {
                 ...module,
-                days: module.days?.map((day) =>
-                  day.id === dayId ? updatedDayContent : day
-                ).sort((a, b) => a.dayNumber - b.dayNumber),
+                days: module.days
+                  ?.map((day) => (day.id === dayId ? updatedDayContent : day))
+                  .sort((a, b) => a.dayNumber - b.dayNumber),
               }
             : module,
         );
 
-        const updatedSelectedModule = state.selectedModule?.id === moduleId
-          ? {
-              ...state.selectedModule,
-              days: state.selectedModule.days?.map((day) =>
-                day.id === dayId ? updatedDayContent : day
-              ).sort((a, b) => a.dayNumber - b.dayNumber),
-            }
-          : state.selectedModule;
+        const updatedSelectedModule =
+          state.selectedModule?.id === moduleId
+            ? {
+                ...state.selectedModule,
+                days: state.selectedModule.days
+                  ?.map((day) => (day.id === dayId ? updatedDayContent : day))
+                  .sort((a, b) => a.dayNumber - b.dayNumber),
+              }
+            : state.selectedModule;
 
         console.log("State updated with new content:", {
           moduleId,
           updatedDayId: updatedDayContent.id,
-          newContentLength: updatedDayContent.content?.length || 0
+          newContentLength: updatedDayContent.content?.length || 0,
         });
 
         return {
@@ -324,10 +350,13 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
       console.error("Day content update error:", {
         status: err.response?.status,
         message: err.response?.data?.message || err.message,
-        data: err.response?.data
+        data: err.response?.data,
       });
-      
-      const errorMessage = err?.response?.data?.message || err.message || "Failed to update day content";
+
+      const errorMessage =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to update day content";
       set({
         error: errorMessage,
         loading: false,
@@ -347,13 +376,13 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       console.log("Deleting day content:", { dayId, moduleId });
-      
+
       await axios.delete(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content/${dayId}`,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${jwt}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
           timeout: 30000,
         },
@@ -374,7 +403,9 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
           state.selectedModule?.id === moduleId
             ? {
                 ...state.selectedModule,
-                days: state.selectedModule.days?.filter((day) => day.id !== dayId),
+                days: state.selectedModule.days?.filter(
+                  (day) => day.id !== dayId,
+                ),
               }
             : state.selectedModule,
         loading: false,
@@ -384,9 +415,15 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
         response?: { data?: { message?: string }; status?: number };
         message?: string;
       };
-      console.error("Day content delete error:", err.response?.data || err.message);
-      
-      const errorMessage = err?.response?.data?.message || err.message || "Failed to delete day content";
+      console.error(
+        "Day content delete error:",
+        err.response?.data || err.message,
+      );
+
+      const errorMessage =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to delete day content";
       set({
         error: errorMessage,
         loading: false,
@@ -409,9 +446,9 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq`,
         mcqData,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${jwt}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
           timeout: 30000,
         },
@@ -436,8 +473,9 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
         message?: string;
       };
       console.error("MCQ create error:", err.response?.data || err.message);
-      
-      const errorMessage = err?.response?.data?.message || err.message || "Failed to create MCQ";
+
+      const errorMessage =
+        err?.response?.data?.message || err.message || "Failed to create MCQ";
       set({
         error: errorMessage,
         loading: false,
@@ -458,9 +496,9 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
       await axios.delete(
         `${baseUrl}/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq/${mcqId}`,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${jwt}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
           timeout: 30000,
         },
@@ -482,8 +520,9 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
         message?: string;
       };
       console.error("MCQ delete error:", err.response?.data || err.message);
-      
-      const errorMessage = err?.response?.data?.message || err.message || "Failed to delete MCQ";
+
+      const errorMessage =
+        err?.response?.data?.message || err.message || "Failed to delete MCQ";
       set({
         error: errorMessage,
         loading: false,
