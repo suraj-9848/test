@@ -327,7 +327,9 @@ export const instructorApi = {
   },
 
 
-  getCourses: async (): Promise<{ courses: Course[] }> => {
+  getCourses: async (): Promise<{
+    filter(arg0: (course: any) => boolean): unknown; courses: Course[] 
+}> => {
     try {
       const headers = await getAuthHeaders();
       const result = await safeApiCall(

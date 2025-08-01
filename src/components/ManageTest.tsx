@@ -90,34 +90,35 @@ const ManageTest: React.FC = () => {
       instructorApi
         .getCourses()
         .then((res) => {
+          // FIXED: Handle the API response structure correctly
+          const coursesArray = res?.courses || res || [];
+          console.log("Courses response:", res);
+          console.log("Courses array:", coursesArray);
+          
+          if (!Array.isArray(coursesArray)) {
+            console.error("Courses data is not an array:", coursesArray);
+            setCourses([]);
+            setLoading(false);
+            return;
+          }
+
           const batchIdStr = String(selectedBatch);
-          const filtered = (res || []).filter((course) => {
-            if (String((course as any).batch_id) === batchIdStr) return true;
-            if (
-              "batchId" in course &&
-              typeof (course as any).batchId === "string" &&
-              (course as any).batchId === batchIdStr
-            )
-              return true;
-            if (
-              "batch" in course &&
-              (course as any).batch &&
-              typeof (course as any).batch === "object" &&
-              (course as any).batch !== null &&
-              "id" in (course as any).batch &&
-              typeof ((course as any).batch as { id: unknown }).id === "string" &&
-              ((course as any).batch as { id: string }).id === batchIdStr
-            )
-              return true;
+          const filtered = coursesArray.filter((course: any) => {
+            // Check various possible batch ID formats
+            if (String(course.batch_id) === batchIdStr) return true;
+            if (course.batchId && String(course.batchId) === batchIdStr) return true;
+            if (course.batch && course.batch.id && String(course.batch.id) === batchIdStr) return true;
             return false;
           });
-          const sortedCourses = filtered.length === 0 ? res : filtered;
+          
+          const sortedCourses = filtered.length === 0 ? coursesArray : filtered;
           setCourses(
             sortedCourses.sort((a: any, b: any) => a.title.localeCompare(b.title))
           );
           setLoading(false);
         })
         .catch((err) => {
+          console.error("Error fetching courses:", err);
           setError(err.message || "Failed to fetch courses");
           setLoading(false);
         });
@@ -798,11 +799,14 @@ const ManageTest: React.FC = () => {
                   key={q.id}
                   className="flex justify-between items-center p-4 bg-gray-50 rounded-lg"
                 >
-                  <span
-                    className="font-medium"
-                    dangerouslySetInnerHTML={{ __html: q.question_text }}
-                  />
-                  <div className="flex gap-3">
+                  {/* FIXED: Proper content rendering with styles */}
+                  <div className="content-display flex-1">
+                    <div
+                      dangerouslySetInnerHTML={{ __html: q.question_text }}
+                      className="font-medium"
+                    />
+                  </div>
+                  <div className="flex gap-3 ml-4">
                     <button
                       className="text-blue-600 hover:underline"
                       onClick={() => handleEditQuestion(q)}
@@ -950,6 +954,131 @@ const ManageTest: React.FC = () => {
           {success}
         </div>
       )}
+
+      {/* CRITICAL: Global styles for content rendering */}
+      <style jsx global>{`
+        /* Content Display Styles for Questions */
+        .content-display h1 {
+          font-size: 1.875rem !important;
+          font-weight: 700 !important;
+          line-height: 1.2 !important;
+          margin: 16px 0 12px 0 !important;
+          color: #1f2937 !important;
+          display: block !important;
+        }
+
+        .content-display h2 {
+          font-size: 1.5rem !important;
+          font-weight: 600 !important;
+          line-height: 1.3 !important;
+          margin: 14px 0 10px 0 !important;
+          color: #374151 !important;
+          display: block !important;
+        }
+
+        .content-display h3 {
+          font-size: 1.25rem !important;
+          font-weight: 600 !important;
+          line-height: 1.4 !important;
+          margin: 12px 0 8px 0 !important;
+          color: #4b5563 !important;
+          display: block !important;
+        }
+
+        .content-display p {
+          margin: 8px 0 !important;
+          line-height: 1.6 !important;
+          display: block !important;
+        }
+
+        .content-display ul {
+          padding-left: 24px !important;
+          margin: 8px 0 !important;
+          list-style-type: disc !important;
+          display: block !important;
+        }
+
+        .content-display ol {
+          padding-left: 24px !important;
+          margin: 8px 0 !important;
+          list-style-type: decimal !important;
+          display: block !important;
+        }
+
+        .content-display li {
+          margin: 4px 0 !important;
+          line-height: 1.5 !important;
+          display: list-item !important;
+          list-style-position: outside !important;
+        }
+
+        .content-display ul li {
+          list-style-type: disc !important;
+        }
+
+        .content-display ol li {
+          list-style-type: decimal !important;
+        }
+
+        .content-display pre {
+          background-color: #f1f5f9 !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          padding: 16px !important;
+          margin: 16px 0 !important;
+          overflow-x: auto !important;
+          font-family: Monaco, Consolas, "Courier New", monospace !important;
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+          display: block !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          clear: both !important;
+          white-space: pre-wrap !important;
+        }
+
+        .content-display code {
+          background-color: #f1f5f9 !important;
+          padding: 2px 4px !important;
+          border-radius: 4px !important;
+          font-family: Monaco, Consolas, "Courier New", monospace !important;
+          font-size: 0.9em !important;
+        }
+
+        .content-display pre code {
+          background-color: transparent !important;
+          padding: 0 !important;
+          border-radius: 0 !important;
+        }
+
+        .content-display blockquote {
+          border-left: 4px solid #3b82f6 !important;
+          background-color: #eff6ff !important;
+          padding: 12px 16px !important;
+          margin: 16px 0 !important;
+          border-radius: 4px !important;
+          font-style: italic !important;
+          display: block !important;
+        }
+
+        .content-display strong,
+        .content-display b {
+          font-weight: 700 !important;
+        }
+
+        .content-display em,
+        .content-display i {
+          font-style: italic !important;
+        }
+
+        .content-display u {
+          text-decoration: underline !important;
+        }
+
+        .content-display s {
+          text-decoration: line-through !important;
+        }
+      `}</style>
     </div>
   );
 };
