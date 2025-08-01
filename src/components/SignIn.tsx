@@ -55,35 +55,35 @@ const SignIn = () => {
             <p className="text-gray-600 mb-6">
               You&apos;re logged in as <strong>{user.userRole}</strong>
             </p>
-            
+
             <div className="space-y-3">
-              {user.userRole.toLowerCase() === 'admin' && (
+              {user.userRole.toLowerCase() === "admin" && (
                 <button
-                  onClick={() => router.push('/dashboard/admin')}
+                  onClick={() => router.push("/dashboard/admin")}
                   className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
                 >
                   Go to Admin Dashboard
                 </button>
               )}
-              
-              {user.userRole.toLowerCase() === 'instructor' && (
+
+              {user.userRole.toLowerCase() === "instructor" && (
                 <button
-                  onClick={() => router.push('/dashboard/instructor')}
+                  onClick={() => router.push("/dashboard/instructor")}
                   className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
                 >
                   Go to Instructor Dashboard
                 </button>
               )}
-              
-              {user.userRole.toLowerCase() === 'recruiter' && (
+
+              {user.userRole.toLowerCase() === "recruiter" && (
                 <button
-                  onClick={() => router.push('/dashboard/recruiter')}
+                  onClick={() => router.push("/dashboard/recruiter")}
                   className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
                 >
                   Go to Recruiter Dashboard
                 </button>
               )}
-              
+
               {/* <button
                 onClick={() => router.push('/dashboard')}
                 className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors"
