@@ -53,54 +53,85 @@ const StudentAnalytics: React.FC = () => {
       }
 
       try {
-        console.log(`📊 ANALYTICS FETCH START: Fetching student analytics for batch: ${batchId}, course: ${courseId}`);
+        console.log(
+          `📊 ANALYTICS FETCH START: Fetching student analytics for batch: ${batchId}, course: ${courseId}`,
+        );
         console.log(`📊 ANALYTICS URLS:`, {
-          progressURL: API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(batchId, courseId),
-          studentsURL: API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId),
+          progressURL: API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(
+            batchId,
+            courseId,
+          ),
+          studentsURL:
+            API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId),
           fullProgressURL: `${apiClient.defaults.baseURL}${API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(batchId, courseId)}`,
-          fullStudentsURL: `${apiClient.defaults.baseURL}${API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId)}`
+          fullStudentsURL: `${apiClient.defaults.baseURL}${API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId)}`,
         });
-        
-        console.log(`📊 ANALYTICS API CALLS: Making Promise.all for progress and students data...`);
-        
+
+        console.log(
+          `📊 ANALYTICS API CALLS: Making Promise.all for progress and students data...`,
+        );
+
         // Fetch complete student analytics with real data
         const [progressResponse, studentsResponse] = await Promise.all([
-          apiClient.get(API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(batchId, courseId)),
-          apiClient.get(API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId))
+          apiClient.get(
+            API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(
+              batchId,
+              courseId,
+            ),
+          ),
+          apiClient.get(
+            API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_STUDENTS(batchId),
+          ),
         ]);
-        
+
         console.log(`📊 ANALYTICS RESPONSES RECEIVED:`, {
           progressStatus: progressResponse?.status,
-          progressDataSize: progressResponse?.data ? JSON.stringify(progressResponse.data).length : 0,
+          progressDataSize: progressResponse?.data
+            ? JSON.stringify(progressResponse.data).length
+            : 0,
           studentsStatus: studentsResponse?.status,
-          studentsDataSize: studentsResponse?.data ? JSON.stringify(studentsResponse.data).length : 0
+          studentsDataSize: studentsResponse?.data
+            ? JSON.stringify(studentsResponse.data).length
+            : 0,
         });
 
         if (!mountedRef.current) return;
 
         const progressData = progressResponse?.data?.report || [];
         const studentsData = studentsResponse?.data?.students || [];
-        
+
         // Create student lookup map for emails and details
         const studentMap = new Map();
         studentsData.forEach((student: any) => {
           studentMap.set(student.id, {
-            email: student.email || student.user?.email || 'No email',
-            name: student.username || student.name || student.user?.username || 'Unknown Student'
+            email: student.email || student.user?.email || "No email",
+            name:
+              student.username ||
+              student.name ||
+              student.user?.username ||
+              "Unknown Student",
           });
         });
 
         // Get course details to calculate accurate progress
-        console.log(`📊 ANALYTICS COURSE FETCH: Getting course details for courseId: ${courseId}`);
-        console.log(`📊 ANALYTICS COURSE URL: ${API_ENDPOINTS.INSTRUCTOR.COURSES}/${courseId}`);
-        
-        const courseResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.COURSES + `/${courseId}`);
+        console.log(
+          `📊 ANALYTICS COURSE FETCH: Getting course details for courseId: ${courseId}`,
+        );
+        console.log(
+          `📊 ANALYTICS COURSE URL: ${API_ENDPOINTS.INSTRUCTOR.COURSES}/${courseId}`,
+        );
+
+        const courseResponse = await apiClient.get(
+          API_ENDPOINTS.INSTRUCTOR.COURSES + `/${courseId}`,
+        );
         console.log(`📊 ANALYTICS COURSE RESPONSE:`, {
           status: courseResponse?.status,
-          dataSize: courseResponse?.data ? JSON.stringify(courseResponse.data).length : 0,
-          modulesCount: courseResponse?.data?.modules?.length || 0
+          dataSize: courseResponse?.data
+            ? JSON.stringify(courseResponse.data).length
+            : 0,
+          modulesCount: courseResponse?.data?.modules?.length || 0,
         });
-        
+
         const courseModules = courseResponse?.data?.modules || [];
         const totalModules = courseModules.length || 10;
 
@@ -109,19 +140,30 @@ const StudentAnalytics: React.FC = () => {
         // Transform to complete student analytics
         const transformedData: Student[] = await Promise.all(
           progressData.map(async (item: any) => {
-            const studentDetails = studentMap.get(item.studentId) || { email: 'No email', name: 'Unknown Student' };
-            
+            const studentDetails = studentMap.get(item.studentId) || {
+              email: "No email",
+              name: "Unknown Student",
+            };
+
             // Calculate real progress percentage
-            const progressPercentage = totalModules > 0 
-              ? Math.min(100, Math.round((item.currentPage || 0) / totalModules * 100))
-              : 0;
+            const progressPercentage =
+              totalModules > 0
+                ? Math.min(
+                    100,
+                    Math.round(((item.currentPage || 0) / totalModules) * 100),
+                  )
+                : 0;
 
             // Fetch real test scores for this student
             let averageScore = 0;
             let quizScores: number[] = [];
             try {
               const scoresResponse = await apiClient.get(
-                API_ENDPOINTS.INSTRUCTOR.ANALYTICS.STUDENT_COURSE_SCORES(batchId, courseId, item.studentId)
+                API_ENDPOINTS.INSTRUCTOR.ANALYTICS.STUDENT_COURSE_SCORES(
+                  batchId,
+                  courseId,
+                  item.studentId,
+                ),
               );
               const scores = scoresResponse?.data?.scores || [];
               quizScores = scores.map((s: any) => s.percentage || 0);
@@ -132,7 +174,8 @@ const StudentAnalytics: React.FC = () => {
             }
 
             // Calculate real time spent (convert minutes to hours)
-            const timeSpentHours = Math.round((item.timeSpentMinutes || 0) / 60 * 10) / 10;
+            const timeSpentHours =
+              Math.round(((item.timeSpentMinutes || 0) / 60) * 10) / 10;
 
             return {
               student_id: item.studentId,
@@ -141,20 +184,28 @@ const StudentAnalytics: React.FC = () => {
               progress_percentage: progressPercentage,
               modules_completed: item.currentPage || 0,
               total_modules: totalModules,
-              last_activity: item.lastActivity || item.updatedAt || new Date().toISOString(),
+              last_activity:
+                item.lastActivity || item.updatedAt || new Date().toISOString(),
               time_spent_hours: timeSpentHours,
               quiz_scores: quizScores,
               average_score: averageScore,
             };
-          })
+          }),
         );
-        
+
         if (mountedRef.current) {
-          console.log('✅ Student analytics data processed:', transformedData.length, 'students');
+          console.log(
+            "✅ Student analytics data processed:",
+            transformedData.length,
+            "students",
+          );
           setStudentsData(transformedData);
         }
       } catch (err: any) {
-        console.error("❌ ANALYTICS ERROR: Error fetching student analytics:", err);
+        console.error(
+          "❌ ANALYTICS ERROR: Error fetching student analytics:",
+          err,
+        );
         console.error("❌ ANALYTICS ERROR DETAILS:", {
           message: err.message,
           status: err.response?.status,
@@ -165,16 +216,16 @@ const StudentAnalytics: React.FC = () => {
           batchId,
           courseId,
           timestamp: new Date().toISOString(),
-          stack: err.stack
+          stack: err.stack,
         });
-        
+
         if (mountedRef.current) {
           setError(`Failed to load student analytics: ${err.message}`);
           setStudentsData([]);
         }
       }
     },
-    [] // No dependencies to prevent infinite loops
+    [], // No dependencies to prevent infinite loops
   );
 
   // Fetch courses for batch
@@ -186,8 +237,10 @@ const StudentAnalytics: React.FC = () => {
 
       try {
         console.log(`📋 Fetching courses for batch: ${batchId}`);
-        const coursesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batchId));
-        
+        const coursesResponse = await apiClient.get(
+          API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batchId),
+        );
+
         if (!mountedRef.current) return;
 
         const courseList = coursesResponse?.data?.courses || [];
@@ -196,7 +249,7 @@ const StudentAnalytics: React.FC = () => {
         if (courseList.length > 0) {
           const firstCourse = courseList[0];
           setSelectedCourse(firstCourse.id);
-          
+
           // Fetch analytics for first course automatically
           await fetchStudentAnalytics(batchId, firstCourse.id);
         } else {
@@ -210,53 +263,58 @@ const StudentAnalytics: React.FC = () => {
         }
       }
     },
-    [] // No dependencies to prevent loops
+    [], // No dependencies to prevent loops
   );
 
   // Fetch initial data
   const fetchInitialData = useCallback(async () => {
-    console.log('🔄 fetchInitialData called');
-    console.log('🔍 Mounted:', mountedRef.current);
-    console.log('🔍 Status:', status);
-    console.log('🔍 Session:', !!session);
-    
+    console.log("🔄 fetchInitialData called");
+    console.log("🔍 Mounted:", mountedRef.current);
+    console.log("🔍 Status:", status);
+    console.log("🔍 Session:", !!session);
+
     if (!mountedRef.current) {
-      console.log('❌ Component not mounted, skipping');
-      console.log('🔧 Attempting to fix mountedRef...');
+      console.log("❌ Component not mounted, skipping");
+      console.log("🔧 Attempting to fix mountedRef...");
       mountedRef.current = true;
-      console.log('🔧 mountedRef after fix:', mountedRef.current);
+      console.log("🔧 mountedRef after fix:", mountedRef.current);
     }
-    
+
     // Less strict authentication check - let axios interceptor handle auth
-    if (status === 'loading') {
-      console.log('⏳ Still loading authentication, skipping');
+    if (status === "loading") {
+      console.log("⏳ Still loading authentication, skipping");
       return;
     }
-    
+
     try {
       setLoading(true);
       setError("");
 
-      console.log('🚀 Making API call to fetch batches...');
-      const batchesResponse = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCHES);
-      
-      console.log('📦 Batches response:', batchesResponse);
-      
+      console.log("🚀 Making API call to fetch batches...");
+      const batchesResponse = await apiClient.get(
+        API_ENDPOINTS.INSTRUCTOR.BATCHES,
+      );
+
+      console.log("📦 Batches response:", batchesResponse);
+
       if (!mountedRef.current) return;
 
       const batchList = batchesResponse?.data?.batches || [];
-      console.log('✅ Batches received:', batchList.length);
+      console.log("✅ Batches received:", batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
         const firstBatch = batchList[0];
-        console.log('🔄 Setting first batch and fetching courses:', firstBatch.id);
+        console.log(
+          "🔄 Setting first batch and fetching courses:",
+          firstBatch.id,
+        );
         setSelectedBatch(firstBatch.id);
-        
+
         // Fetch courses for first batch
         await fetchCoursesForBatch(firstBatch.id);
       } else {
-        console.log('⚠️ No batches available');
+        console.log("⚠️ No batches available");
       }
     } catch (err: any) {
       console.error("❌ Error fetching initial data:", err);
@@ -273,57 +331,59 @@ const StudentAnalytics: React.FC = () => {
 
   // Initialize data on component mount
   useEffect(() => {
-    console.log('🚀 StudentAnalytics - Component mounted');
-    
+    console.log("🚀 StudentAnalytics - Component mounted");
+
     // Ensure mountedRef is set to true
     mountedRef.current = true;
-    console.log('🔧 mountedRef set to:', mountedRef.current);
-    
+    console.log("🔧 mountedRef set to:", mountedRef.current);
+
     fetchInitialData();
-    
+
     return () => {
-      console.log('🧹 StudentAnalytics - Component cleanup, setting mountedRef to false');
+      console.log(
+        "🧹 StudentAnalytics - Component cleanup, setting mountedRef to false",
+      );
       mountedRef.current = false;
     };
   }, []); // No dependencies - fetchInitialData handles its own conditions
 
   // Handle batch selection change
   const handleBatchChange = async (batchId: string) => {
-    console.log('🚀 STUDENT ANALYTICS: Batch changed to:', batchId);
-    console.log('📍 Component state before batch change:', {
+    console.log("🚀 STUDENT ANALYTICS: Batch changed to:", batchId);
+    console.log("📍 Component state before batch change:", {
       selectedBatch,
       selectedCourse,
       coursesLength: courses.length,
       studentsDataLength: studentsData.length,
       mountedRef: mountedRef.current,
       loading,
-      error
+      error,
     });
-    
+
     setSelectedBatch(batchId);
     setSelectedCourse("");
     setCourses([]);
     setStudentsData([]);
     setLoading(true);
-    
+
     if (batchId) {
-      console.log('📞 Calling fetchCoursesForBatch for batch:', batchId);
+      console.log("📞 Calling fetchCoursesForBatch for batch:", batchId);
       try {
         await fetchCoursesForBatch(batchId);
-        console.log('✅ fetchCoursesForBatch completed successfully');
+        console.log("✅ fetchCoursesForBatch completed successfully");
       } catch (error) {
-        console.error('❌ fetchCoursesForBatch failed:', error);
+        console.error("❌ fetchCoursesForBatch failed:", error);
       }
     } else {
-      console.log('⚠️ No batch ID provided, skipping course fetch');
+      console.log("⚠️ No batch ID provided, skipping course fetch");
     }
     setLoading(false);
   };
 
   // Handle course selection change
   const handleCourseChange = async (courseId: string) => {
-    console.log('🚀 STUDENT ANALYTICS: Course changed to:', courseId);
-    console.log('📍 Component state before course change:', {
+    console.log("🚀 STUDENT ANALYTICS: Course changed to:", courseId);
+    console.log("📍 Component state before course change:", {
       selectedBatch,
       selectedCourse,
       newCourseId: courseId,
@@ -331,38 +391,50 @@ const StudentAnalytics: React.FC = () => {
       studentsDataLength: studentsData.length,
       mountedRef: mountedRef.current,
       loading,
-      error
+      error,
     });
-    
+
     setSelectedCourse(courseId);
     setStudentsData([]);
     setLoading(true);
-    
+
     if (selectedBatch && courseId) {
-      console.log('📊 ANALYTICS TRIGGER: About to fetch student analytics for:', {
-        batchId: selectedBatch,
-        courseId: courseId,
-        timestamp: new Date().toISOString()
-      });
-      
+      console.log(
+        "📊 ANALYTICS TRIGGER: About to fetch student analytics for:",
+        {
+          batchId: selectedBatch,
+          courseId: courseId,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
       try {
         await fetchStudentAnalytics(selectedBatch, courseId);
-        console.log('✅ ANALYTICS COMPLETED: fetchStudentAnalytics completed successfully');
+        console.log(
+          "✅ ANALYTICS COMPLETED: fetchStudentAnalytics completed successfully",
+        );
       } catch (error) {
-        console.error('❌ ANALYTICS FAILED: fetchStudentAnalytics failed:', error);
+        console.error(
+          "❌ ANALYTICS FAILED: fetchStudentAnalytics failed:",
+          error,
+        );
       }
     } else {
-      console.log('⚠️ ANALYTICS SKIPPED: Missing batch or course:', {
+      console.log("⚠️ ANALYTICS SKIPPED: Missing batch or course:", {
         selectedBatch,
         courseId,
-        reason: !selectedBatch ? 'No batch selected' : !courseId ? 'No course provided' : 'Unknown'
+        reason: !selectedBatch
+          ? "No batch selected"
+          : !courseId
+            ? "No course provided"
+            : "Unknown",
       });
     }
     setLoading(false);
   };
 
   // Show loading for authentication
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -384,7 +456,7 @@ const StudentAnalytics: React.FC = () => {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-600">{error}</p>
-        <button 
+        <button
           onClick={fetchInitialData}
           className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
         >
@@ -397,8 +469,10 @@ const StudentAnalytics: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Student Analytics</h2>
-        
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          Student Analytics
+        </h2>
+
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
@@ -441,7 +515,9 @@ const StudentAnalytics: React.FC = () => {
 
         {/* Debug Info */}
         <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
-          <p><strong>Debug:</strong></p>
+          <p>
+            <strong>Debug:</strong>
+          </p>
           <p>Batches: {batches.length}</p>
           <p>Courses: {courses.length}</p>
           <p>Students: {studentsData.length}</p>
@@ -478,10 +554,10 @@ const StudentAnalytics: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {student.student_name || 'Unknown Student'}
+                          {student.student_name || "Unknown Student"}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {student.email || 'No email'}
+                          {student.email || "No email"}
                         </div>
                       </div>
                     </td>
@@ -490,7 +566,9 @@ const StudentAnalytics: React.FC = () => {
                         <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                           <div
                             className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${student.progress_percentage || 0}%` }}
+                            style={{
+                              width: `${student.progress_percentage || 0}%`,
+                            }}
                           ></div>
                         </div>
                         <span className="text-sm text-gray-900">
@@ -499,10 +577,14 @@ const StudentAnalytics: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {student.modules_completed || 0}/{student.total_modules || 0}
+                      {student.modules_completed || 0}/
+                      {student.total_modules || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {student.average_score ? student.average_score.toFixed(1) : '0.0'}%
+                      {student.average_score
+                        ? student.average_score.toFixed(1)
+                        : "0.0"}
+                      %
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {student.time_spent_hours || 0}h

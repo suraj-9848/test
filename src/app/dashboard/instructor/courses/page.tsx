@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import AllCourses from '@/components/AllCourses';
+import React from "react";
+import AllCourses from "@/components/AllCourses";
 
 const CoursesPage = () => {
   return <AllCourses />;

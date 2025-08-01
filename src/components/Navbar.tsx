@@ -45,7 +45,7 @@ const Navbar = () => {
 
           {/* Center section - Role Picker for Admin */}
           <div className="flex-1 flex justify-center">
-            <RolePicker 
+            <RolePicker
               currentViewRole={viewAsRole}
               onRoleChange={setViewAsRole}
             />

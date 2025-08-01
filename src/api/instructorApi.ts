@@ -14,7 +14,6 @@ const parseErrorResponse = async (response: Response): Promise<string> => {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
 
-
 const safeApiCall = async (url: string, options: RequestInit = {}) => {
   try {
     const response = await fetch(url, options);
@@ -160,7 +159,7 @@ export interface CreateQuestionRequest {
 export const instructorApi = {
   // Course Management
   createCourse: async (
-    courseData: CreateCourseData
+    courseData: CreateCourseData,
   ): Promise<CourseResponse> => {
     try {
       console.log("=== INSTRUCTOR API DEBUG ===");
@@ -190,7 +189,7 @@ export const instructorApi = {
 
       const response = await apiClient.post(
         API_ENDPOINTS.INSTRUCTOR.COURSES,
-        requestBody
+        requestBody,
       );
 
       console.log("✅ Course created successfully:", response.data);
@@ -206,7 +205,7 @@ export const instructorApi = {
   },
   assignCoursesToStudents: async (
     courseIds: string[],
-    studentIds: string[]
+    studentIds: string[],
   ): Promise<{
     message: string;
     details?: { successful: number; failed: number; skipped: number };
@@ -231,7 +230,7 @@ export const instructorApi = {
           {
             method: "GET",
             headers,
-          }
+          },
         );
 
         if (!batchesResponse.ok) {
@@ -253,7 +252,7 @@ export const instructorApi = {
             method: "POST",
             headers,
             body: JSON.stringify({ userId: studentId, courseId }),
-          }
+          },
         );
 
         if (!response.ok) {
@@ -270,19 +269,19 @@ export const instructorApi = {
           }
 
           throw new Error(
-            `${errorMessage} (Course: ${courseId}, Student: ${studentId})`
+            `${errorMessage} (Course: ${courseId}, Student: ${studentId})`,
           );
         }
 
         return { success: true, courseId, studentId };
-      })
+      }),
     );
 
     const successful = results.filter(
-      (result) => result.status === "fulfilled" && result.value.success
+      (result) => result.status === "fulfilled" && result.value.success,
     ).length;
     const skipped = results.filter(
-      (result) => result.status === "fulfilled" && result.value.skipped
+      (result) => result.status === "fulfilled" && result.value.skipped,
     ).length;
     const failures = results.filter((result) => result.status === "rejected");
 
@@ -311,7 +310,7 @@ export const instructorApi = {
         console.warn("Partial assignment failure:", errorMessages);
         return {
           message: `${message}. Some assignments failed: ${errorMessages.join(
-            "; "
+            "; ",
           )}`,
           details: { successful, failed: failures.length, skipped },
         };
@@ -326,8 +325,10 @@ export const instructorApi = {
     };
   },
 
-
-  getCourses: async (): Promise<{ courses: Course[] }> => {
+  getCourses: async (): Promise<{
+    filter(arg0: (course: any) => boolean): unknown;
+    courses: Course[];
+  }> => {
     try {
       const headers = await getAuthHeaders();
       const result = await safeApiCall(
@@ -335,7 +336,7 @@ export const instructorApi = {
         {
           method: "GET",
           headers,
-        }
+        },
       );
 
       return { courses: result.courses || [] };
@@ -348,13 +349,13 @@ export const instructorApi = {
   getCourseById: async (id: string): Promise<Course> => {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.INSTRUCTOR.COURSE_BY_ID(id)
+        API_ENDPOINTS.INSTRUCTOR.COURSE_BY_ID(id),
       );
       return response.data.course || response.data;
     } catch (error: any) {
       console.error("Failed to fetch course:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch course"
+        error.response?.data?.message || "Failed to fetch course",
       );
     }
   },
@@ -369,7 +370,7 @@ export const instructorApi = {
         {
           method: "GET",
           headers,
-        }
+        },
       );
 
       if (!batchesResponse.ok) {
@@ -390,7 +391,7 @@ export const instructorApi = {
             {
               method: "GET",
               headers,
-            }
+            },
           );
 
           if (!coursesResponse.ok) continue;
@@ -406,7 +407,7 @@ export const instructorApi = {
                 {
                   method: "GET",
                   headers,
-                }
+                },
               );
 
               if (!progressResponse.ok) continue;
@@ -428,7 +429,7 @@ export const instructorApi = {
             } catch (err) {
               console.warn(
                 `Failed to fetch progress for course ${course.id}:`,
-                err
+                err,
               );
             }
           }
@@ -449,18 +450,18 @@ export const instructorApi = {
 
   updateCourse: async (
     id: string,
-    courseData: Partial<CreateCourseData>
+    courseData: Partial<CreateCourseData>,
   ): Promise<CourseResponse> => {
     try {
       const response = await apiClient.put(
         API_ENDPOINTS.INSTRUCTOR.COURSE_BY_ID(id),
-        courseData
+        courseData,
       );
       return response.data;
     } catch (error: any) {
       console.error("Failed to update course:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to update course"
+        error.response?.data?.message || "Failed to update course",
       );
     }
   },
@@ -471,7 +472,7 @@ export const instructorApi = {
     } catch (error: any) {
       console.error("Failed to delete course:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to delete course"
+        error.response?.data?.message || "Failed to delete course",
       );
     }
   },
@@ -480,13 +481,13 @@ export const instructorApi = {
   getBatches: async (page = 1, limit = 10): Promise<BatchResponse> => {
     try {
       const response = await apiClient.get(
-        `${API_ENDPOINTS.INSTRUCTOR.BATCHES}?page=${page}&limit=${limit}`
+        `${API_ENDPOINTS.INSTRUCTOR.BATCHES}?page=${page}&limit=${limit}`,
       );
       return response.data;
     } catch (error: any) {
       console.error("Failed to fetch batches:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch batches"
+        error.response?.data?.message || "Failed to fetch batches",
       );
     }
   },
@@ -494,7 +495,7 @@ export const instructorApi = {
   getBatchById: async (id: string): Promise<Batch> => {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.INSTRUCTOR.BATCH_BY_ID(id)
+        API_ENDPOINTS.INSTRUCTOR.BATCH_BY_ID(id),
       );
       return response.data.batch || response.data;
     } catch (error: any) {
@@ -516,12 +517,12 @@ export const instructorApi = {
 
   createTest: async (
     courseId: string,
-    testData: CreateTestRequest
+    testData: CreateTestRequest,
   ): Promise<Test> => {
     try {
       const response = await apiClient.post(
         `${API_ENDPOINTS.INSTRUCTOR.TESTS}?courseId=${courseId}`,
-        testData
+        testData,
       );
       return response.data.test || response.data;
     } catch (error: any) {
@@ -533,7 +534,7 @@ export const instructorApi = {
   getTestById: async (id: string): Promise<Test> => {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(id)
+        API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(id),
       );
       return response.data.test || response.data;
     } catch (error: any) {
@@ -544,12 +545,12 @@ export const instructorApi = {
 
   updateTest: async (
     id: string,
-    testData: Partial<CreateTestRequest>
+    testData: Partial<CreateTestRequest>,
   ): Promise<Test> => {
     try {
       const response = await apiClient.put(
         API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(id),
-        testData
+        testData,
       );
       return response.data.test || response.data;
     } catch (error: any) {
@@ -570,18 +571,18 @@ export const instructorApi = {
   // Question Management
   addQuestionToTest: async (
     testId: string,
-    questionData: CreateQuestionRequest
+    questionData: CreateQuestionRequest,
   ): Promise<Question> => {
     try {
       const response = await apiClient.post(
         `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(testId)}/questions`,
-        questionData
+        questionData,
       );
       return response.data.question || response.data;
     } catch (error: any) {
       console.error("Failed to add question:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to add question"
+        error.response?.data?.message || "Failed to add question",
       );
     }
   },
@@ -589,20 +590,20 @@ export const instructorApi = {
   updateQuestion: async (
     testId: string,
     questionId: string,
-    questionData: Partial<CreateQuestionRequest>
+    questionData: Partial<CreateQuestionRequest>,
   ): Promise<Question> => {
     try {
       const response = await apiClient.put(
         `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(
-          testId
+          testId,
         )}/questions/${questionId}`,
-        questionData
+        questionData,
       );
       return response.data.question || response.data;
     } catch (error: any) {
       console.error("Failed to update question:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to update question"
+        error.response?.data?.message || "Failed to update question",
       );
     }
   },
@@ -610,12 +611,12 @@ export const instructorApi = {
   deleteQuestion: async (testId: string, questionId: string): Promise<void> => {
     try {
       await apiClient.delete(
-        `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(testId)}/questions/${questionId}`
+        `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(testId)}/questions/${questionId}`,
       );
     } catch (error: any) {
       console.error("Failed to delete question:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to delete question"
+        error.response?.data?.message || "Failed to delete question",
       );
     }
   },
@@ -623,7 +624,7 @@ export const instructorApi = {
   // Analytics
   getStudentAnalytics: async (
     batchId?: string,
-    courseId?: string
+    courseId?: string,
   ): Promise<any> => {
     try {
       const params = new URLSearchParams();
@@ -638,14 +639,14 @@ export const instructorApi = {
     } catch (error: any) {
       console.error("Failed to fetch student analytics:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch student analytics"
+        error.response?.data?.message || "Failed to fetch student analytics",
       );
     }
   },
 
   getProgressAnalytics: async (
     batchId?: string,
-    courseId?: string
+    courseId?: string,
   ): Promise<any> => {
     try {
       const params = new URLSearchParams();
@@ -660,7 +661,7 @@ export const instructorApi = {
     } catch (error: any) {
       console.error("Failed to fetch progress analytics:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch progress analytics"
+        error.response?.data?.message || "Failed to fetch progress analytics",
       );
     }
   },
@@ -675,7 +676,7 @@ export const instructorApi = {
     } catch (error: any) {
       console.error("Failed to fetch test analytics:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch test analytics"
+        error.response?.data?.message || "Failed to fetch test analytics",
       );
     }
   },
@@ -683,13 +684,13 @@ export const instructorApi = {
   getBatchAnalytics: async (): Promise<any> => {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCHES
+        API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCHES,
       );
       return response.data;
     } catch (error: any) {
       console.error("Failed to fetch batch analytics:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch batch analytics"
+        error.response?.data?.message || "Failed to fetch batch analytics",
       );
     }
   },
@@ -697,17 +698,16 @@ export const instructorApi = {
   getEvaluationAnalytics: async (): Promise<any> => {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.INSTRUCTOR.ANALYTICS.EVALUATION
+        API_ENDPOINTS.INSTRUCTOR.ANALYTICS.EVALUATION,
       );
       return response.data;
     } catch (error: any) {
       console.error("Failed to fetch evaluation analytics:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch evaluation analytics"
+        error.response?.data?.message || "Failed to fetch evaluation analytics",
       );
     }
   },
   safeApiCall: safeApiCall,
   parseErrorResponse: parseErrorResponse,
-
 };

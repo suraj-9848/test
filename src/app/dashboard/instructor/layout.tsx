@@ -1,4 +1,4 @@
-import AuthWrapper from '../../../components/AuthWrapper';
+import AuthWrapper from "../../../components/AuthWrapper";
 
 export default function InstructorLayout({
   children,
@@ -6,10 +6,8 @@ export default function InstructorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthWrapper requiredRoles={['instructor']}>
-      <div className="instructor-layout">
-        {children}
-      </div>
+    <AuthWrapper requiredRoles={["instructor"]}>
+      <div className="instructor-layout">{children}</div>
     </AuthWrapper>
   );
 }

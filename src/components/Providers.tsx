@@ -14,9 +14,7 @@ export default function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
       <AuthProvider>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ToastProvider>{children}</ToastProvider>
       </AuthProvider>
     </SessionProvider>
   );

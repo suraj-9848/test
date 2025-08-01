@@ -16,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Nirudhyog - Admin Dashboard",
-  description: "Administrative dashboard for Nirudhyog learning management system",
+  description:
+    "Administrative dashboard for Nirudhyog learning management system",
   icons: {
     icon: [
       {
@@ -43,9 +44,7 @@ export default function RootLayout({
         </style>
       </head>
       <body className={`poppins antialiased`}>
-        <Providers>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
