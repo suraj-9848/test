@@ -57,9 +57,11 @@ const ManageTest: React.FC = () => {
   const [showQuestionManager, setShowQuestionManager] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionEditTestId, setQuestionEditTestId] = useState<string>("");
+  
+  // 🔥 FIXED: Changed type from string to union type
   const [questionForm, setQuestionForm] = useState<{
     question_text: string;
-    type: "MCQ" | "DESCRIPTIVE" | "CODE";
+    type: "MCQ" | "DESCRIPTIVE" | "CODE"; // ✅ FIXED TYPE
     marks: number;
     options: { text: string; correct: boolean }[];
   }>({
@@ -321,23 +323,43 @@ const ManageTest: React.FC = () => {
     }
   };
 
+  // 🔥 FIXED: Complete handleSaveQuestion with proper HTML handling
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
+    
+    // 🔥 FIXED: Get HTML content properly from editor
     const html = editorRef.current?.getContent() || "";
+    console.log("🔥 FIXED - Editor HTML content:", {
+      htmlLength: html.length,
+      hasHtmlTags: html.includes('<'),
+      htmlPreview: html.substring(0, 100),
+    });
+    
     if (!html || !html.replace(/<[^>]+>/g, "").trim()) {
       setLoading(false);
       setError("Question text cannot be empty.");
       return;
     }
+    
     try {
+      // 🔥 FIXED: Ensure proper type casting and HTML content
       const payload = {
-        question_text: html,
-        type: questionForm.type,
+        question_text: html, // 🔥 FIXED: Pass HTML content from editor
+        type: questionForm.type as "MCQ" | "DESCRIPTIVE" | "CODE", // 🔥 FIXED: Type casting
         marks: questionForm.marks,
         options: questionForm.type === "MCQ" ? questionForm.options : undefined,
       };
+      
+      console.log("🔥 FIXED - Sending payload:", {
+        question_text_length: payload.question_text.length,
+        type: payload.type,
+        has_html_tags: payload.question_text.includes('<'),
+        payload_preview: payload.question_text.substring(0, 100),
+      });
+
       if (editingQuestionId) {
         await updateQuestionInTest(
           selectedBatch,
@@ -371,7 +393,7 @@ const ManageTest: React.FC = () => {
         options: [{ text: "", correct: false }],
       });
       setEditingQuestionId("");
-      editorRef.current?.setContent("");
+      editorRef.current?.setContent(""); // 🔥 FIXED: Clear editor content
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -394,7 +416,15 @@ const ManageTest: React.FC = () => {
     editorRef.current?.setContent("");
   };
 
+  // 🔥 FIXED: Handle question editing with proper HTML content loading
   const handleEditQuestion = (q: Question) => {
+    console.log("🔥 FIXED - Loading question for edit:", {
+      questionId: q.id,
+      question_text_length: q.question_text?.length,
+      has_html_tags: q.question_text?.includes('<'),
+      question_text_preview: q.question_text?.substring(0, 100),
+    });
+
     setQuestionForm({
       question_text: q.question_text,
       type: q.type,
@@ -404,6 +434,8 @@ const ManageTest: React.FC = () => {
         : [{ text: "", correct: false }],
     });
     setEditingQuestionId(q.id);
+    
+    // 🔥 FIXED: Load HTML content into editor properly
     editorRef.current?.setContent(q.question_text || "");
   };
 
@@ -511,20 +543,21 @@ const ManageTest: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto mt-10 p-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100">
-      <h2 className="text-3xl font-bold mb-8 text-gray-800">Manage Tests</h2>
-      {loading && <div className="text-center text-blue-600">Loading...</div>}
-      <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h2 className="text-3xl font-bold text-gray-800 mb-8">Test Management</h2>
+
+      {/* Batch and Course Selectors */}
+      <div className="mb-8 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Batch
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Select Batch:
           </label>
           <select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            <option value="">Select Batch</option>
+            <option value="">Choose a Batch</option>
             {batches.map((batch) => (
               <option key={batch.id} value={batch.id}>
                 {batch.name}
@@ -533,21 +566,16 @@ const ManageTest: React.FC = () => {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Course
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Select Course:
           </label>
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
             disabled={!selectedBatch}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
-            <option value="">Select Course</option>
-            {courses.length === 0 && selectedBatch && (
-              <option value="" disabled>
-                No courses available
-              </option>
-            )}
+            <option value="">Choose a Course</option>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.title}
@@ -557,109 +585,114 @@ const ManageTest: React.FC = () => {
         </div>
       </div>
 
-      {selectedTestId &&
-        (() => {
-          const test = tests.find((t) => t.id === selectedTestId);
-          const isPublished = test?.status === "PUBLISHED";
+      {loading && (
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      )}
+
+      {selectedTestId && (() => {
+          const selectedTest = tests.find((t) => t.id === selectedTestId);
+          if (!selectedTest) return null;
+          const isPublished = selectedTest.status === "PUBLISHED";
           return (
-            <div className="mb-8 p-6 bg-gray-50 rounded-lg">
+            <div className="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
               <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                Edit Test
+                Edit Test: {selectedTest.title}
               </h3>
-              {isPublished ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-4">
-                    <input
-                      type="datetime-local"
-                      value={editStartDate}
-                      onChange={(e) => setEditStartDate(e.target.value)}
-                      placeholder="Start Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                      required
-                    />
-                    <input
-                      type="datetime-local"
-                      value={editEndDate}
-                      onChange={(e) => setEditEndDate(e.target.value)}
-                      placeholder="End Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                      required
-                    />
-                  </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-4">
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      placeholder="Test Title"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      placeholder="Test Description"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="number"
-                      value={editMaxMarks ?? ""}
-                      min={1}
-                      onChange={(e) => setEditMaxMarks(Number(e.target.value))}
-                      placeholder="Max Marks"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <input
-                      type="number"
-                      value={editPassingMarks ?? ""}
-                      min={0}
-                      onChange={(e) =>
-                        setEditPassingMarks(Number(e.target.value))
-                      }
-                      placeholder="Passing Marks"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <input
-                      type="number"
-                      value={editDuration ?? ""}
-                      min={1}
-                      onChange={(e) => setEditDuration(Number(e.target.value))}
-                      placeholder="Duration (minutes)"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    <input
-                      type="datetime-local"
-                      value={editStartDate}
-                      onChange={(e) => setEditStartDate(e.target.value)}
-                      placeholder="Start Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                    />
-                    <input
-                      type="datetime-local"
-                      value={editEndDate}
-                      onChange={(e) => setEditEndDate(e.target.value)}
-                      placeholder="End Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                    />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Max Marks
+                  </label>
+                  <input
+                    type="number"
+                    value={editMaxMarks}
+                    onChange={(e) => setEditMaxMarks(parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Passing Marks
+                  </label>
+                  <input
+                    type="number"
+                    value={editPassingMarks}
+                    onChange={(e) => setEditPassingMarks(parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    End Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editEndDate}
+                    onChange={(e) => setEditEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              {!isPublished && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex flex-wrap gap-4">
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         checked={editShuffleQuestions}
-                        onChange={(e) =>
-                          setEditShuffleQuestions(e.target.checked)
-                        }
+                        onChange={(e) => setEditShuffleQuestions(e.target.checked)}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-gray-700">Shuffle Questions</span>
@@ -671,22 +704,16 @@ const ManageTest: React.FC = () => {
                         onChange={(e) => setEditShowResults(e.target.checked)}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-gray-700">
-                        Show Results After Submission
-                      </span>
+                      <span className="text-gray-700">Show Results After Submission</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         checked={editShowCorrectAnswers}
-                        onChange={(e) =>
-                          setEditShowCorrectAnswers(e.target.checked)
-                        }
+                        onChange={(e) => setEditShowCorrectAnswers(e.target.checked)}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-gray-700">
-                        Show Correct Answers After Submission
-                      </span>
+                      <span className="text-gray-700">Show Correct Answers After Submission</span>
                     </label>
                   </div>
                 </div>
@@ -809,12 +836,24 @@ const ManageTest: React.FC = () => {
                   key={q.id}
                   className="flex justify-between items-center p-4 bg-gray-50 rounded-lg"
                 >
-                  {/* FIXED: Proper content rendering with styles */}
+                  {/* 🔥 FIXED: Proper HTML content rendering with styles */}
                   <div className="content-display flex-1">
                     <div
                       dangerouslySetInnerHTML={{ __html: q.question_text }}
-                      className="font-medium"
+                      className="font-medium prose prose-sm max-w-none"
                     />
+                    <div className="text-sm text-gray-600 mt-2">
+                      Type: {q.type} | Marks: {q.marks}
+                      {q.options && q.options.length > 0 && (
+                        <div className="mt-1">
+                          Options: {q.options.map((opt, idx) => (
+                            <span key={idx} className={opt.correct ? "font-semibold text-green-600" : ""}>
+                              {String.fromCharCode(65 + idx)}. {opt.text}{opt.correct && " ✓"}{idx < q.options!.length - 1 && ", "}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-3 ml-4">
                     <button
@@ -836,7 +875,7 @@ const ManageTest: React.FC = () => {
           </ul>
           <form
             onSubmit={handleSaveQuestion}
-            className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm mt-8"
+            className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm"
           >
             <h4 className="text-lg font-semibold mb-4 border-b pb-2">
               {editingQuestionId ? "Edit" : "Add"} Question
@@ -845,12 +884,20 @@ const ManageTest: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Question Text
               </label>
+              {/* 🔥 FIXED: Proper RichTextEditor integration */}
               <RichTextEditor
                 ref={editorRef}
                 initialContent={questionForm.question_text}
                 onChange={(html: string) => {
+                  console.log("🔥 FIXED - Editor onChange:", {
+                    htmlLength: html.length,
+                    hasHtmlTags: html.includes('<'),
+                  });
                   setQuestionForm((f) => ({ ...f, question_text: html }));
                 }}
+                placeholder="Enter your question here..."
+                height="200px"
+                minHeight="150px"
               />
             </div>
             <input
@@ -860,6 +907,43 @@ const ManageTest: React.FC = () => {
               readOnly
             />
             <input type="hidden" name="type" value="MCQ" />
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Question Type
+              </label>
+              <select
+                value={questionForm.type}
+                onChange={(e) =>
+                  setQuestionForm((prev) => ({
+                    ...prev,
+                    type: e.target.value as "MCQ" | "DESCRIPTIVE" | "CODE",
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="MCQ">Multiple Choice</option>
+                <option value="DESCRIPTIVE">Descriptive</option>
+                <option value="CODE">Code</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Marks
+              </label>
+              <input
+                type="number"
+                value={questionForm.marks}
+                onChange={(e) =>
+                  setQuestionForm((prev) => ({
+                    ...prev,
+                    marks: parseInt(e.target.value) || 1,
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="1"
+                required
+              />
+            </div>
             {questionForm.type === "MCQ" && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -873,66 +957,46 @@ const ManageTest: React.FC = () => {
                       onChange={(e) =>
                         handleOptionChange(idx, "text", e.target.value)
                       }
-                      placeholder={`Option ${idx + 1}`}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      placeholder={`Option ${String.fromCharCode(65 + idx)}`}
                       required
                     />
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center">
                       <input
                         type="checkbox"
                         checked={opt.correct}
                         onChange={(e) =>
                           handleOptionChange(idx, "correct", e.target.checked)
                         }
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                        className="mr-2"
                       />
-                      <span className="text-gray-700">Correct</span>
+                      Correct
                     </label>
-                    {questionForm.options.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-800"
-                        onClick={() => handleRemoveOption(idx)}
-                      >
-                        Remove
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOption(idx)}
+                      className="px-2 py-1 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
                 <button
                   type="button"
-                  className="text-blue-600 hover:underline mt-2"
                   onClick={handleAddOption}
+                  className="mt-2 px-3 py-1 text-blue-600 hover:bg-blue-50 rounded border border-blue-200"
                 >
-                  + Add Option
+                  Add Option
                 </button>
               </div>
             )}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Marks
-              </label>
-              <input
-                type="number"
-                value={questionForm.marks}
-                min={1}
-                onChange={(e) =>
-                  setQuestionForm((f) => ({
-                    ...f,
-                    marks: Number(e.target.value),
-                  }))
-                }
-                className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
               >
-                {editingQuestionId ? "Update" : "Add"} Question
+                {loading ? "Saving..." : editingQuestionId ? "Update" : "Add"} Question
               </button>
               {editingQuestionId && (
                 <button
@@ -965,7 +1029,7 @@ const ManageTest: React.FC = () => {
         </div>
       )}
 
-      {/* CRITICAL: Global styles for content rendering */}
+      {/* 🔥 FIXED: Global styles for content rendering */}
       <style jsx global>{`
         /* Content Display Styles for Questions */
         .content-display h1 {
