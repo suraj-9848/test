@@ -278,15 +278,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
         const line = dataLines[i].trim();
         if (!line) continue;
 
-        const parts = line.split(",").map((part) => part.trim().replace(/"/g, ""));
-        
+        const parts = line
+          .split(",")
+          .map((part) => part.trim().replace(/"/g, ""));
+
         if (parts.length < 4) {
-          errors.push(`Line ${i + 1}: Invalid format. Expected: username,email,org_id,role`);
+          errors.push(
+            `Line ${i + 1}: Invalid format. Expected: username,email,org_id,role`,
+          );
           continue;
         }
 
         const [username, email, org_id, role, ...batches] = parts;
-        
+
         // Validate fields
         const lineErrors: string[] = [];
         if (!username || username.length < 3) {
@@ -301,8 +305,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
         if (!role) {
           lineErrors.push("Role is required");
         }
-        if (!["admin", "instructor", "student", "recruiter"].includes(role.toLowerCase())) {
-          lineErrors.push("Role must be one of: admin, instructor, student, recruiter");
+        if (
+          !["admin", "instructor", "student", "recruiter"].includes(
+            role.toLowerCase(),
+          )
+        ) {
+          lineErrors.push(
+            "Role must be one of: admin, instructor, student, recruiter",
+          );
         }
 
         if (lineErrors.length > 0) {
@@ -320,7 +330,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
       setValidationResults({
         valid: users,
-        invalid: errors.map(error => ({ error }))
+        invalid: errors.map((error) => ({ error })),
       });
       setBulkUploadErrors(errors);
     } catch (error) {
@@ -343,7 +353,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       }
 
       // Convert to the format expected by the backend
-      const users = validationResults.valid.map(user => ({
+      const users = validationResults.valid.map((user) => ({
         username: user.username,
         email: user.email,
         password: generateRandomPassword(),
@@ -353,7 +363,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       }));
 
       const result = await userApi.bulkCreateUsers(users);
-      
+
       showToast(
         "success",
         `${result.created} users created successfully${result.errors > 0 ? `. ${result.errors} errors occurred.` : "."}`,
@@ -362,11 +372,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       if (result.errorDetails && result.errorDetails.length > 0) {
         console.log("Bulk upload errors:", result.errorDetails);
         // Show first few errors to user
-        const errorMessages = result.errorDetails.slice(0, 3).map(
-          (error: any) => `User ${error.index + 1}: ${error.error}`
-        );
+        const errorMessages = result.errorDetails
+          .slice(0, 3)
+          .map((error: any) => `User ${error.index + 1}: ${error.error}`);
         if (result.errorDetails.length > 3) {
-          errorMessages.push(`... and ${result.errorDetails.length - 3} more errors`);
+          errorMessages.push(
+            `... and ${result.errorDetails.length - 3} more errors`,
+          );
         }
         showToast("error", errorMessages.join("\n"));
       }
@@ -385,7 +397,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
   // Generate random password
   const generateRandomPassword = (length: number = 12): string => {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    const charset =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
     let password = "";
     for (let i = 0; i < length; i++) {
       password += charset.charAt(Math.floor(Math.random() * charset.length));
@@ -400,10 +413,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
       ["john_doe", "john@example.com", "org123", "student", "batch1"],
       ["jane_smith", "jane@example.com", "org123", "instructor", ""],
       ["admin_user", "admin@example.com", "org123", "admin", ""],
-      ["recruiter_user", "recruiter@example.com", "org123", "recruiter", ""]
+      ["recruiter_user", "recruiter@example.com", "org123", "recruiter", ""],
     ];
 
-    const csvContent = sampleData.map(row => row.join(",")).join("\n");
+    const csvContent = sampleData.map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -1239,11 +1252,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                         ✓ Valid Users ({validationResults.valid.length})
                       </h4>
                       <div className="text-xs text-green-700 max-h-20 overflow-y-auto">
-                        {validationResults.valid.slice(0, 5).map((user, index) => (
-                          <div key={index}>
-                            {user.username} ({user.email}) - {user.role}
-                          </div>
-                        ))}
+                        {validationResults.valid
+                          .slice(0, 5)
+                          .map((user, index) => (
+                            <div key={index}>
+                              {user.username} ({user.email}) - {user.role}
+                            </div>
+                          ))}
                         {validationResults.valid.length > 5 && (
                           <div className="text-green-600">
                             ... and {validationResults.valid.length - 5} more
@@ -1252,7 +1267,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                       </div>
                     </div>
                   )}
-                  
+
                   {bulkUploadErrors.length > 0 && (
                     <div className="p-3 bg-red-50 rounded-lg">
                       <h4 className="text-sm font-medium text-red-900 mb-1">
@@ -1260,7 +1275,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                       </h4>
                       <div className="text-xs text-red-700 max-h-32 overflow-y-auto space-y-1">
                         {bulkUploadErrors.map((error, index) => (
-                          <div key={index} className="border-l-2 border-red-200 pl-2">
+                          <div
+                            key={index}
+                            className="border-l-2 border-red-200 pl-2"
+                          >
                             {error}
                           </div>
                         ))}
@@ -1275,7 +1293,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                 <div className="text-sm text-gray-500">
                   {validationResults && (
                     <span>
-                      {validationResults.valid.length} valid users, {bulkUploadErrors.length} errors
+                      {validationResults.valid.length} valid users,{" "}
+                      {bulkUploadErrors.length} errors
                     </span>
                   )}
                 </div>
@@ -1294,7 +1313,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                   </button>
                   <button
                     onClick={handleBulkUpload}
-                    disabled={!validationResults || validationResults.valid.length === 0 || bulkUploadErrors.length > 0}
+                    disabled={
+                      !validationResults ||
+                      validationResults.valid.length === 0 ||
+                      bulkUploadErrors.length > 0
+                    }
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
                     Upload {validationResults?.valid.length || 0} Users

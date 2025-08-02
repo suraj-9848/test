@@ -1,48 +1,39 @@
-import axios from "axios";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
 import { Batch } from "../store/batchStore";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
-const API_URL = `${baseUrl}/api/instructor/batches`;
-
-export const fetchAllBatches = async (jwt: string): Promise<Batch[]> => {
-    const res = await axios.get(API_URL, {
-        headers: { Authorization: `Bearer ${jwt}` },
-    });
-    // The backend returns { message: "Fetched batches", batches: Batch[] }
-    return res.data.batches || [];
+export const fetchAllBatches = async (): Promise<Batch[]> => {
+  const response = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCHES);
+  return response.data.batches || [];
 };
 
-export const fetchBatch = async (id: string, jwt: string): Promise<Batch> => {
-    const res = await axios.get(`${API_URL}/${id}`, {
-        headers: { Authorization: `Bearer ${jwt}` },
-    });
-    return res.data.batch;
+export const fetchBatch = async (id: string): Promise<Batch> => {
+  const response = await apiClient.get(
+    `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${id}`,
+  );
+  return response.data.batch;
 };
 
 export const createBatch = async (
-    batch: Omit<Batch, "id">,
-    jwt: string,
-    skipAutoAssign: boolean = true
+  batch: Omit<Batch, "id">,
+  skipAutoAssign: boolean = true,
 ): Promise<Batch> => {
-    console.log(`Creating batch with skipAutoAssign=${skipAutoAssign}`);
-    const res = await axios.post(API_URL, { ...batch, skipAutoAssign }, {
-        headers: { Authorization: `Bearer ${jwt}` },
-    });
-    return res.data.batch;
+  console.log(`Creating batch with skipAutoAssign=${skipAutoAssign}`);
+  const response = await apiClient.post(API_ENDPOINTS.INSTRUCTOR.BATCHES, {
+    ...batch,
+    skipAutoAssign,
+  });
+  return response.data.batch;
 };
 
-export const updateBatch = async (
-    batch: Batch,
-    jwt: string
-): Promise<Batch> => {
-    const res = await axios.put(`${API_URL}/${batch.id}`, batch, {
-        headers: { Authorization: `Bearer ${jwt}` },
-    });
-    return res.data;
+export const updateBatch = async (batch: Batch): Promise<Batch> => {
+  const response = await apiClient.put(
+    `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batch.id}`,
+    batch,
+  );
+  return response.data;
 };
 
-export const deleteBatch = async (id: string, jwt: string): Promise<void> => {
-    await axios.delete(`${API_URL}/${id}`, {
-        headers: { Authorization: `Bearer ${jwt}` },
-    });
+export const deleteBatch = async (id: string): Promise<void> => {
+  await apiClient.delete(`${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${id}`);
 };

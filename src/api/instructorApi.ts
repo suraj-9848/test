@@ -1,5 +1,5 @@
 import apiClient from "../utils/axiosInterceptor";
-import { API_ENDPOINTS } from "../config/urls";
+import { API_ENDPOINTS, BASE_URLS } from "../config/urls";
 import { getAuthHeaders } from "@/utils/auth";
 
 const parseErrorResponse = async (response: Response): Promise<string> => {
@@ -10,10 +10,6 @@ const parseErrorResponse = async (response: Response): Promise<string> => {
     return "An error occurred";
   }
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
-
 
 const safeApiCall = async (url: string, options: RequestInit = {}) => {
   try {
@@ -33,7 +29,7 @@ const safeApiCall = async (url: string, options: RequestInit = {}) => {
   }
 };
 
-// Interfaces (keeping existing ones)
+// Interfaces
 export interface Course {
   id: string;
   title: string;
@@ -45,6 +41,10 @@ export interface Course {
   description?: string;
   modules?: any[];
   batch_ids?: string[];
+}
+
+export interface CoursesResponse {
+  courses: Course[];
 }
 
 export interface StudentProgressData {
@@ -76,11 +76,24 @@ export interface CreateCourseData {
   logo?: string;
   start_date: string;
   end_date: string;
+  batch_ids: string[];
   is_public: boolean;
   instructor_name: string;
-  description?: string;
+  overview?: string;
+  trainer_name?: string;
+  trainer_bio?: string;
+  trainer_avatar?: string;
+  trainer_linkedin?: string;
+  price?: number;
+  duration?: string;
+  image?: string;
+  features?: string[];
+  curriculum?: string[];
+  prerequisites?: string[];
+  tags?: string[];
+  mode?: "online" | "offline" | "hybrid";
+  what_you_will_learn?: string[];
   modules?: any[];
-  batch_ids?: string[];
 }
 
 export interface CourseResponse {
@@ -163,9 +176,6 @@ export const instructorApi = {
     courseData: CreateCourseData
   ): Promise<CourseResponse> => {
     try {
-      console.log("=== INSTRUCTOR API DEBUG ===");
-      console.log("Course Data:", JSON.stringify(courseData, null, 2));
-
       // Validation for private courses requiring batches
       if (
         !courseData.is_public &&
@@ -174,29 +184,73 @@ export const instructorApi = {
         throw new Error("Private courses require at least one batch selection");
       }
 
-      const requestBody = {
-        title: courseData.title,
-        logo: courseData.logo || "",
-        start_date: courseData.start_date,
-        end_date: courseData.end_date,
-        is_public: courseData.is_public,
-        instructor_name: courseData.instructor_name,
-        description: courseData.description || "Course description",
-        modules: courseData.modules || [],
-        batch_ids: courseData.is_public ? [] : courseData.batch_ids || [],
-      };
+      // Detect if any file is present in courseData
+      let hasFile = false;
+      const fileFields: Array<keyof CreateCourseData> = [
+        "logo",
+        "trainer_avatar",
+        "image",
+      ];
+      for (const field of fileFields) {
+        const value = courseData[field];
+        if (value && typeof value !== "string") {
+          hasFile = true;
+          break;
+        }
+      }
 
-      console.log("Request Body:", JSON.stringify(requestBody, null, 2));
+      let payload: FormData | Record<string, any>;
+      let config = {};
+      if (hasFile) {
+        payload = new FormData();
+        Object.entries(courseData).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            (payload as FormData).append(key, JSON.stringify(value));
+          } else if (value instanceof File) {
+            (payload as FormData).append(key, value);
+          } else {
+            (payload as FormData).append(
+              key,
+              value == null ? "" : String(value)
+            );
+          }
+        });
+        config = { headers: { "Content-Type": "multipart/form-data" } };
+      } else {
+        payload = {
+          title: courseData.title,
+          logo: courseData.logo || "",
+          start_date: courseData.start_date,
+          end_date: courseData.end_date,
+          batch_ids: courseData.is_public ? [] : courseData.batch_ids || [],
+          is_public: courseData.is_public,
+          instructor_name: courseData.instructor_name,
+          overview: courseData.overview || "",
+          trainer_name: courseData.trainer_name || "",
+          trainer_bio: courseData.trainer_bio || "",
+          trainer_avatar: courseData.trainer_avatar || "",
+          trainer_linkedin: courseData.trainer_linkedin || "",
+          price: courseData.price ?? 0,
+          duration: courseData.duration || "",
+          image: courseData.image || "",
+          features: courseData.features || [],
+          curriculum: courseData.curriculum || [],
+          prerequisites: courseData.prerequisites || [],
+          tags: courseData.tags || [],
+          mode: courseData.mode || "online",
+          what_you_will_learn: courseData.what_you_will_learn || [],
+          modules: courseData.modules || [],
+        };
+      }
 
       const response = await apiClient.post(
         API_ENDPOINTS.INSTRUCTOR.COURSES,
-        requestBody
+        payload,
+        config
       );
 
-      console.log("✅ Course created successfully:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error("❌ Course creation failed:", error);
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
@@ -227,7 +281,7 @@ export const instructorApi = {
         // We need a batch ID - use the first batch from the courses
         // Get the batch ID from the first available batch
         const batchesResponse = await fetch(
-          `${API_BASE_URL}/api/instructor/batches`,
+          `${BASE_URLS.BACKEND}${API_ENDPOINTS.INSTRUCTOR.BATCHES}`,
           {
             method: "GET",
             headers,
@@ -248,7 +302,7 @@ export const instructorApi = {
         const batchId = batches[0].id;
 
         const response = await fetch(
-          `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/assign-student`,
+          `${BASE_URLS.BACKEND}/api/instructor/batches/${batchId}/courses/${courseId}/assign-student`,
           {
             method: "POST",
             headers,
@@ -295,8 +349,6 @@ export const instructorApi = {
     }
 
     if (failures.length > 0) {
-      console.error("Some assignments failed:", failures);
-
       // Get detailed error messages
       const errorMessages = failures.map((failure, index) => {
         const reason =
@@ -326,12 +378,11 @@ export const instructorApi = {
     };
   },
 
-
-  getCourses: async (): Promise<{ courses: Course[] }> => {
+  getCourses: async (): Promise<CoursesResponse> => {
     try {
       const headers = await getAuthHeaders();
       const result = await safeApiCall(
-        `${API_BASE_URL}/api/instructor/courses`,
+        `${BASE_URLS.BACKEND}${API_ENDPOINTS.INSTRUCTOR.COURSES}`,
         {
           method: "GET",
           headers,
@@ -340,7 +391,6 @@ export const instructorApi = {
 
       return { courses: result.courses || [] };
     } catch (err) {
-      console.error("Error fetching courses:", err);
       return { courses: [] };
     }
   },
@@ -352,7 +402,6 @@ export const instructorApi = {
       );
       return response.data.course || response.data;
     } catch (error: any) {
-      console.error("Failed to fetch course:", error);
       throw new Error(
         error.response?.data?.message || "Failed to fetch course"
       );
@@ -365,7 +414,7 @@ export const instructorApi = {
 
       // Get all batches first
       const batchesResponse = await fetch(
-        `${API_BASE_URL}/api/instructor/batches`,
+        `${BASE_URLS.BACKEND}${API_ENDPOINTS.INSTRUCTOR.BATCHES}`,
         {
           method: "GET",
           headers,
@@ -386,7 +435,9 @@ export const instructorApi = {
         try {
           // Get courses for this batch
           const coursesResponse = await fetch(
-            `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
+            `${BASE_URLS.BACKEND}${API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(
+              batch.id,
+            )}`,
             {
               method: "GET",
               headers,
@@ -402,7 +453,12 @@ export const instructorApi = {
           for (const course of courses) {
             try {
               const progressResponse = await fetch(
-                `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses/${course.id}/progress`,
+                `${
+                  BASE_URLS.BACKEND
+                }${API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_COURSE_PROGRESS(
+                  batch.id,
+                  course.id,
+                )}`,
                 {
                   method: "GET",
                   headers,
@@ -442,7 +498,6 @@ export const instructorApi = {
 
       return { users: uniqueStudents };
     } catch (error) {
-      console.error("Error fetching students:", error);
       return { users: [] };
     }
   },
@@ -458,7 +513,6 @@ export const instructorApi = {
       );
       return response.data;
     } catch (error: any) {
-      console.error("Failed to update course:", error);
       throw new Error(
         error.response?.data?.message || "Failed to update course"
       );
@@ -469,7 +523,6 @@ export const instructorApi = {
     try {
       await apiClient.delete(API_ENDPOINTS.INSTRUCTOR.COURSE_BY_ID(id));
     } catch (error: any) {
-      console.error("Failed to delete course:", error);
       throw new Error(
         error.response?.data?.message || "Failed to delete course"
       );
@@ -484,9 +537,8 @@ export const instructorApi = {
       );
       return response.data;
     } catch (error: any) {
-      console.error("Failed to fetch batches:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to fetch batches"
+        error.response?.data?.message || "Failed to fetch batches",
       );
     }
   },
@@ -498,7 +550,6 @@ export const instructorApi = {
       );
       return response.data.batch || response.data;
     } catch (error: any) {
-      console.error("Failed to fetch batch:", error);
       throw new Error(error.response?.data?.message || "Failed to fetch batch");
     }
   },
@@ -509,7 +560,6 @@ export const instructorApi = {
       const response = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.TESTS);
       return response.data.tests || response.data;
     } catch (error: any) {
-      console.error("Failed to fetch tests:", error);
       throw new Error(error.response?.data?.message || "Failed to fetch tests");
     }
   },
@@ -525,7 +575,6 @@ export const instructorApi = {
       );
       return response.data.test || response.data;
     } catch (error: any) {
-      console.error("Failed to create test:", error);
       throw new Error(error.response?.data?.message || "Failed to create test");
     }
   },
@@ -537,7 +586,6 @@ export const instructorApi = {
       );
       return response.data.test || response.data;
     } catch (error: any) {
-      console.error("Failed to fetch test:", error);
       throw new Error(error.response?.data?.message || "Failed to fetch test");
     }
   },
@@ -553,7 +601,6 @@ export const instructorApi = {
       );
       return response.data.test || response.data;
     } catch (error: any) {
-      console.error("Failed to update test:", error);
       throw new Error(error.response?.data?.message || "Failed to update test");
     }
   },
@@ -562,7 +609,6 @@ export const instructorApi = {
     try {
       await apiClient.delete(API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(id));
     } catch (error: any) {
-      console.error("Failed to delete test:", error);
       throw new Error(error.response?.data?.message || "Failed to delete test");
     }
   },
@@ -574,12 +620,11 @@ export const instructorApi = {
   ): Promise<Question> => {
     try {
       const response = await apiClient.post(
-        `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(testId)}/questions`,
-        questionData
+        API_ENDPOINTS.INSTRUCTOR.QUESTIONS.CREATE(testId),
+        questionData,
       );
       return response.data.question || response.data;
     } catch (error: any) {
-      console.error("Failed to add question:", error);
       throw new Error(
         error.response?.data?.message || "Failed to add question"
       );
@@ -593,14 +638,11 @@ export const instructorApi = {
   ): Promise<Question> => {
     try {
       const response = await apiClient.put(
-        `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(
-          testId
-        )}/questions/${questionId}`,
-        questionData
+        API_ENDPOINTS.INSTRUCTOR.QUESTIONS.UPDATE(testId, questionId),
+        questionData,
       );
       return response.data.question || response.data;
     } catch (error: any) {
-      console.error("Failed to update question:", error);
       throw new Error(
         error.response?.data?.message || "Failed to update question"
       );
@@ -610,10 +652,9 @@ export const instructorApi = {
   deleteQuestion: async (testId: string, questionId: string): Promise<void> => {
     try {
       await apiClient.delete(
-        `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(testId)}/questions/${questionId}`
+        API_ENDPOINTS.INSTRUCTOR.QUESTIONS.DELETE(testId, questionId),
       );
     } catch (error: any) {
-      console.error("Failed to delete question:", error);
       throw new Error(
         error.response?.data?.message || "Failed to delete question"
       );
@@ -636,7 +677,6 @@ export const instructorApi = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error: any) {
-      console.error("Failed to fetch student analytics:", error);
       throw new Error(
         error.response?.data?.message || "Failed to fetch student analytics"
       );
@@ -658,7 +698,6 @@ export const instructorApi = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error: any) {
-      console.error("Failed to fetch progress analytics:", error);
       throw new Error(
         error.response?.data?.message || "Failed to fetch progress analytics"
       );
@@ -673,7 +712,6 @@ export const instructorApi = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error: any) {
-      console.error("Failed to fetch test analytics:", error);
       throw new Error(
         error.response?.data?.message || "Failed to fetch test analytics"
       );
@@ -687,7 +725,6 @@ export const instructorApi = {
       );
       return response.data;
     } catch (error: any) {
-      console.error("Failed to fetch batch analytics:", error);
       throw new Error(
         error.response?.data?.message || "Failed to fetch batch analytics"
       );
@@ -701,7 +738,6 @@ export const instructorApi = {
       );
       return response.data;
     } catch (error: any) {
-      console.error("Failed to fetch evaluation analytics:", error);
       throw new Error(
         error.response?.data?.message || "Failed to fetch evaluation analytics"
       );
@@ -709,5 +745,4 @@ export const instructorApi = {
   },
   safeApiCall: safeApiCall,
   parseErrorResponse: parseErrorResponse,
-
 };

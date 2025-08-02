@@ -163,10 +163,10 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
                       isActive
                         ? "bg-white/20 text-white"
                         : item.badge === "New"
-                        ? "bg-green-100 text-green-700"
-                        : item.badge === "Live"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-slate-100 text-slate-600"
+                          ? "bg-green-100 text-green-700"
+                          : item.badge === "Live"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     {item.badge}

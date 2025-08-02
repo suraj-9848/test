@@ -130,7 +130,7 @@ const CourseAssignment: React.FC = () => {
 
         // Check if student is already assigned to ALL selected courses
         const isAlreadyAssignedToAll = selectedCourseIds.every((courseId) =>
-          isStudentAssignedToCourse(student, courseId)
+          isStudentAssignedToCourse(student, courseId),
         );
 
         return !isAlreadyAssignedToAll;
@@ -138,7 +138,7 @@ const CourseAssignment: React.FC = () => {
 
       if (studentsToAssign.length === 0) {
         setError(
-          "All selected students are already assigned to the selected courses"
+          "All selected students are already assigned to the selected courses",
         );
         return;
       }
@@ -146,7 +146,7 @@ const CourseAssignment: React.FC = () => {
       // Use your existing API but with filtered students
       const response = await instructorApi.assignCoursesToStudents(
         selectedCourseIds,
-        studentsToAssign
+        studentsToAssign,
       );
 
       console.log("Assignment response:", response);
@@ -174,11 +174,11 @@ const CourseAssignment: React.FC = () => {
       // Handle specific error cases
       if (message.includes("already assigned")) {
         setError(
-          "Some students are already assigned to the selected courses. Please refresh the page and try again."
+          "Some students are already assigned to the selected courses. Please refresh the page and try again.",
         );
       } else if (message.includes("400")) {
         setError(
-          "Assignment failed: Please check if all selected courses and students are valid. Some students might already be enrolled."
+          "Assignment failed: Please check if all selected courses and students are valid. Some students might already be enrolled.",
         );
       } else {
         setError("Assignment failed: " + message);
@@ -190,7 +190,7 @@ const CourseAssignment: React.FC = () => {
 
   const handleRemoveStudentFromCourse = async (
     studentId: string,
-    courseId: string
+    courseId: string,
   ) => {
     const removeKey = `${studentId}-${courseId}`;
     setRemoveLoading(removeKey);
@@ -212,7 +212,7 @@ const CourseAssignment: React.FC = () => {
           body: JSON.stringify({
             userId: studentId,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -235,7 +235,7 @@ const CourseAssignment: React.FC = () => {
         message.includes("Failed to remove student")
       ) {
         setError(
-          "Remove endpoint not implemented yet. Please implement: /api/instructor/courses/{courseId}/remove-student"
+          "Remove endpoint not implemented yet. Please implement: /api/instructor/courses/{courseId}/remove-student",
         );
       } else {
         setError("Failed to remove student from course: " + message);
@@ -250,7 +250,7 @@ const CourseAssignment: React.FC = () => {
     const student = students.find((s) => s.id === studentId);
     if (student && selectedCourseIds.length > 0) {
       const isAssignedToAllCourses = selectedCourseIds.every((courseId) =>
-        isStudentAssignedToCourse(student, courseId)
+        isStudentAssignedToCourse(student, courseId),
       );
 
       if (isAssignedToAllCourses) {
@@ -261,7 +261,7 @@ const CourseAssignment: React.FC = () => {
     setSelectedStudents((prev) =>
       prev.includes(studentId)
         ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
+        : [...prev, studentId],
     );
   };
 
@@ -279,7 +279,7 @@ const CourseAssignment: React.FC = () => {
             return student
               ? !isStudentAssignedToCourse(student, courseId)
               : true;
-          })
+          }),
         );
       }
 
@@ -311,12 +311,12 @@ const CourseAssignment: React.FC = () => {
   // Check if student is already assigned to a specific course
   const isStudentAssignedToCourse = (
     student: Student,
-    courseId: string
+    courseId: string,
   ): boolean => {
     if (!student.userCourses || student.userCourses.length === 0) return false;
 
     const isAssigned = student.userCourses.some(
-      (uc) => uc.course.id === courseId
+      (uc) => uc.course.id === courseId,
     );
 
     // Debug log to see what's happening
@@ -329,7 +329,7 @@ const CourseAssignment: React.FC = () => {
           title: uc.course.title,
         })),
         courseId,
-      }
+      },
     );
 
     return isAssigned;
@@ -341,7 +341,7 @@ const CourseAssignment: React.FC = () => {
 
     return filteredStudents.filter((student) => {
       return !selectedCourseIds.every((courseId) =>
-        isStudentAssignedToCourse(student, courseId)
+        isStudentAssignedToCourse(student, courseId),
       );
     });
   };
@@ -352,7 +352,7 @@ const CourseAssignment: React.FC = () => {
 
     return filteredStudents.filter((student) => {
       const isEnrolled = selectedCourseIds.some((courseId) =>
-        isStudentAssignedToCourse(student, courseId)
+        isStudentAssignedToCourse(student, courseId),
       );
       console.log(`Student ${student.username} enrolled check:`, {
         isEnrolled,
@@ -365,7 +365,7 @@ const CourseAssignment: React.FC = () => {
   // Get student assignment status for selected courses
   const getStudentStatus = (student: Student): StudentAssignmentStatus => {
     const enrolledCourses = selectedCourseIds.filter((courseId) =>
-      isStudentAssignedToCourse(student, courseId)
+      isStudentAssignedToCourse(student, courseId),
     );
 
     const isAssigned = enrolledCourses.length > 0;
@@ -380,7 +380,7 @@ const CourseAssignment: React.FC = () => {
           selectedCourseIds,
           isAssigned,
           userCourses: student.userCourses?.map((uc) => uc.course.id),
-        }
+        },
       );
     }
 
@@ -400,7 +400,7 @@ const CourseAssignment: React.FC = () => {
       student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       false ||
       student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      false
+      false,
   );
 
   // Separate available and enrolled students
@@ -424,7 +424,7 @@ const CourseAssignment: React.FC = () => {
     const enrollmentDetails = selectedCourseIds
       .map((courseId) => {
         const assignment = student.userCourses?.find(
-          (uc) => uc.course.id === courseId
+          (uc) => uc.course.id === courseId,
         );
         const course = courses.find((c) => c.id === courseId);
         return {
@@ -448,8 +448,8 @@ const CourseAssignment: React.FC = () => {
           isEnrolledInSelectedCourses
             ? "border-gray-400 bg-gray-200 cursor-not-allowed opacity-80"
             : isSelected
-            ? "border-blue-500 bg-blue-50 shadow-md cursor-pointer hover:shadow-lg"
-            : "border-slate-200 bg-white hover:border-slate-300 cursor-pointer hover:shadow-md"
+              ? "border-blue-500 bg-blue-50 shadow-md cursor-pointer hover:shadow-lg"
+              : "border-slate-200 bg-white hover:border-slate-300 cursor-pointer hover:shadow-md"
         }`}
       >
         {/* Diagonal Hash Pattern - ONLY for students enrolled in SELECTED courses */}
@@ -536,7 +536,7 @@ const CourseAssignment: React.FC = () => {
                           e.stopPropagation();
                           handleRemoveStudentFromCourse(
                             student.id,
-                            detail.courseId
+                            detail.courseId,
                           );
                         }}
                         disabled={
@@ -591,7 +591,7 @@ const CourseAssignment: React.FC = () => {
   }> = ({ course, isSelected, onClick }) => {
     // Count how many students are enrolled in this course
     const enrolledCount = students.filter((student) =>
-      isStudentAssignedToCourse(student, course.id)
+      isStudentAssignedToCourse(student, course.id),
     ).length;
 
     return (
@@ -880,8 +880,8 @@ const CourseAssignment: React.FC = () => {
             <p className="text-sm mt-1">
               {enrolledStudents.length} student(s) are already enrolled in the
               selected course(s). They appear grayed out with diagonal hash
-              patterns and cannot be selected for assignment. Use the ❌ button
-              to remove them from courses if needed.
+              patterns and cannot be selected for assignment. Use the button to
+              remove them from courses if needed.
             </p>
           </div>
         </div>

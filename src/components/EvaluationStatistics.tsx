@@ -22,7 +22,8 @@ import {
   FaEquals,
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
-import axios from "axios";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
 
 // Types
 interface EvaluationStatistics {
@@ -134,9 +135,16 @@ const EvaluationStatistics: React.FC = () => {
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const testsRef = useRef<Test[]>([]);
-  const fetchStatisticsRef = useRef<((batchId: string, courseId: string, testId: string) => Promise<void>) | null>(null);
-  const fetchTestsRef = useRef<((batchId: string, courseId: string) => Promise<void>) | null>(null);
-  const fetchCoursesRef = useRef<((batchId: string) => Promise<void>) | null>(null);
+  const fetchStatisticsRef = useRef<
+    | ((batchId: string, courseId: string, testId: string) => Promise<void>)
+    | null
+  >(null);
+  const fetchTestsRef = useRef<
+    ((batchId: string, courseId: string) => Promise<void>) | null
+  >(null);
+  const fetchCoursesRef = useRef<((batchId: string) => Promise<void>) | null>(
+    null,
+  );
 
   // State
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -156,22 +164,22 @@ const EvaluationStatistics: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<string>("accuracy");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [backendJwt, setBackendJwt] = useState<string>("");
-
-  // API Base URL
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
 
   // Initialize component mounting and cleanup
   useEffect(() => {
-    console.log('🚀 EvaluationStatistics - Component mounted');
-    
+    console.log("🚀 EvaluationStatistics - Component mounted");
+
     // Ensure mountedRef is set to true
     mountedRef.current = true;
-    console.log('🔧 EvaluationStatistics mountedRef set to:', mountedRef.current);
-    
+    console.log(
+      "🔧 EvaluationStatistics mountedRef set to:",
+      mountedRef.current,
+    );
+
     return () => {
-      console.log('🧹 EvaluationStatistics - Component cleanup, setting mountedRef to false');
+      console.log(
+        "🧹 EvaluationStatistics - Component cleanup, setting mountedRef to false",
+      );
       mountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -179,165 +187,101 @@ const EvaluationStatistics: React.FC = () => {
     };
   }, []);
 
-  // API Helper with stable reference
-  const apiCall = useCallback(
-    async (endpoint: string, options: RequestInit = {}) => {
-      const startTime = Date.now();
-      const requestId = Math.random().toString(36).substr(2, 9);
-      
-      // Abort previous request if exists
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      
-      abortControllerRef.current = new AbortController();
+  // API Helper with stable reference - now using centralized apiClient
+  const apiCall = useCallback(async (endpoint: string) => {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(36).substr(2, 9);
 
-      // Log outgoing request
-      const isAnalyticsCall = endpoint.includes('evaluation-statistics') || endpoint.includes('analytics') || endpoint.includes('tests');
-      const logPrefix = isAnalyticsCall ? '📊 EVALUATION API' : '🌐 EVAL API';
-      
-      console.log(`${logPrefix} REQUEST [${requestId}]:`, {
+    // Log outgoing request
+    const isAnalyticsCall =
+      endpoint.includes("evaluation-statistics") ||
+      endpoint.includes("analytics") ||
+      endpoint.includes("tests");
+    const logPrefix = isAnalyticsCall ? "📊 EVALUATION API" : "🌐 EVAL API";
+
+    console.log(`${logPrefix} REQUEST [${requestId}]:`, {
+      endpoint,
+      method: "GET",
+      timestamp: new Date().toISOString(),
+      isAnalytics: isAnalyticsCall,
+    });
+
+    try {
+      const response = await apiClient.get(endpoint);
+
+      const duration = Date.now() - startTime;
+
+      // Log successful response
+      console.log(`${logPrefix} RESPONSE [${requestId}]:`, {
+        status: 200,
         endpoint,
-        fullURL: `${API_BASE_URL}${endpoint}`,
-        method: options.method || 'GET',
-        hasToken: !!backendJwt,
+        duration: `${duration}ms`,
+        dataSize: JSON.stringify(response.data).length,
         timestamp: new Date().toISOString(),
-        isAnalytics: isAnalyticsCall
+        isAnalytics: isAnalyticsCall,
       });
 
-      try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-          ...options,
-          signal: abortControllerRef.current.signal,
-          headers: {
-            Authorization: `Bearer ${backendJwt}`,
-            "Content-Type": "application/json",
-            ...options.headers,
-          },
+      // Log response data for analytics calls
+      if (isAnalyticsCall) {
+        console.log(`${logPrefix} DATA [${requestId}]:`, {
+          dataType: typeof response.data,
+          dataKeys:
+            response.data && typeof response.data === "object"
+              ? Object.keys(response.data)
+              : "N/A",
+          dataPreview:
+            response.data && typeof response.data === "object"
+              ? JSON.stringify(response.data).substring(0, 200) + "..."
+              : response.data,
         });
+      }
 
-        const duration = Date.now() - startTime;
+      return response.data;
+    } catch (err: any) {
+      const duration = Date.now() - startTime;
 
-        if (!response.ok) {
-          console.error(`${logPrefix} ERROR [${requestId}]:`, {
-            endpoint,
-            status: response.status,
-            statusText: response.statusText,
-            duration: `${duration}ms`,
-            timestamp: new Date().toISOString()
-          });
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        // Log successful response
-        console.log(`${logPrefix} RESPONSE [${requestId}]:`, {
-          status: response.status,
-          statusText: response.statusText,
+      if (err.name === "AbortError") {
+        console.log(`${logPrefix} ABORTED [${requestId}]:`, {
           endpoint,
           duration: `${duration}ms`,
-          dataSize: JSON.stringify(data).length,
           timestamp: new Date().toISOString(),
-          isAnalytics: isAnalyticsCall
         });
-
-        // Log response data for analytics calls
-        if (isAnalyticsCall) {
-          console.log(`${logPrefix} DATA [${requestId}]:`, {
-            dataType: typeof data,
-            dataKeys: data && typeof data === 'object' ? Object.keys(data) : 'N/A',
-            dataPreview: data && typeof data === 'object' 
-              ? JSON.stringify(data).substring(0, 200) + '...'
-              : data
-          });
-        }
-
-        return data;
-      } catch (err: any) {
-        const duration = Date.now() - startTime;
-        
-        if (err.name === 'AbortError') {
-          console.log(`${logPrefix} ABORTED [${requestId}]:`, {
-            endpoint,
-            duration: `${duration}ms`,
-            timestamp: new Date().toISOString()
-          });
-          return null;
-        }
-        
-        console.error(`${logPrefix} ERROR [${requestId}]:`, {
-          endpoint,
-          error: err.message,
-          duration: `${duration}ms`,
-          timestamp: new Date().toISOString(),
-          isAnalytics: isAnalyticsCall
-        });
-        
-        throw err;
+        return null;
       }
-    },
-    [API_BASE_URL, backendJwt],
-  );
 
-  // Authentication effect
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!session || !mountedRef.current) return;
+      console.error(`${logPrefix} ERROR [${requestId}]:`, {
+        endpoint,
+        error: err.message,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString(),
+        isAnalytics: isAnalyticsCall,
+      });
 
-      try {
-        const googleIdToken = (session as { id_token?: string })?.id_token;
-        if (!googleIdToken) {
-          console.error("No Google ID token found");
-          if (mountedRef.current) {
-            setError("Authentication failed: No Google ID token found");
-          }
-          return;
-        }
-
-        const loginRes = await axios.post(
-          `${API_BASE_URL}/api/auth/admin-login`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${googleIdToken}` },
-            withCredentials: true,
-          },
-        );
-
-        if (mountedRef.current) {
-          setBackendJwt(loginRes.data.token);
-        }
-      } catch (err) {
-        console.error("Failed to fetch user profile:", err);
-        if (mountedRef.current) {
-          setError("Failed to authenticate with backend");
-        }
-      }
-    };
-
-    fetchProfile();
-  }, [session, API_BASE_URL]);
+      throw err;
+    }
+  }, []);
 
   // Fetch statistics
   const fetchStatistics = useCallback(
     async (batchId: string, courseId: string, testId: string) => {
-      console.log('📊 EVALUATION STATISTICS FETCH START:', {
+      console.log("📊 EVALUATION STATISTICS FETCH START:", {
         batchId,
         courseId,
         testId,
-        hasJWT: !!backendJwt,
         mounted: mountedRef.current,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
-      if (!batchId || !courseId || !testId || !backendJwt || !mountedRef.current) {
-        console.log('⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:', {
-          batchId: !!batchId,
-          courseId: !!courseId,
-          testId: !!testId,
-          backendJwt: !!backendJwt,
-          mounted: mountedRef.current
-        });
+
+      if (!batchId || !courseId || !testId || !mountedRef.current) {
+        console.log(
+          "⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:",
+          {
+            batchId: !!batchId,
+            courseId: !!courseId,
+            testId: !!testId,
+            mounted: mountedRef.current,
+          },
+        );
         return;
       }
 
@@ -345,31 +289,33 @@ const EvaluationStatistics: React.FC = () => {
         setLoading(true);
         setError("");
 
-        const endpoint = `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`;
-        console.log('📊 EVALUATION STATISTICS URL:', {
+        const endpoint = `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`;
+        console.log("📊 EVALUATION STATISTICS URL:", {
           endpoint,
-          fullURL: `${API_BASE_URL}${endpoint}`
         });
 
-        console.log('📊 EVALUATION STATISTICS API CALL: Making request...');
+        console.log("📊 EVALUATION STATISTICS API CALL: Making request...");
         const response = await apiCall(endpoint);
 
         if (!response || !mountedRef.current) {
-          console.log('❌ EVALUATION STATISTICS: No response or component unmounted');
+          console.log(
+            " EVALUATION STATISTICS: No response or component unmounted",
+          );
           return;
         }
 
-        console.log('📊 EVALUATION STATISTICS RESPONSE RECEIVED:', {
+        console.log("📊 EVALUATION STATISTICS RESPONSE RECEIVED:", {
           status: response.status,
           dataSize: response.data ? JSON.stringify(response.data).length : 0,
           hasData: !!response.data,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         // Process the statistics data
         const processedStats: EvaluationStatistics = {
           testId,
-          testTitle: testsRef.current.find((t) => t.id === testId)?.title || "Test",
+          testTitle:
+            testsRef.current.find((t) => t.id === testId)?.title || "Test",
           totalQuestions: response.data?.totalQuestions || 0,
           totalMarks: response.data?.totalMarks || 0,
           passingMarks: response.data?.passingMarks || 0,
@@ -401,9 +347,16 @@ const EvaluationStatistics: React.FC = () => {
                 marks: 1, // Default marks
                 correctAnswers: q.correctAttempts,
                 incorrectAnswers: q.totalAttempts - q.correctAttempts,
-                accuracyRate: q.totalAttempts > 0 ? (q.correctAttempts / q.totalAttempts) * 100 : 0,
-                averageMarks: q.totalAttempts > 0 ? q.correctAttempts / q.totalAttempts : 0,
-                difficulty: q.difficultyLevel.toLowerCase() as "easy" | "medium" | "hard",
+                accuracyRate:
+                  q.totalAttempts > 0
+                    ? (q.correctAttempts / q.totalAttempts) * 100
+                    : 0,
+                averageMarks:
+                  q.totalAttempts > 0 ? q.correctAttempts / q.totalAttempts : 0,
+                difficulty: q.difficultyLevel.toLowerCase() as
+                  | "easy"
+                  | "medium"
+                  | "hard",
               }),
             ) || [],
           difficultyAnalysis: response.data?.difficultyAnalysis || {
@@ -430,8 +383,11 @@ const EvaluationStatistics: React.FC = () => {
           setStatistics(processedStats);
         }
       } catch (err: any) {
-        console.error("❌ EVALUATION STATISTICS ERROR: Error fetching evaluation statistics:", err);
-        console.error("❌ EVALUATION STATISTICS ERROR DETAILS:", {
+        console.error(
+          " EVALUATION STATISTICS ERROR: Error fetching evaluation statistics:",
+          err,
+        );
+        console.error(" EVALUATION STATISTICS ERROR DETAILS:", {
           message: err.message,
           status: err.response?.status,
           statusText: err.response?.statusText,
@@ -440,10 +396,10 @@ const EvaluationStatistics: React.FC = () => {
           courseId,
           testId,
           timestamp: new Date().toISOString(),
-          stack: err.stack
+          stack: err.stack,
         });
-        
-        if (mountedRef.current && err.name !== 'AbortError') {
+
+        if (mountedRef.current && err.name !== "AbortError") {
           setError("Failed to load evaluation statistics");
         }
       } finally {
@@ -452,7 +408,7 @@ const EvaluationStatistics: React.FC = () => {
         }
       }
     },
-    [apiCall, backendJwt],
+    [apiCall],
   );
 
   // Store fetchStatistics in ref for stable access
@@ -463,17 +419,24 @@ const EvaluationStatistics: React.FC = () => {
   // Fetch tests for selected batch and course
   const fetchTests = useCallback(
     async (batchId: string, courseId: string) => {
-      if (!batchId || !courseId || !backendJwt || !mountedRef.current) {
+      if (!batchId || !courseId || !mountedRef.current) {
         return;
       }
 
       try {
-        const response = await apiCall(`/api/instructor/batches/${batchId}/courses/${courseId}/tests`);
+        const response = await apiCall(
+          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests`,
+        );
         if (!response || !mountedRef.current) return;
 
         // Handle different response formats: {data: {tests}} or {tests} or direct array
-        const testList = response.data?.tests || response.tests || response.data || response || [];
-        console.log('Tests received for evaluation:', testList);
+        const testList =
+          response.data?.tests ||
+          response.tests ||
+          response.data ||
+          response ||
+          [];
+        console.log("Tests received for evaluation:", testList);
 
         setTests(testList);
         testsRef.current = testList; // Keep ref in sync
@@ -486,12 +449,12 @@ const EvaluationStatistics: React.FC = () => {
         }
       } catch (err: any) {
         console.error("Error fetching tests:", err);
-        if (mountedRef.current && err.name !== 'AbortError') {
+        if (mountedRef.current && err.name !== "AbortError") {
           setError("Failed to load tests for the selected course");
         }
       }
     },
-    [apiCall, backendJwt],
+    [apiCall],
   );
 
   // Store fetchTests in ref for stable access
@@ -502,17 +465,24 @@ const EvaluationStatistics: React.FC = () => {
   // Fetch courses for selected batch
   const fetchCourses = useCallback(
     async (batchId: string) => {
-      if (!batchId || !backendJwt || !mountedRef.current) {
+      if (!batchId || !mountedRef.current) {
         return;
       }
 
       try {
-        const response = await apiCall(`/api/instructor/batches/${batchId}/courses`);
+        const response = await apiCall(
+          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses`,
+        );
         if (!response || !mountedRef.current) return;
 
         // Handle different response formats from backend
-        const courseList = response.data?.courses || response.courses || response.data || response || [];
-        console.log('Courses received for evaluation:', courseList);
+        const courseList =
+          response.data?.courses ||
+          response.courses ||
+          response.data ||
+          response ||
+          [];
+        console.log("Courses received for evaluation:", courseList);
 
         setCourses(courseList);
 
@@ -524,12 +494,12 @@ const EvaluationStatistics: React.FC = () => {
         }
       } catch (err: any) {
         console.error("Error fetching courses:", err);
-        if (mountedRef.current && err.name !== 'AbortError') {
+        if (mountedRef.current && err.name !== "AbortError") {
           setError("Failed to load courses for the selected batch");
         }
       }
     },
-    [apiCall, backendJwt],
+    [apiCall],
   );
 
   // Store fetchCourses in ref for stable access
@@ -544,16 +514,18 @@ const EvaluationStatistics: React.FC = () => {
 
   // Fetch initial data
   const fetchInitialData = useCallback(async () => {
-    console.log('🔄 EvaluationStatistics fetchInitialData called');
-    console.log('🔍 EvaluationStatistics Mounted:', mountedRef.current);
-    console.log('🔍 EvaluationStatistics Has JWT:', !!backendJwt);
-    
-    if (!backendJwt || !mountedRef.current) {
-      console.log('❌ EvaluationStatistics: Missing JWT or not mounted, skipping');
+    console.log("🔄 EvaluationStatistics fetchInitialData called");
+    console.log("🔍 EvaluationStatistics Mounted:", mountedRef.current);
+
+    if (!mountedRef.current) {
+      console.log(" EvaluationStatistics: Not mounted, skipping");
       if (!mountedRef.current) {
-        console.log('🔧 EvaluationStatistics: Attempting to fix mountedRef...');
+        console.log("🔧 EvaluationStatistics: Attempting to fix mountedRef...");
         mountedRef.current = true;
-        console.log('🔧 EvaluationStatistics: mountedRef after fix:', mountedRef.current);
+        console.log(
+          "🔧 EvaluationStatistics: mountedRef after fix:",
+          mountedRef.current,
+        );
       }
       return;
     }
@@ -562,40 +534,52 @@ const EvaluationStatistics: React.FC = () => {
       setLoading(true);
       setError("");
 
-      console.log('🚀 EvaluationStatistics: Making API call to fetch batches...');
-      const batchesResponse = await apiCall("/api/instructor/batches");
-      
+      console.log(
+        "🚀 EvaluationStatistics: Making API call to fetch batches...",
+      );
+      const batchesResponse = await apiCall(API_ENDPOINTS.INSTRUCTOR.BATCHES);
+
       if (!batchesResponse || !mountedRef.current) {
-        console.log('❌ EvaluationStatistics: No response or component unmounted');
+        console.log(
+          " EvaluationStatistics: No response or component unmounted",
+        );
         return;
       }
 
       // Handle different response formats
-      const batchList = batchesResponse.data?.batches || batchesResponse.batches || batchesResponse.data || batchesResponse || [];
-      console.log('✅ EvaluationStatistics: Batches received:', batchList.length);
+      const batchList =
+        batchesResponse.data?.batches ||
+        batchesResponse.batches ||
+        batchesResponse.data ||
+        batchesResponse ||
+        [];
+      console.log(" EvaluationStatistics: Batches received:", batchList.length);
 
       setBatches(batchList);
 
       if (batchList.length > 0) {
         const firstBatch = batchList[0];
-        console.log('🔄 EvaluationStatistics: Setting first batch and fetching courses:', firstBatch.id);
+        console.log(
+          "🔄 EvaluationStatistics: Setting first batch and fetching courses:",
+          firstBatch.id,
+        );
         setSelectedBatch(firstBatch.id);
         if (fetchCoursesRef.current) {
           await fetchCoursesRef.current(firstBatch.id);
         }
       } else {
-        console.log('⚠️ EvaluationStatistics: No batches available');
+        console.log("⚠️ EvaluationStatistics: No batches available");
       }
     } catch (err: any) {
-      console.error("❌ EvaluationStatistics: Error fetching initial data:", err);
-      console.error("❌ EvaluationStatistics: Error details:", {
+      console.error(" EvaluationStatistics: Error fetching initial data:", err);
+      console.error(" EvaluationStatistics: Error details:", {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
-      if (mountedRef.current && err.name !== 'AbortError') {
+
+      if (mountedRef.current && err.name !== "AbortError") {
         setError("Failed to load initial data");
       }
     } finally {
@@ -603,14 +587,14 @@ const EvaluationStatistics: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [apiCall, backendJwt]);
+  }, [apiCall]);
 
-  // Initialize data when JWT is available
+  // Initialize data when component mounts
   useEffect(() => {
-    if (backendJwt && mountedRef.current) {
+    if (mountedRef.current) {
       fetchInitialData();
     }
-  }, [backendJwt, fetchInitialData]);
+  }, [fetchInitialData]);
 
   // Handle batch change
   const handleBatchChange = useCallback((batchId: string) => {
@@ -623,75 +607,97 @@ const EvaluationStatistics: React.FC = () => {
     setTests([]);
     setStatistics(null);
 
-    if (batchId && backendJwt && fetchCoursesRef.current) {
+    if (batchId && fetchCoursesRef.current) {
       fetchCoursesRef.current(batchId);
     }
-  }, [backendJwt]);
+  }, []);
 
   // Handle course change
-  const handleCourseChange = useCallback((courseId: string) => {
-    if (!mountedRef.current) return;
+  const handleCourseChange = useCallback(
+    (courseId: string) => {
+      if (!mountedRef.current) return;
 
-    setSelectedCourse(courseId);
-    setSelectedTest("");
-    setTests([]);
-    setStatistics(null);
+      setSelectedCourse(courseId);
+      setSelectedTest("");
+      setTests([]);
+      setStatistics(null);
 
-    if (selectedBatch && courseId && backendJwt && fetchTestsRef.current) {
-      fetchTestsRef.current(selectedBatch, courseId);
-    }
-  }, [selectedBatch, backendJwt]);
+      if (selectedBatch && courseId && fetchTestsRef.current) {
+        fetchTestsRef.current(selectedBatch, courseId);
+      }
+    },
+    [selectedBatch],
+  );
 
   // Handle test change
-  const handleTestChange = useCallback((testId: string) => {
-    console.log('🚀 EVALUATION STATISTICS: Test changed to:', testId);
-    console.log('📍 EVALUATION STATISTICS: Component state before test change:', {
-      selectedBatch,
-      selectedCourse,
-      newTestId: testId,
-      mountedRef: mountedRef.current,
-      hasJWT: !!backendJwt,
-      testsLength: tests.length
-    });
-    
-    if (!mountedRef.current) {
-      console.log('⚠️ EVALUATION STATISTICS: Component not mounted, skipping');
-      return;
-    }
+  const handleTestChange = useCallback(
+    (testId: string) => {
+      console.log("🚀 EVALUATION STATISTICS: Test changed to:", testId);
+      console.log(
+        "📍 EVALUATION STATISTICS: Component state before test change:",
+        {
+          selectedBatch,
+          selectedCourse,
+          newTestId: testId,
+          mountedRef: mountedRef.current,
+          testsLength: tests.length,
+        },
+      );
 
-    setSelectedTest(testId);
-    setStatistics(null);
-
-    if (selectedBatch && selectedCourse && testId && backendJwt) {
-      console.log('📊 EVALUATION STATISTICS TRIGGER: About to fetch evaluation statistics for:', {
-        batchId: selectedBatch,
-        courseId: selectedCourse,
-        testId: testId,
-        timestamp: new Date().toISOString()
-      });
-      
-      try {
-        if (fetchStatisticsRef.current) {
-          fetchStatisticsRef.current(selectedBatch, selectedCourse, testId);
-        }
-        console.log('✅ EVALUATION STATISTICS TRIGGERED: fetchStatistics called successfully');
-      } catch (error) {
-        console.error('❌ EVALUATION STATISTICS FAILED: fetchStatistics failed:', error);
+      if (!mountedRef.current) {
+        console.log(
+          "⚠️ EVALUATION STATISTICS: Component not mounted, skipping",
+        );
+        return;
       }
-    } else {
-      console.log('⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:', {
-        selectedBatch: !!selectedBatch,
-        selectedCourse: !!selectedCourse,
-        testId: !!testId,
-        backendJwt: !!backendJwt,
-        reason: !selectedBatch ? 'No batch selected' 
-               : !selectedCourse ? 'No course selected'
-               : !testId ? 'No test provided'
-               : !backendJwt ? 'No JWT token'
-               : 'Unknown'
-      });
-    }
-  }, [selectedBatch, selectedCourse, backendJwt]);
+
+      setSelectedTest(testId);
+      setStatistics(null);
+
+      if (selectedBatch && selectedCourse && testId) {
+        console.log(
+          "📊 EVALUATION STATISTICS TRIGGER: About to fetch evaluation statistics for:",
+          {
+            batchId: selectedBatch,
+            courseId: selectedCourse,
+            testId: testId,
+            timestamp: new Date().toISOString(),
+          },
+        );
+
+        try {
+          if (fetchStatisticsRef.current) {
+            fetchStatisticsRef.current(selectedBatch, selectedCourse, testId);
+          }
+          console.log(
+            " EVALUATION STATISTICS TRIGGERED: fetchStatistics called successfully",
+          );
+        } catch (error) {
+          console.error(
+            " EVALUATION STATISTICS FAILED: fetchStatistics failed:",
+            error,
+          );
+        }
+      } else {
+        console.log(
+          "⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:",
+          {
+            selectedBatch: !!selectedBatch,
+            selectedCourse: !!selectedCourse,
+            testId: !!testId,
+            reason: !selectedBatch
+              ? "No batch selected"
+              : !selectedCourse
+                ? "No course selected"
+                : !testId
+                  ? "No test provided"
+                  : "Unknown",
+          },
+        );
+      }
+    },
+    [selectedBatch, selectedCourse],
+  );
 
   const exportStatistics = () => {
     if (!statistics) return;

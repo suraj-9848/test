@@ -12,29 +12,58 @@ import {
   deleteQuestionFromTest,
   getQuestions,
 } from "../api/testApi";
-import {
-  instructorApi,
-  Test,
-  Batch,
-  Course,
-  Question,
-} from "../api/instructorApi";
+import { instructorApi, Test, Batch, Course } from "../api/instructorApi";
+
+interface Question {
+  id: string;
+  question_text: string;
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
+  marks: number;
+  expectedWordCount?: number;
+  codeLanguage?: string;
+  options?: QuestionOption[];
+}
+
+interface QuestionOption {
+  id: string;
+  text: string;
+  correct: boolean;
+}
+
+interface CreateQuestionRequestLocal {
+  question_text: string;
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
+  marks: number;
+  options?: { text: string; correct: boolean }[];
+  expectedWordCount?: number;
+  codeLanguage?: string;
+}
+
+interface UpdateTestPayload {
+  title: string;
+  description: string;
+  maxMarks: number;
+  passingMarks: number;
+  durationInMinutes: number;
+  startDate: string;
+  endDate: string;
+  shuffleQuestions: boolean;
+  showResults: boolean;
+  showCorrectAnswers: boolean;
+}
+
+interface QuestionFormData {
+  question_text: string;
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
+  marks: number;
+  options: { text: string; correct: boolean }[];
+  expectedWordCount?: number;
+  codeLanguage?: string;
+}
 
 const ManageTest: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  type UpdateTestPayload = {
-    title: string;
-    description: string;
-    maxMarks: number;
-    passingMarks: number;
-    durationInMinutes: number;
-    startDate: string;
-    endDate: string;
-    shuffleQuestions: boolean;
-    showResults: boolean;
-    showCorrectAnswers: boolean;
-  };
   const [selectedBatch, setSelectedBatch] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [tests, setTests] = useState<Test[]>([]);
@@ -57,17 +86,16 @@ const ManageTest: React.FC = () => {
   const [showQuestionManager, setShowQuestionManager] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionEditTestId, setQuestionEditTestId] = useState<string>("");
-  const [questionForm, setQuestionForm] = useState<{
-    question_text: string;
-    type: "MCQ" | "DESCRIPTIVE" | "CODE";
-    marks: number;
-    options: { text: string; correct: boolean }[];
-  }>({
+
+  const [questionForm, setQuestionForm] = useState<QuestionFormData>({
     question_text: "",
     type: "MCQ",
     marks: 1,
     options: [{ text: "", correct: false }],
+    expectedWordCount: undefined,
+    codeLanguage: undefined,
   });
+
   const [editingQuestionId, setEditingQuestionId] = useState<string>("");
   const editorRef = useRef<RichTextEditorHandle>(null);
 
@@ -90,34 +118,39 @@ const ManageTest: React.FC = () => {
       instructorApi
         .getCourses()
         .then((res) => {
+          const coursesArray = res?.courses || res || [];
+
+          if (!Array.isArray(coursesArray)) {
+            console.error("Courses data is not an array:", coursesArray);
+            setCourses([]);
+            setLoading(false);
+            return;
+          }
+
           const batchIdStr = String(selectedBatch);
-          const filtered = (res || []).filter((course) => {
-            if (String((course as any).batch_id) === batchIdStr) return true;
-            if (
-              "batchId" in course &&
-              typeof (course as any).batchId === "string" &&
-              (course as any).batchId === batchIdStr
-            )
+          const filtered = coursesArray.filter((course: any) => {
+            if (String(course.batch_id) === batchIdStr) return true;
+            if (course.batchId && String(course.batchId) === batchIdStr)
               return true;
             if (
-              "batch" in course &&
-              (course as any).batch &&
-              typeof (course as any).batch === "object" &&
-              (course as any).batch !== null &&
-              "id" in (course as any).batch &&
-              typeof ((course as any).batch as { id: unknown }).id === "string" &&
-              ((course as any).batch as { id: string }).id === batchIdStr
+              course.batch &&
+              course.batch.id &&
+              String(course.batch.id) === batchIdStr
             )
               return true;
             return false;
           });
-          const sortedCourses = filtered.length === 0 ? res : filtered;
+
+          const sortedCourses = filtered.length === 0 ? coursesArray : filtered;
           setCourses(
-            sortedCourses.sort((a: any, b: any) => a.title.localeCompare(b.title))
+            sortedCourses.sort((a: any, b: any) =>
+              a.title.localeCompare(b.title),
+            ),
           );
           setLoading(false);
         })
         .catch((err) => {
+          console.error("Error fetching courses:", err);
           setError(err.message || "Failed to fetch courses");
           setLoading(false);
         });
@@ -136,7 +169,9 @@ const ManageTest: React.FC = () => {
             ? res.data.tests
             : [];
           setTests(
-            safeTests.sort((a: Test, b: Test) => a.title.localeCompare(b.title))
+            safeTests.sort((a: Test, b: Test) =>
+              a.title.localeCompare(b.title),
+            ),
           );
           setLoading(false);
         })
@@ -149,7 +184,6 @@ const ManageTest: React.FC = () => {
     }
   }, [selectedBatch, selectedCourse]);
 
-  // Helper to convert UTC ISO string to local datetime-local string
   function utcToLocalDatetimeInput(isoString: string | undefined): string {
     if (!isoString) return "";
     const date = new Date(isoString);
@@ -162,12 +196,130 @@ const ManageTest: React.FC = () => {
     return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   }
 
-  // Helper to convert local datetime-local string to UTC ISO string
   function localDatetimeInputToUTC(localString: string): string {
     if (!localString) return "";
     const localDate = new Date(localString);
     return localDate.toISOString();
   }
+
+  const handleSaveQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    const html = editorRef.current?.getContent() || "";
+
+    if (!html || !html.replace(/<[^>]+>/g, "").trim()) {
+      setLoading(false);
+      setError("Question text cannot be empty.");
+      return;
+    }
+
+    try {
+      const payload: CreateQuestionRequestLocal = {
+        question_text: html,
+        type: questionForm.type,
+        marks: questionForm.marks,
+      };
+
+      // Add conditional fields based on question type
+      if (questionForm.type === "MCQ") {
+        payload.options = questionForm.options;
+      }
+
+      if (
+        questionForm.type === "DESCRIPTIVE" &&
+        questionForm.expectedWordCount
+      ) {
+        payload.expectedWordCount = questionForm.expectedWordCount;
+      }
+
+      if (questionForm.type === "CODE") {
+        if (questionForm.expectedWordCount) {
+          payload.expectedWordCount = questionForm.expectedWordCount;
+        }
+        if (questionForm.codeLanguage) {
+          payload.codeLanguage = questionForm.codeLanguage;
+        }
+      }
+      if (editingQuestionId) {
+        await updateQuestionInTest(
+          selectedBatch,
+          selectedCourse,
+          questionEditTestId,
+          editingQuestionId,
+          payload as any, // Type assertion to handle API compatibility
+        );
+        setSuccess("Question updated successfully!");
+      } else {
+        await addQuestionToTest(
+          selectedBatch,
+          selectedCourse,
+          questionEditTestId,
+          payload as any, // Type assertion to handle API compatibility
+        );
+        setSuccess("Question added successfully!");
+      }
+
+      const res = await getQuestions(
+        selectedBatch,
+        selectedCourse,
+        questionEditTestId,
+      );
+      setQuestions(
+        Array.isArray(res.data?.questions) ? res.data.questions : [],
+      );
+
+      // Reset form
+      setQuestionForm({
+        question_text: "",
+        type: "MCQ",
+        marks: 1,
+        options: [{ text: "", correct: false }],
+        expectedWordCount: undefined,
+        codeLanguage: undefined,
+      });
+      setEditingQuestionId("");
+      editorRef.current?.setContent("");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to save question");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearQuestionForm = () => {
+    setQuestionForm({
+      question_text: "",
+      type: "MCQ",
+      marks: 1,
+      options: [{ text: "", correct: false }],
+      expectedWordCount: undefined,
+      codeLanguage: undefined,
+    });
+    setEditingQuestionId("");
+    editorRef.current?.setContent("");
+  };
+
+  const handleEditQuestion = (q: Question) => {
+    setQuestionForm({
+      question_text: q.question_text,
+      type: q.type,
+      marks: q.marks,
+      options: q.options
+        ? q.options.map((o) => ({ text: o.text, correct: o.correct }))
+        : [{ text: "", correct: false }],
+      expectedWordCount: q.expectedWordCount,
+      codeLanguage: q.codeLanguage,
+    });
+    setEditingQuestionId(q.id);
+    editorRef.current?.setContent(q.question_text || "");
+  };
 
   const handleSelectTest = (testId: string) => {
     const test = tests.find((t) => t.id === testId);
@@ -176,13 +328,13 @@ const ManageTest: React.FC = () => {
     setEditDescription(test?.description || "");
     setEditMaxMarks(typeof test?.maxMarks === "number" ? test.maxMarks : 1);
     setEditPassingMarks(
-      typeof test?.passingMarks === "number" ? test.passingMarks : 0
+      typeof test?.passingMarks === "number" ? test.passingMarks : 0,
     );
     setEditDuration(
-      typeof test?.durationInMinutes === "number" ? test.durationInMinutes : 1
+      typeof test?.durationInMinutes === "number" ? test.durationInMinutes : 1,
     );
     setEditStartDate(
-      test?.startDate ? utcToLocalDatetimeInput(test.startDate) : ""
+      test?.startDate ? utcToLocalDatetimeInput(test.startDate) : "",
     );
     setEditEndDate(test?.endDate ? utcToLocalDatetimeInput(test.endDate) : "");
     setEditShuffleQuestions(!!test?.shuffleQuestions);
@@ -205,7 +357,7 @@ const ManageTest: React.FC = () => {
       if (isPublished) {
         if (!editStartDate || !editEndDate) {
           throw new Error(
-            "Both start and end date/time are required for published tests."
+            "Both start and end date/time are required for published tests.",
           );
         }
         const startDateISO = localDatetimeInputToUTC(editStartDate) || "";
@@ -240,7 +392,7 @@ const ManageTest: React.FC = () => {
       setSuccess("Test updated successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
+        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
       );
       setSelectedTestId("");
       setEditTitle("");
@@ -274,7 +426,7 @@ const ManageTest: React.FC = () => {
       setSelectedTestId("");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
+        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
       );
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -310,92 +462,6 @@ const ManageTest: React.FC = () => {
     }
   };
 
-  const handleSaveQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    const html = editorRef.current?.getContent() || "";
-    if (!html || !html.replace(/<[^>]+>/g, "").trim()) {
-      setLoading(false);
-      setError("Question text cannot be empty.");
-      return;
-    }
-    try {
-      const payload = {
-        question_text: html,
-        type: questionForm.type,
-        marks: questionForm.marks,
-        options: questionForm.type === "MCQ" ? questionForm.options : undefined,
-      };
-      if (editingQuestionId) {
-        await updateQuestionInTest(
-          selectedBatch,
-          selectedCourse,
-          questionEditTestId,
-          editingQuestionId,
-          payload
-        );
-        setSuccess("Question updated successfully!");
-      } else {
-        await addQuestionToTest(
-          selectedBatch,
-          selectedCourse,
-          questionEditTestId,
-          payload
-        );
-        setSuccess("Question added successfully!");
-      }
-      const res = await getQuestions(
-        selectedBatch,
-        selectedCourse,
-        questionEditTestId
-      );
-      setQuestions(
-        Array.isArray(res.data?.questions) ? res.data.questions : []
-      );
-      setQuestionForm({
-        question_text: "",
-        type: "MCQ",
-        marks: 1,
-        options: [{ text: "", correct: false }],
-      });
-      setEditingQuestionId("");
-      editorRef.current?.setContent("");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to save question");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const clearQuestionForm = () => {
-    setQuestionForm({
-      question_text: "",
-      type: "MCQ",
-      marks: 1,
-      options: [{ text: "", correct: false }],
-    });
-    setEditingQuestionId("");
-    editorRef.current?.setContent("");
-  };
-
-  const handleEditQuestion = (q: Question) => {
-    setQuestionForm({
-      question_text: q.question_text,
-      type: q.type,
-      marks: q.marks,
-      options: q.options
-        ? q.options.map((o) => ({ text: o.text, correct: o.correct }))
-        : [{ text: "", correct: false }],
-    });
-    setEditingQuestionId(q.id);
-    editorRef.current?.setContent(q.question_text || "");
-  };
-
   const handleDeleteQuestion = async (qid: string) => {
     setLoading(true);
     setError("");
@@ -404,15 +470,15 @@ const ManageTest: React.FC = () => {
         selectedBatch,
         selectedCourse,
         questionEditTestId,
-        qid
+        qid,
       );
       const res = await getQuestions(
         selectedBatch,
         selectedCourse,
-        questionEditTestId
+        questionEditTestId,
       );
       setQuestions(
-        Array.isArray(res.data?.questions) ? res.data.questions : []
+        Array.isArray(res.data?.questions) ? res.data.questions : [],
       );
       setSuccess("Question deleted successfully!");
     } catch (err: unknown) {
@@ -429,7 +495,7 @@ const ManageTest: React.FC = () => {
   const handleOptionChange = (
     idx: number,
     field: "text" | "correct",
-    value: string | boolean
+    value: string | boolean,
   ) => {
     setQuestionForm((prev) => {
       const options = [...prev.options];
@@ -461,7 +527,6 @@ const ManageTest: React.FC = () => {
       const testQuestions = Array.isArray(res.data?.questions)
         ? res.data.questions
         : [];
-      console.log("[DEBUG] testQuestions before publish:", testQuestions);
       if (testQuestions.length === 0) {
         setError("Cannot publish: Test must have at least one question.");
         setLoading(false);
@@ -470,14 +535,14 @@ const ManageTest: React.FC = () => {
       const mcqWithNoCorrect = testQuestions.filter(
         (q: { type: string; options?: { correct: boolean }[] }) =>
           q.type === "MCQ" &&
-          (!q.options || q.options.filter((o) => o.correct).length === 0)
+          (!q.options || q.options.filter((o) => o.correct).length === 0),
       );
       if (mcqWithNoCorrect.length > 0) {
         setError(
           "Cannot publish: All MCQ questions must have at least one correct answer. Debug: Offending question(s): " +
             mcqWithNoCorrect
               .map((q: Question) => q.question_text || q.id)
-              .join(", ")
+              .join(", "),
         );
         setLoading(false);
         return;
@@ -486,7 +551,7 @@ const ManageTest: React.FC = () => {
       setSuccess("Test published successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
       setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []
+        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
       );
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -500,20 +565,21 @@ const ManageTest: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto mt-10 p-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100">
-      <h2 className="text-3xl font-bold mb-8 text-gray-800">Manage Tests</h2>
-      {loading && <div className="text-center text-blue-600">Loading...</div>}
-      <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h2 className="text-3xl font-bold text-gray-800 mb-8">Test Management</h2>
+
+      {/* Batch and Course Selectors */}
+      <div className="mb-8 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Batch
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Select Batch:
           </label>
           <select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            <option value="">Select Batch</option>
+            <option value="">Choose a Batch</option>
             {batches.map((batch) => (
               <option key={batch.id} value={batch.id}>
                 {batch.name}
@@ -522,21 +588,16 @@ const ManageTest: React.FC = () => {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Course
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Select Course:
           </label>
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
             disabled={!selectedBatch}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
-            <option value="">Select Course</option>
-            {courses.length === 0 && selectedBatch && (
-              <option value="" disabled>
-                No courses available
-              </option>
-            )}
+            <option value="">Choose a Course</option>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.title}
@@ -546,102 +607,117 @@ const ManageTest: React.FC = () => {
         </div>
       </div>
 
+      {loading && (
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      )}
+
+      {/* Test editing form */}
       {selectedTestId &&
         (() => {
-          const test = tests.find((t) => t.id === selectedTestId);
-          const isPublished = test?.status === "PUBLISHED";
+          const selectedTest = tests.find((t) => t.id === selectedTestId);
+          if (!selectedTest) return null;
+          const isPublished = selectedTest.status === "PUBLISHED";
           return (
-            <div className="mb-8 p-6 bg-gray-50 rounded-lg">
+            <div className="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
               <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                Edit Test
+                Edit Test: {selectedTest.title}
               </h3>
-              {isPublished ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-4">
-                    <input
-                      type="datetime-local"
-                      value={editStartDate}
-                      onChange={(e) => setEditStartDate(e.target.value)}
-                      placeholder="Start Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                      required
-                    />
-                    <input
-                      type="datetime-local"
-                      value={editEndDate}
-                      onChange={(e) => setEditEndDate(e.target.value)}
-                      placeholder="End Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                      required
-                    />
-                  </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-4">
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      placeholder="Test Title"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      placeholder="Test Description"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="number"
-                      value={editMaxMarks ?? ""}
-                      min={1}
-                      onChange={(e) => setEditMaxMarks(Number(e.target.value))}
-                      placeholder="Max Marks"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <input
-                      type="number"
-                      value={editPassingMarks ?? ""}
-                      min={0}
-                      onChange={(e) =>
-                        setEditPassingMarks(Number(e.target.value))
-                      }
-                      placeholder="Passing Marks"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <input
-                      type="number"
-                      value={editDuration ?? ""}
-                      min={1}
-                      onChange={(e) => setEditDuration(Number(e.target.value))}
-                      placeholder="Duration (minutes)"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    <input
-                      type="datetime-local"
-                      value={editStartDate}
-                      onChange={(e) => setEditStartDate(e.target.value)}
-                      placeholder="Start Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                    />
-                    <input
-                      type="datetime-local"
-                      value={editEndDate}
-                      onChange={(e) => setEditEndDate(e.target.value)}
-                      placeholder="End Date"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      step="60"
-                    />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Max Marks
+                  </label>
+                  <input
+                    type="number"
+                    value={editMaxMarks}
+                    onChange={(e) =>
+                      setEditMaxMarks(parseInt(e.target.value) || 1)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Passing Marks
+                  </label>
+                  <input
+                    type="number"
+                    value={editPassingMarks}
+                    onChange={(e) =>
+                      setEditPassingMarks(parseInt(e.target.value) || 0)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    value={editDuration}
+                    onChange={(e) =>
+                      setEditDuration(parseInt(e.target.value) || 1)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    disabled={isPublished}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    End Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editEndDate}
+                    onChange={(e) => setEditEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              {!isPublished && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex flex-wrap gap-4">
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -751,7 +827,7 @@ const ManageTest: React.FC = () => {
                       disabled={Boolean(
                         test.status === "PUBLISHED" &&
                           test.endDate &&
-                          new Date(test.endDate) > new Date()
+                          new Date(test.endDate) > new Date(),
                       )}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300"
                     >
@@ -798,11 +874,35 @@ const ManageTest: React.FC = () => {
                   key={q.id}
                   className="flex justify-between items-center p-4 bg-gray-50 rounded-lg"
                 >
-                  <span
-                    className="font-medium"
-                    dangerouslySetInnerHTML={{ __html: q.question_text }}
-                  />
-                  <div className="flex gap-3">
+                  <div className="content-display flex-1">
+                    <div
+                      dangerouslySetInnerHTML={{ __html: q.question_text }}
+                      className="font-medium prose prose-sm max-w-none"
+                    />
+                    <div className="text-sm text-gray-600 mt-2">
+                      Type: {q.type} | Marks: {q.marks}
+                      {q.options && q.options.length > 0 && (
+                        <div className="mt-1">
+                          Options:{" "}
+                          {q.options.map((opt, idx) => (
+                            <span
+                              key={idx}
+                              className={
+                                opt.correct
+                                  ? "font-semibold text-green-600"
+                                  : ""
+                              }
+                            >
+                              {String.fromCharCode(65 + idx)}. {opt.text}
+                              {opt.correct && " ✓"}
+                              {idx < q.options!.length - 1 && ", "}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-3 ml-4">
                     <button
                       className="text-blue-600 hover:underline"
                       onClick={() => handleEditQuestion(q)}
@@ -820,9 +920,11 @@ const ManageTest: React.FC = () => {
               ))
             )}
           </ul>
+
+          {/* Question form */}
           <form
             onSubmit={handleSaveQuestion}
-            className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm mt-8"
+            className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm"
           >
             <h4 className="text-lg font-semibold mb-4 border-b pb-2">
               {editingQuestionId ? "Edit" : "Add"} Question
@@ -837,6 +939,9 @@ const ManageTest: React.FC = () => {
                 onChange={(html: string) => {
                   setQuestionForm((f) => ({ ...f, question_text: html }));
                 }}
+                placeholder="Enter your question here..."
+                height="200px"
+                minHeight="150px"
               />
             </div>
             <input
@@ -845,7 +950,98 @@ const ManageTest: React.FC = () => {
               required
               readOnly
             />
-            <input type="hidden" name="type" value="MCQ" />
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Question Type
+              </label>
+              <select
+                value={questionForm.type}
+                onChange={(e) =>
+                  setQuestionForm((prev) => ({
+                    ...prev,
+                    type: e.target.value as "MCQ" | "DESCRIPTIVE" | "CODE",
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="MCQ">Multiple Choice</option>
+                <option value="DESCRIPTIVE">Descriptive</option>
+                <option value="CODE">Code</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Marks
+              </label>
+              <input
+                type="number"
+                value={questionForm.marks}
+                onChange={(e) =>
+                  setQuestionForm((prev) => ({
+                    ...prev,
+                    marks: parseInt(e.target.value) || 1,
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                min="1"
+                required
+              />
+            </div>
+
+            {/* Conditional fields for different question types */}
+            {(questionForm.type === "DESCRIPTIVE" ||
+              questionForm.type === "CODE") && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Expected Word Count (Optional)
+                </label>
+                <input
+                  type="number"
+                  value={questionForm.expectedWordCount || ""}
+                  onChange={(e) =>
+                    setQuestionForm((prev) => ({
+                      ...prev,
+                      expectedWordCount: e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  min="1"
+                  placeholder="e.g., 500"
+                />
+              </div>
+            )}
+
+            {questionForm.type === "CODE" && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Programming Language (Optional)
+                </label>
+                <select
+                  value={questionForm.codeLanguage || ""}
+                  onChange={(e) =>
+                    setQuestionForm((prev) => ({
+                      ...prev,
+                      codeLanguage: e.target.value || undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Language</option>
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                  <option value="c">C</option>
+                  <option value="html">HTML</option>
+                  <option value="css">CSS</option>
+                  <option value="sql">SQL</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            )}
+
             {questionForm.type === "MCQ" && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -859,66 +1055,47 @@ const ManageTest: React.FC = () => {
                       onChange={(e) =>
                         handleOptionChange(idx, "text", e.target.value)
                       }
-                      placeholder={`Option ${idx + 1}`}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      placeholder={`Option ${String.fromCharCode(65 + idx)}`}
                       required
                     />
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center">
                       <input
                         type="checkbox"
                         checked={opt.correct}
                         onChange={(e) =>
                           handleOptionChange(idx, "correct", e.target.checked)
                         }
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                        className="mr-2"
                       />
-                      <span className="text-gray-700">Correct</span>
+                      Correct
                     </label>
-                    {questionForm.options.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-800"
-                        onClick={() => handleRemoveOption(idx)}
-                      >
-                        Remove
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOption(idx)}
+                      className="px-2 py-1 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
                 <button
                   type="button"
-                  className="text-blue-600 hover:underline mt-2"
                   onClick={handleAddOption}
+                  className="mt-2 px-3 py-1 text-blue-600 hover:bg-blue-50 rounded border border-blue-200"
                 >
-                  + Add Option
+                  Add Option
                 </button>
               </div>
             )}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Marks
-              </label>
-              <input
-                type="number"
-                value={questionForm.marks}
-                min={1}
-                onChange={(e) =>
-                  setQuestionForm((f) => ({
-                    ...f,
-                    marks: Number(e.target.value),
-                  }))
-                }
-                className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
               >
-                {editingQuestionId ? "Update" : "Add"} Question
+                {loading ? "Saving..." : editingQuestionId ? "Update" : "Add"}{" "}
+                Question
               </button>
               {editingQuestionId && (
                 <button
@@ -940,6 +1117,7 @@ const ManageTest: React.FC = () => {
           </form>
         </div>
       )}
+
       {error && (
         <div className="mt-6 p-4 bg-red-100 text-red-800 rounded-lg text-center">
           {error}
@@ -950,6 +1128,130 @@ const ManageTest: React.FC = () => {
           {success}
         </div>
       )}
+
+      {/* Global styles for content rendering */}
+      <style jsx global>{`
+        .content-display h1 {
+          font-size: 1.875rem !important;
+          font-weight: 700 !important;
+          line-height: 1.2 !important;
+          margin: 16px 0 12px 0 !important;
+          color: #1f2937 !important;
+          display: block !important;
+        }
+
+        .content-display h2 {
+          font-size: 1.5rem !important;
+          font-weight: 600 !important;
+          line-height: 1.3 !important;
+          margin: 14px 0 10px 0 !important;
+          color: #374151 !important;
+          display: block !important;
+        }
+
+        .content-display h3 {
+          font-size: 1.25rem !important;
+          font-weight: 600 !important;
+          line-height: 1.4 !important;
+          margin: 12px 0 8px 0 !important;
+          color: #4b5563 !important;
+          display: block !important;
+        }
+
+        .content-display p {
+          margin: 8px 0 !important;
+          line-height: 1.6 !important;
+          display: block !important;
+        }
+
+        .content-display ul {
+          padding-left: 24px !important;
+          margin: 8px 0 !important;
+          list-style-type: disc !important;
+          display: block !important;
+        }
+
+        .content-display ol {
+          padding-left: 24px !important;
+          margin: 8px 0 !important;
+          list-style-type: decimal !important;
+          display: block !important;
+        }
+
+        .content-display li {
+          margin: 4px 0 !important;
+          line-height: 1.5 !important;
+          display: list-item !important;
+          list-style-position: outside !important;
+        }
+
+        .content-display ul li {
+          list-style-type: disc !important;
+        }
+
+        .content-display ol li {
+          list-style-type: decimal !important;
+        }
+
+        .content-display pre {
+          background-color: #f1f5f9 !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          padding: 16px !important;
+          margin: 16px 0 !important;
+          overflow-x: auto !important;
+          font-family: Monaco, Consolas, "Courier New", monospace !important;
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+          display: block !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          clear: both !important;
+          white-space: pre-wrap !important;
+        }
+
+        .content-display code {
+          background-color: #f1f5f9 !important;
+          padding: 2px 4px !important;
+          border-radius: 4px !important;
+          font-family: Monaco, Consolas, "Courier New", monospace !important;
+          font-size: 0.9em !important;
+        }
+
+        .content-display pre code {
+          background-color: transparent !important;
+          padding: 0 !important;
+          border-radius: 0 !important;
+        }
+
+        .content-display blockquote {
+          border-left: 4px solid #3b82f6 !important;
+          background-color: #eff6ff !important;
+          padding: 12px 16px !important;
+          margin: 16px 0 !important;
+          border-radius: 4px !important;
+          font-style: italic !important;
+          display: block !important;
+        }
+
+        .content-display strong,
+        .content-display b {
+          font-weight: 700 !important;
+        }
+
+        .content-display em,
+        .content-display i {
+          font-style: italic !important;
+        }
+
+        .content-display u {
+          text-decoration: underline !important;
+        }
+
+        .content-display s {
+          text-decoration: line-through !important;
+        }
+      `}</style>
     </div>
   );
 };

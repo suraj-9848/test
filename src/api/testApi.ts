@@ -1,150 +1,312 @@
-// Fetch test analytics (number of students who gave/did not give the test)
-export async function fetchTestAnalytics(
-  batchId: string,
-  courseId: string,
-  testId: string
-) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/analytics`,
-    { method: "GET", headers }
-  );
-  if (!res.ok) throw new Error("Failed to fetch test analytics");
-  return res.json();
-}
-import { getSession } from "next-auth/react";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
-
-let cachedBackendJwt: string = "";
-
-const getBackendJwt = async () => {
-  if (cachedBackendJwt) return cachedBackendJwt;
-  const session = await getSession();
-  if (!session) throw new Error("No session found - user not logged in");
-  const googleIdToken = (session as { id_token?: string })?.id_token;
-  if (!googleIdToken) throw new Error("No Google ID token found in session");
-  const loginRes = await fetch(`${API_BASE_URL}/api/auth/admin-login`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${googleIdToken}` },
-    credentials: "include",
-  });
-  if (!loginRes.ok) throw new Error("Failed to authenticate with backend");
-  const data = await loginRes.json();
-  cachedBackendJwt = data.token;
-  console.log("Backend JWT cached:", cachedBackendJwt);
-  return cachedBackendJwt;
-};
-
-const getAuthHeaders = async () => {
-  const jwt = await getBackendJwt();
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${jwt}`,
-  };
-};
-
-export async function fetchTests(batchId: string, courseId: string) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
-    { method: "GET", headers }
-  );
-  if (!res.ok) throw new Error("Failed to fetch tests");
-  return res.json();
+interface CreateTestRequest {
+  title: string;
+  description?: string;
+  maxMarks: number;
+  passingMarks: number;
+  durationInMinutes: number;
+  startDate: string;
+  endDate: string;
+  shuffleQuestions?: boolean;
+  showResults?: boolean;
+  showCorrectAnswers?: boolean;
+  maxAttempts?: number;
 }
 
-import type { CreateTestRequest, CreateQuestionRequest } from "./instructorApi";
-
+interface CreateQuestionRequest {
+  question_text: string;
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
+  marks: number;
+  options?: { text: string; correct: boolean }[];
+  expectedWordCount?: number;
+  codeLanguage?: string;
+}
 export async function createTest(
   batchId: string,
-  courseIds: string[] | string,
-  data: CreateTestRequest
+  courseIds: string[],
+  testData: CreateTestRequest,
 ) {
-  const headers = await getAuthHeaders();
-  // Always send courseIds as array for multi-course support
-  const payload = {
-    ...data,
-    courseIds: Array.isArray(courseIds) ? courseIds : [courseIds],
-  };
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/bulk/tests`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
+  try {
+    console.log(" Creating test with data:", {
+      batchId,
+      courseIds,
+      testData,
+    });
+
+    const requestBody = {
+      ...testData,
+      courseIds: courseIds,
+    };
+
+    console.log(" Request body:", JSON.stringify(requestBody, null, 2));
+
+    const response = await apiClient.post(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/bulk/tests`,
+      requestBody,
+    );
+
+    console.log(" Test created successfully:", response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
     }
-  );
-  if (!res.ok) throw new Error("Failed to create test");
-  return res.json();
+
+    const errorMessage =
+      error.response?.data?.message || error.message || "Failed to create test";
+    throw new Error(errorMessage);
+  }
 }
 
-export async function fetchTestById(
+export async function fetchTests(batchId: string, courseId: string) {
+  try {
+    console.log(" Fetching tests for:", { batchId, courseId });
+
+    const response = await apiClient.get(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests`,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
+    }
+
+    const errorMessage =
+      error.response?.data?.message || error.message || "Failed to fetch tests";
+    throw new Error(errorMessage);
+  }
+}
+
+export async function addQuestionToTest(
   batchId: string,
   courseId: string,
-  testId: string
+  testId: string,
+  questionData: CreateQuestionRequest,
 ) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}`,
-    { method: "GET", headers }
-  );
-  if (!res.ok) throw new Error("Failed to fetch test");
-  return res.json();
+  try {
+    console.log(" Adding question to test:", {
+      batchId,
+      courseId,
+      testId,
+      questionData,
+    });
+
+    const response = await apiClient.post(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions`,
+      questionData,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
+    }
+
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to add question to test";
+    throw new Error(errorMessage);
+  }
+}
+
+export async function updateQuestionInTest(
+  batchId: string,
+  courseId: string,
+  testId: string,
+  questionId: string,
+  questionData: Partial<CreateQuestionRequest>,
+) {
+  try {
+    console.log(" Updating question in test:", {
+      batchId,
+      courseId,
+      testId,
+      questionId,
+      questionData,
+    });
+
+    const response = await apiClient.put(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
+      questionData,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
+    }
+
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to update question in test";
+    throw new Error(errorMessage);
+  }
+}
+
+export async function deleteQuestionFromTest(
+  batchId: string,
+  courseId: string,
+  testId: string,
+  questionId: string,
+) {
+  try {
+    console.log(" Deleting question from test:", {
+      batchId,
+      courseId,
+      testId,
+      questionId,
+    });
+
+    const response = await apiClient.delete(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
+    }
+
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to delete question from test";
+    throw new Error(errorMessage);
+  }
+}
+
+export async function getQuestions(
+  batchId: string,
+  courseId: string,
+  testId: string,
+) {
+  try {
+    console.log(" Getting questions for test:", {
+      batchId,
+      courseId,
+      testId,
+    });
+
+    const response = await apiClient.get(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions`,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
+    }
+
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to fetch questions";
+    throw new Error(errorMessage);
+  }
+}
+
+export async function publishTest(
+  batchId: string,
+  courseId: string,
+  testId: string,
+) {
+  try {
+    console.log(" Publishing test:", {
+      batchId,
+      courseId,
+      testId,
+    });
+
+    const response = await apiClient.patch(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/publish`,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
+    }
+
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to publish test";
+    throw new Error(errorMessage);
+  }
+}
+export async function deleteTest(
+  batchId: string,
+  courseId: string,
+  testId: string,
+) {
+  try {
+    console.log(" Deleting test:", {
+      batchId,
+      courseId,
+      testId,
+    });
+
+    const response = await apiClient.delete(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}`,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
+    }
+
+    const errorMessage =
+      error.response?.data?.message || error.message || "Failed to delete test";
+    throw new Error(errorMessage);
+  }
 }
 
 export async function updateTest(
   batchId: string,
   courseId: string,
   testId: string,
-  data: CreateTestRequest
+  testData: Partial<CreateTestRequest>,
 ) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}`,
-    {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(data),
+  try {
+    console.log(" Updating test:", {
+      batchId,
+      courseId,
+      testId,
+      testData,
+    });
+
+    const response = await apiClient.put(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}`,
+      testData,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Authentication failed. Please logout and login again.");
     }
-  );
-  if (!res.ok) throw new Error("Failed to update test");
-  return res.json();
+
+    const errorMessage =
+      error.response?.data?.message || error.message || "Failed to update test";
+    throw new Error(errorMessage);
+  }
 }
 
-export async function deleteTest(
-  batchId: string,
-  courseId: string,
-  testId: string
-) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}`,
-    {
-      method: "DELETE",
-      headers,
-    }
-  );
-  if (!res.ok) throw new Error("Failed to delete test");
-  return res.json();
-}
+export async function checkAuthenticationStatus() {
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
 
-export async function publishTest(
-  batchId: string,
-  courseId: string,
-  testId: string
-) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/publish`,
-    {
-      method: "PATCH",
-      headers,
-    }
-  );
-  if (!res.ok) throw new Error("Failed to publish test");
-  return res.json();
+    console.log(" Authentication status:", response.data);
+    return response.data;
+  } catch (error: any) {
+    throw new Error("Authentication check failed");
+  }
 }
 
 interface EvaluateTestAnswer {
@@ -161,109 +323,40 @@ export async function evaluateTest(
   batchId: string,
   courseId: string,
   testId: string,
-  data: EvaluateTestRequest
+  data: EvaluateTestRequest,
 ) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluate`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify(data),
-    }
-  );
-  if (!res.ok) throw new Error("Failed to evaluate test");
-  return res.json();
+  try {
+    const response = await apiClient.post(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/evaluate`,
+      data,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to evaluate test";
+    throw new Error(errorMessage);
+  }
 }
 
 export async function getSubmissionCount(
   batchId: string,
   courseId: string,
-  testId: string
-) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/submission-count`,
-    { method: "GET", headers }
-  );
-  if (!res.ok) throw new Error("Failed to get submission count");
-  return res.json();
-}
-
-export async function addQuestionToTest(
-  batchId: string,
-  courseId: string,
   testId: string,
-  questionData: CreateQuestionRequest
 ) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/questions`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify(questionData),
-    }
-  );
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error("Failed to add question to test:", errorText); // log error response
-    throw new Error(errorText || "Failed to add question to test");
+  try {
+    const response = await apiClient.get(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/submission-count`,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to get submission count";
+    throw new Error(errorMessage);
   }
-  return res.json();
-}
-
-export async function updateQuestionInTest(
-  batchId: string,
-  courseId: string,
-  testId: string,
-  questionId: string,
-  questionData: Partial<CreateQuestionRequest>
-) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
-    {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(questionData),
-    }
-  );
-  if (!res.ok) throw new Error("Failed to update question in test");
-  return res.json();
-}
-
-export async function deleteQuestionFromTest(
-  batchId: string,
-  courseId: string,
-  testId: string,
-  questionId: string
-) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
-    {
-      method: "DELETE",
-      headers,
-    }
-  );
-  if (!res.ok) throw new Error("Failed to delete question from test");
-  return res.json();
-}
-
-export async function getQuestions(
-  batchId: string,
-  courseId: string,
-  testId: string
-) {
-  const headers = await getAuthHeaders();
-  const res = await fetch(
-    `${API_BASE_URL}/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/questions`,
-    {
-      method: "GET",
-      headers,
-    }
-  );
-  if (!res.ok) throw new Error("Failed to fetch questions");
-  return res.json();
 }
