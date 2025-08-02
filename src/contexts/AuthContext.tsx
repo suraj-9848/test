@@ -141,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         !isJWTExpired(authState.backendToken) &&
         authState.user
       ) {
-        console.log("✅ Using cached authentication state");
+        console.log(" Using cached authentication state");
         setAuthState((prev) => ({
           ...prev,
           isLoading: false,
@@ -155,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const backendToken = await validateAndRefreshToken();
 
       if (!backendToken) {
-        console.log("❌ Failed to get valid backend token");
+        console.log(" Failed to get valid backend token");
         setAuthState({
           user: null,
           isLoading: false,
@@ -170,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const userInfo = await getUserInfo();
 
       if (!userInfo) {
-        console.log("❌ Failed to extract user info from token");
+        console.log(" Failed to extract user info from token");
         setAuthState({
           user: null,
           isLoading: false,
@@ -181,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      console.log("✅ Authentication successful:", userInfo.userRole);
+      console.log(" Authentication successful:", userInfo.userRole);
       console.log(
         "🔍 [AUTH DEBUG] Full userInfo object:",
         JSON.stringify(userInfo, null, 2),

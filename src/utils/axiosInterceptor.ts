@@ -105,7 +105,7 @@ const attemptRefreshToken = async (): Promise<string | null> => {
     const refreshToken = getRefreshTokenFromCookies();
 
     if (!refreshToken) {
-      console.log("❌ No refresh token found in cookies");
+      console.log(" No refresh token found in cookies");
       return null;
     }
 
@@ -126,13 +126,13 @@ const attemptRefreshToken = async (): Promise<string | null> => {
       const data = await response.json();
 
       if (data.token) {
-        console.log("✅ Token refreshed successfully using refresh token");
+        console.log(" Token refreshed successfully using refresh token");
         storeAdminToken(data.token);
         return data.token;
       }
     } else {
       console.log(
-        "❌ Refresh token request failed:",
+        " Refresh token request failed:",
         response.status,
         response.statusText,
       );
@@ -142,7 +142,7 @@ const attemptRefreshToken = async (): Promise<string | null> => {
 
     return null;
   } catch (error) {
-    console.error("❌ Refresh token request error:", error);
+    console.error(" Refresh token request error:", error);
     return null;
   }
 };
@@ -158,17 +158,17 @@ const attemptGoogleTokenRefresh = async (): Promise<string | null> => {
     const newToken = await getBackendJwt();
 
     if (newToken && !isJWTExpired(newToken)) {
-      console.log("✅ Token refreshed successfully using Google OAuth");
+      console.log(" Token refreshed successfully using Google OAuth");
       storeAdminToken(newToken);
       return newToken;
     } else {
       console.log(
-        "❌ Google OAuth token refresh failed - token invalid or expired",
+        " Google OAuth token refresh failed - token invalid or expired",
       );
       return null;
     }
   } catch (error) {
-    console.error("❌ Google OAuth token refresh failed:", error);
+    console.error(" Google OAuth token refresh failed:", error);
     return null;
   }
 };
@@ -217,12 +217,12 @@ apiClient.interceptors.request.use(
         if (token) {
           storeAdminToken(token);
           console.log(
-            `${logPrefix} [${requestId}]: ✅ Got token via Google OAuth`,
+            `${logPrefix} [${requestId}]:  Got token via Google OAuth`,
           );
         }
       } catch (error) {
         console.log(
-          `${logPrefix} [${requestId}]: ❌ No valid token available for request:`,
+          `${logPrefix} [${requestId}]:  No valid token available for request:`,
           error,
         );
       }
@@ -242,11 +242,11 @@ apiClient.interceptors.request.use(
         if (refreshedToken) {
           token = refreshedToken;
           console.log(
-            `${logPrefix} [${requestId}]: ✅ Token refreshed successfully`,
+            `${logPrefix} [${requestId}]:  Token refreshed successfully`,
           );
         } else {
           console.log(
-            `${logPrefix} [${requestId}]: ❌ Token refresh failed, logging out`,
+            `${logPrefix} [${requestId}]:  Token refresh failed, logging out`,
           );
           // Both refresh methods failed, logout user
           await handleLogoutAndRedirect();
@@ -269,7 +269,7 @@ apiClient.interceptors.request.use(
       }
 
       console.log(
-        `${logPrefix} [${requestId}]: ✅ Request prepared with auth token`,
+        `${logPrefix} [${requestId}]:  Request prepared with auth token`,
       );
     } else {
       console.log(
@@ -280,7 +280,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    console.error("❌ Request interceptor error:", error);
+    console.error(" Request interceptor error:", error);
     return Promise.reject(error);
   },
 );
@@ -401,7 +401,7 @@ apiClient.interceptors.response.use(
           } else {
             // Both refresh methods failed, logout user
             console.log(
-              `${logPrefix} [${requestId}]: ❌ Both refresh methods failed, logging out`,
+              `${logPrefix} [${requestId}]:  Both refresh methods failed, logging out`,
             );
             await handleLogoutAndRedirect();
             return Promise.reject(

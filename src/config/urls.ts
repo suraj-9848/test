@@ -52,6 +52,16 @@ export const API_ENDPOINTS = {
     TESTS: "/api/instructor/tests",
     TEST_BY_ID: (id: string) => `/api/instructor/tests/${id}`,
 
+    // Questions Management
+    QUESTIONS: {
+      LIST: (testId: string) => `/api/instructor/tests/${testId}/questions`,
+      CREATE: (testId: string) => `/api/instructor/tests/${testId}/questions`,
+      UPDATE: (testId: string, questionId: string) =>
+        `/api/instructor/tests/${testId}/questions/${questionId}`,
+      DELETE: (testId: string, questionId: string) =>
+        `/api/instructor/tests/${testId}/questions/${questionId}`,
+    },
+
     // Students
     STUDENTS: "/api/instructor/students",
 

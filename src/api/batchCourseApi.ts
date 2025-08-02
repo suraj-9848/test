@@ -1,56 +1,48 @@
-import axios from "axios";
-import { getAuthHeaders } from "@/utils/auth";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
-const API_URL = `${baseUrl}/api/instructor/batches`;
-
-// Fetch courses for a batch
 export const getCoursesForBatch = async (batchId: string) => {
   try {
-    const headers = await getAuthHeaders();
-    const res = await axios.get(`${API_URL}/${batchId}/courses`, {
-      headers,
-    });
-    return res.data.courses || [];
-  } catch (err: unknown) {
-    console.error(`Error fetching courses for batch ${batchId}:`, err);
+    const response = await apiClient.get(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses`,
+    );
+    return response.data.courses || [];
+  } catch (error: any) {
+    console.error(`Error fetching courses for batch ${batchId}:`, error);
     const errorMessage =
-      err instanceof Error && "response" in err
-        ? (err as any).response?.data?.message
-        : `Failed to fetch courses for batch ${batchId}`;
+      error.response?.data?.message ||
+      error.message ||
+      `Failed to fetch courses for batch ${batchId}`;
     throw new Error(errorMessage);
   }
 };
 
-// Assign multiple courses to a single batch
 export const assignCoursesToBatch = async (
   batchId: string,
   courseIds: string[],
 ) => {
   try {
-    const headers = await getAuthHeaders();
     console.log(`Assigning ${courseIds.length} courses to batch ${batchId}`, {
       courseIds,
     });
 
-    const res = await axios.post(
-      `${API_URL}/${batchId}/courses`,
+    const response = await apiClient.post(
+      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses`,
       { courseIds },
-      { headers },
     );
 
-    console.log("Assign courses response:", res.data);
-    return res.data;
-  } catch (err: any) {
-    console.error(`Error assigning courses to batch ${batchId}:`, err);
-    throw new Error(
-      err.response?.data?.message ||
-        `Failed to assign courses to batch ${batchId}`,
-    );
+    console.log("Assign courses response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`Error assigning courses to batch ${batchId}:`, error);
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      `Failed to assign courses to batch ${batchId}`;
+    throw new Error(errorMessage);
   }
 };
 
-// Assign multiple courses to multiple batches
 export const assignCoursesToBatches = async (
   batchIds: string[],
   courseIds: string[],

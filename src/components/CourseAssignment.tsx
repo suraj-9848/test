@@ -880,8 +880,8 @@ const CourseAssignment: React.FC = () => {
             <p className="text-sm mt-1">
               {enrolledStudents.length} student(s) are already enrolled in the
               selected course(s). They appear grayed out with diagonal hash
-              patterns and cannot be selected for assignment. Use the ❌ button
-              to remove them from courses if needed.
+              patterns and cannot be selected for assignment. Use the button to
+              remove them from courses if needed.
             </p>
           </div>
         </div>

@@ -218,7 +218,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
           await fetchTestResults(batchId, courseId, testList[0].id);
         }
       } catch (err: any) {
-        console.error("❌ Error fetching tests:", err);
+        console.error(" Error fetching tests:", err);
         if (mountedRef.current) {
           setError("Failed to load tests for the selected course");
         }
@@ -257,7 +257,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
           await fetchTestsForCourse(batchId, courseList[0].id);
         }
       } catch (err: any) {
-        console.error("❌ Error fetching courses:", err);
+        console.error(" Error fetching courses:", err);
         if (mountedRef.current) {
           setError("Failed to load courses for the selected batch");
         }
@@ -291,7 +291,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
       const responseData = batchesResponse.data;
       const batchList = responseData.batches || [];
 
-      console.log("✅ TestAnalytics - Batches received:", batchList.length);
+      console.log(" TestAnalytics - Batches received:", batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
@@ -299,7 +299,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
         await fetchCoursesForBatch(batchList[0].id);
       }
     } catch (err: any) {
-      console.error("❌ TestAnalytics - Error fetching initial data:", err);
+      console.error(" TestAnalytics - Error fetching initial data:", err);
       if (mountedRef.current) {
         setError("Failed to load initial data");
       }
@@ -566,7 +566,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                     {stats.evaluatedSubmissions}
                   </p>
                 </div>
-                <div className="text-2xl">✅</div>
+                <div className="text-2xl"></div>
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

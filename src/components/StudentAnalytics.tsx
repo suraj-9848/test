@@ -195,7 +195,7 @@ const StudentAnalytics: React.FC = () => {
 
         if (mountedRef.current) {
           console.log(
-            "✅ Student analytics data processed:",
+            " Student analytics data processed:",
             transformedData.length,
             "students",
           );
@@ -203,10 +203,10 @@ const StudentAnalytics: React.FC = () => {
         }
       } catch (err: any) {
         console.error(
-          "❌ ANALYTICS ERROR: Error fetching student analytics:",
+          " ANALYTICS ERROR: Error fetching student analytics:",
           err,
         );
-        console.error("❌ ANALYTICS ERROR DETAILS:", {
+        console.error(" ANALYTICS ERROR DETAILS:", {
           message: err.message,
           status: err.response?.status,
           statusText: err.response?.statusText,
@@ -257,7 +257,7 @@ const StudentAnalytics: React.FC = () => {
           setSelectedCourse("");
         }
       } catch (err: any) {
-        console.error("❌ Error fetching courses:", err);
+        console.error(" Error fetching courses:", err);
         if (mountedRef.current) {
           setError(`Failed to load courses: ${err.message}`);
         }
@@ -274,7 +274,7 @@ const StudentAnalytics: React.FC = () => {
     console.log("🔍 Session:", !!session);
 
     if (!mountedRef.current) {
-      console.log("❌ Component not mounted, skipping");
+      console.log(" Component not mounted, skipping");
       console.log("🔧 Attempting to fix mountedRef...");
       mountedRef.current = true;
       console.log("🔧 mountedRef after fix:", mountedRef.current);
@@ -300,7 +300,7 @@ const StudentAnalytics: React.FC = () => {
       if (!mountedRef.current) return;
 
       const batchList = batchesResponse?.data?.batches || [];
-      console.log("✅ Batches received:", batchList.length);
+      console.log(" Batches received:", batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
@@ -317,8 +317,8 @@ const StudentAnalytics: React.FC = () => {
         console.log("⚠️ No batches available");
       }
     } catch (err: any) {
-      console.error("❌ Error fetching initial data:", err);
-      console.error("❌ Error details:", err.response?.data);
+      console.error(" Error fetching initial data:", err);
+      console.error(" Error details:", err.response?.data);
       if (mountedRef.current) {
         setError(`Failed to load initial data: ${err.message}`);
       }
@@ -370,9 +370,9 @@ const StudentAnalytics: React.FC = () => {
       console.log("📞 Calling fetchCoursesForBatch for batch:", batchId);
       try {
         await fetchCoursesForBatch(batchId);
-        console.log("✅ fetchCoursesForBatch completed successfully");
+        console.log(" fetchCoursesForBatch completed successfully");
       } catch (error) {
-        console.error("❌ fetchCoursesForBatch failed:", error);
+        console.error(" fetchCoursesForBatch failed:", error);
       }
     } else {
       console.log("⚠️ No batch ID provided, skipping course fetch");
@@ -411,11 +411,11 @@ const StudentAnalytics: React.FC = () => {
       try {
         await fetchStudentAnalytics(selectedBatch, courseId);
         console.log(
-          "✅ ANALYTICS COMPLETED: fetchStudentAnalytics completed successfully",
+          " ANALYTICS COMPLETED: fetchStudentAnalytics completed successfully",
         );
       } catch (error) {
         console.error(
-          "❌ ANALYTICS FAILED: fetchStudentAnalytics failed:",
+          " ANALYTICS FAILED: fetchStudentAnalytics failed:",
           error,
         );
       }

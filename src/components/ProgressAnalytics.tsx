@@ -122,7 +122,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
           await fetchProgressData(batchId, courseList[0].id);
         }
       } catch (err: any) {
-        console.error("❌ Error fetching courses:", err);
+        console.error(" Error fetching courses:", err);
         if (mountedRef.current) {
           setError("Failed to load courses for the selected batch");
         }
@@ -156,7 +156,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
       const responseData = batchesResponse.data;
       const batchList = responseData.batches || [];
 
-      console.log("✅ ProgressAnalytics - Batches received:", batchList.length);
+      console.log(" ProgressAnalytics - Batches received:", batchList.length);
       setBatches(batchList);
 
       if (batchList.length > 0) {
@@ -164,7 +164,7 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
         await fetchCoursesForBatch(batchList[0].id);
       }
     } catch (err: any) {
-      console.error("❌ ProgressAnalytics - Error fetching initial data:", err);
+      console.error(" ProgressAnalytics - Error fetching initial data:", err);
       if (mountedRef.current) {
         setError("Failed to load initial data");
       }

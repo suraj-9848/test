@@ -39,20 +39,31 @@ const CreateTest: React.FC<CreateTestProps> = ({ setActiveSection }) => {
     if (selectedBatch) {
       instructorApi
         .getCourses()
-        .then((response: { courses: Course[] }) => {
-          const courses = response.courses;
-          const batchIdStr = String(selectedBatch);
-          const filtered = courses.filter((course) => {
-            const batch_id = (course as { batch_id?: string }).batch_id;
-            const batchId = (course as { batchId?: string }).batchId;
-            const batch = (course as { batch?: { id?: string } }).batch;
-            return (
-              (typeof batch_id === "string" && batch_id === batchIdStr) ||
-              (typeof batchId === "string" && batchId === batchIdStr) ||
-              (batch && typeof batch.id === "string" && batch.id === batchIdStr)
-            );
-          });
-          setCourses(filtered.length === 0 ? courses : filtered);
+        .then((response: any) => {
+          // Fix: Handle the response structure correctly
+          const coursesArray = response.courses || response;
+
+          // Ensure we have an array before filtering
+          if (Array.isArray(coursesArray)) {
+            const batchIdStr = String(selectedBatch);
+            const filtered = coursesArray.filter((course: Course) => {
+              const batch_id = (course as { batch_id?: string }).batch_id;
+              const batchId = (course as { batchId?: string }).batchId;
+              const batch = (course as { batch?: { id?: string } }).batch;
+              return (
+                (typeof batch_id === "string" && batch_id === batchIdStr) ||
+                (typeof batchId === "string" && batchId === batchIdStr) ||
+                (batch &&
+                  typeof batch.id === "string" &&
+                  batch.id === batchIdStr)
+              );
+            });
+            setCourses(filtered.length === 0 ? coursesArray : filtered);
+          } else {
+            console.error("Courses response is not an array:", coursesArray);
+            setCourses([]);
+            setError("Invalid courses data format");
+          }
         })
         .catch((err: unknown) => {
           if (err instanceof Error) setError(err.message);

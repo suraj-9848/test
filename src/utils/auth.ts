@@ -180,7 +180,7 @@ export const getBackendJwt = async (): Promise<string> => {
     }
 
     console.log(
-      "✅ [AUTH UTILS] New backend JWT obtained and cached, length:",
+      " [AUTH UTILS] New backend JWT obtained and cached, length:",
       cachedBackendJwt.length,
     );
 
@@ -327,7 +327,7 @@ export const validateOAuthUser = async (googleToken: string) => {
     if (cachedBackendJwt && !isJWTExpired(cachedBackendJwt)) {
       const userInfo = getUserInfoFromJWT(cachedBackendJwt);
       if (userInfo) {
-        console.log("✅ Using cached JWT for validation");
+        console.log(" Using cached JWT for validation");
         return {
           valid: true,
           user: userInfo,

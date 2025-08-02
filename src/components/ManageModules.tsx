@@ -228,7 +228,7 @@ const ManageModules: React.FC = () => {
   }, [selectedBatchId, selectedCourseId, backendJwt, fetchModules]);
 
   const sortedModules = useMemo(() => {
-    return [...modules].sort((a, b) => a.order - b.order);
+    return [...modules].sort((a: any, b: any) => a.order - b.order);
   }, [modules]);
 
   const resetForm = () => {
@@ -366,7 +366,7 @@ const ManageModules: React.FC = () => {
     }
   };
 
-  const handleEdit = (module: Module) => {
+  const handleEdit = (module: any) => {
     setEditingModule(module);
     setModuleForm({
       title: module.title,
@@ -432,7 +432,7 @@ const ManageModules: React.FC = () => {
     return <FaFileExport className="w-5 h-5 text-slate-400" />;
   };
 
-  const getStatusBadge = (isLocked: boolean) => {
+  const getStatusBadge = (isLocked: any) => {
     return isLocked ? (
       <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-lg">
         <FaEyeSlash className="w-3 h-3 inline mr-1" />
@@ -566,7 +566,7 @@ const ManageModules: React.FC = () => {
             </div>
           ) : (
             <div className="divide-y divide-slate-200/50">
-              {sortedModules.map((module) => (
+              {sortedModules.map((module: any) => (
                 <div key={module.id} className="transition-colors">
                   {/* Module Header */}
                   <div className="p-6 hover:bg-slate-50/50">
@@ -651,24 +651,64 @@ const ManageModules: React.FC = () => {
                           {module.days && module.days.length > 0 ? (
                             <div className="space-y-2 max-h-40 overflow-y-auto">
                               {module.days
-                                .sort((a, b) => a.dayNumber - b.dayNumber)
-                                .map((day) => (
-                                  <div
-                                    key={day.id}
-                                    className="p-2 bg-slate-50 rounded text-sm"
-                                  >
-                                    <div className="font-medium">
-                                      Day {day.dayNumber}
-                                    </div>
+                                .sort(
+                                  (
+                                    a: { dayNumber: number },
+                                    b: { dayNumber: number },
+                                  ) => a.dayNumber - b.dayNumber,
+                                )
+                                .map(
+                                  (day: {
+                                    id: React.Key | null | undefined;
+                                    dayNumber:
+                                      | string
+                                      | number
+                                      | bigint
+                                      | boolean
+                                      | React.ReactElement<
+                                          unknown,
+                                          | string
+                                          | React.JSXElementConstructor<any>
+                                        >
+                                      | Iterable<React.ReactNode>
+                                      | React.ReactPortal
+                                      | Promise<
+                                          | string
+                                          | number
+                                          | bigint
+                                          | boolean
+                                          | React.ReactPortal
+                                          | React.ReactElement<
+                                              unknown,
+                                              | string
+                                              | React.JSXElementConstructor<any>
+                                            >
+                                          | Iterable<React.ReactNode>
+                                          | null
+                                          | undefined
+                                        >
+                                      | null
+                                      | undefined;
+                                    content: string;
+                                  }) => (
                                     <div
-                                      className="text-slate-600 line-clamp-2"
-                                      dangerouslySetInnerHTML={{
-                                        __html:
-                                          day.content.substring(0, 100) + "...",
-                                      }}
-                                    />
-                                  </div>
-                                ))}
+                                      key={day.id}
+                                      className="p-2 bg-slate-50 rounded text-sm"
+                                    >
+                                      <div className="font-medium">
+                                        Day {day.dayNumber}
+                                      </div>
+                                      <div
+                                        className="text-slate-600 line-clamp-2"
+                                        dangerouslySetInnerHTML={{
+                                          __html:
+                                            day.content.substring(0, 100) +
+                                            "...",
+                                        }}
+                                      />
+                                    </div>
+                                  ),
+                                )}
                             </div>
                           ) : (
                             <p className="text-slate-500 text-sm">
