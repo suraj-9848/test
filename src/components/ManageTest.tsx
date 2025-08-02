@@ -17,24 +17,60 @@ import {
   Test,
   Batch,
   Course,
-  Question,
 } from "../api/instructorApi";
+
+// 🔥 FIXED: Define Question interface locally to avoid conflicts
+interface Question {
+  id: string;
+  question_text: string;
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
+  marks: number;
+  expectedWordCount?: number;
+  codeLanguage?: string;
+  options?: QuestionOption[];
+}
+
+interface QuestionOption {
+  id: string;
+  text: string;
+  correct: boolean;
+}
+
+// 🔥 FIXED: Define CreateQuestionRequest locally
+interface CreateQuestionRequestLocal {
+  question_text: string;
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
+  marks: number;
+  options?: { text: string; correct: boolean }[];
+  expectedWordCount?: number;
+  codeLanguage?: string;
+}
+
+interface UpdateTestPayload {
+  title: string;
+  description: string;
+  maxMarks: number;
+  passingMarks: number;
+  durationInMinutes: number;
+  startDate: string;
+  endDate: string;
+  shuffleQuestions: boolean;
+  showResults: boolean;
+  showCorrectAnswers: boolean;
+}
+
+interface QuestionFormData {
+  question_text: string;
+  type: "MCQ" | "DESCRIPTIVE" | "CODE";
+  marks: number;
+  options: { text: string; correct: boolean }[];
+  expectedWordCount?: number;
+  codeLanguage?: string;
+}
 
 const ManageTest: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  type UpdateTestPayload = {
-    title: string;
-    description: string;
-    maxMarks: number;
-    passingMarks: number;
-    durationInMinutes: number;
-    startDate: string;
-    endDate: string;
-    shuffleQuestions: boolean;
-    showResults: boolean;
-    showCorrectAnswers: boolean;
-  };
   const [selectedBatch, setSelectedBatch] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [tests, setTests] = useState<Test[]>([]);
@@ -46,11 +82,9 @@ const ManageTest: React.FC = () => {
   const [editDuration, setEditDuration] = useState<number>(1);
   const [editStartDate, setEditStartDate] = useState<string>("");
   const [editEndDate, setEditEndDate] = useState<string>("");
-  const [editShuffleQuestions, setEditShuffleQuestions] =
-    useState<boolean>(false);
+  const [editShuffleQuestions, setEditShuffleQuestions] = useState<boolean>(false);
   const [editShowResults, setEditShowResults] = useState<boolean>(false);
-  const [editShowCorrectAnswers, setEditShowCorrectAnswers] =
-    useState<boolean>(false);
+  const [editShowCorrectAnswers, setEditShowCorrectAnswers] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -58,18 +92,15 @@ const ManageTest: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionEditTestId, setQuestionEditTestId] = useState<string>("");
   
-  // 🔥 FIXED: Changed type from string to union type
-  const [questionForm, setQuestionForm] = useState<{
-    question_text: string;
-    type: "MCQ" | "DESCRIPTIVE" | "CODE"; // ✅ FIXED TYPE
-    marks: number;
-    options: { text: string; correct: boolean }[];
-  }>({
+  const [questionForm, setQuestionForm] = useState<QuestionFormData>({
     question_text: "",
     type: "MCQ",
     marks: 1,
     options: [{ text: "", correct: false }],
+    expectedWordCount: undefined,
+    codeLanguage: undefined,
   });
+  
   const [editingQuestionId, setEditingQuestionId] = useState<string>("");
   const editorRef = useRef<RichTextEditorHandle>(null);
 
@@ -92,7 +123,6 @@ const ManageTest: React.FC = () => {
       instructorApi
         .getCourses()
         .then((res) => {
-          // FIXED: Handle the API response structure correctly
           const coursesArray = res?.courses || res || [];
           console.log("Courses response:", res);
           console.log("Courses array:", coursesArray);
@@ -106,25 +136,14 @@ const ManageTest: React.FC = () => {
 
           const batchIdStr = String(selectedBatch);
           const filtered = coursesArray.filter((course: any) => {
-            // Check various possible batch ID formats
             if (String(course.batch_id) === batchIdStr) return true;
-            if (course.batchId && String(course.batchId) === batchIdStr)
-              return true;
-            if (
-              course.batch &&
-              course.batch.id &&
-              String(course.batch.id) === batchIdStr
-            )
-              return true;
+            if (course.batchId && String(course.batchId) === batchIdStr) return true;
+            if (course.batch && course.batch.id && String(course.batch.id) === batchIdStr) return true;
             return false;
           });
 
           const sortedCourses = filtered.length === 0 ? coursesArray : filtered;
-          setCourses(
-            sortedCourses.sort((a: any, b: any) =>
-              a.title.localeCompare(b.title),
-            ),
-          );
+          setCourses(sortedCourses.sort((a: any, b: any) => a.title.localeCompare(b.title)));
           setLoading(false);
         })
         .catch((err) => {
@@ -143,14 +162,8 @@ const ManageTest: React.FC = () => {
       setLoading(true);
       fetchTests(selectedBatch, selectedCourse)
         .then((res) => {
-          const safeTests = Array.isArray(res?.data?.tests)
-            ? res.data.tests
-            : [];
-          setTests(
-            safeTests.sort((a: Test, b: Test) =>
-              a.title.localeCompare(b.title),
-            ),
-          );
+          const safeTests = Array.isArray(res?.data?.tests) ? res.data.tests : [];
+          setTests(safeTests.sort((a: Test, b: Test) => a.title.localeCompare(b.title)));
           setLoading(false);
         })
         .catch((err) => {
@@ -162,7 +175,6 @@ const ManageTest: React.FC = () => {
     }
   }, [selectedBatch, selectedCourse]);
 
-  // Helper to convert UTC ISO string to local datetime-local string
   function utcToLocalDatetimeInput(isoString: string | undefined): string {
     if (!isoString) return "";
     const date = new Date(isoString);
@@ -175,12 +187,144 @@ const ManageTest: React.FC = () => {
     return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   }
 
-  // Helper to convert local datetime-local string to UTC ISO string
   function localDatetimeInputToUTC(localString: string): string {
     if (!localString) return "";
     const localDate = new Date(localString);
     return localDate.toISOString();
   }
+
+  // 🔥 FIXED: handleSaveQuestion with proper typing
+  const handleSaveQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    
+    const html = editorRef.current?.getContent() || "";
+    console.log("🔥 FIXED - Editor HTML content:", {
+      htmlLength: html.length,
+      hasHtmlTags: html.includes('<'),
+      htmlPreview: html.substring(0, 100),
+    });
+    
+    if (!html || !html.replace(/<[^>]+>/g, "").trim()) {
+      setLoading(false);
+      setError("Question text cannot be empty.");
+      return;
+    }
+    
+    try {
+      // 🔥 FIXED: Create payload with explicit typing
+      const payload: CreateQuestionRequestLocal = {
+        question_text: html,
+        type: questionForm.type,
+        marks: questionForm.marks,
+      };
+
+      // Add conditional fields based on question type
+      if (questionForm.type === "MCQ") {
+        payload.options = questionForm.options;
+      }
+      
+      if (questionForm.type === "DESCRIPTIVE" && questionForm.expectedWordCount) {
+        payload.expectedWordCount = questionForm.expectedWordCount;
+      }
+      
+      if (questionForm.type === "CODE") {
+        if (questionForm.expectedWordCount) {
+          payload.expectedWordCount = questionForm.expectedWordCount;
+        }
+        if (questionForm.codeLanguage) {
+          payload.codeLanguage = questionForm.codeLanguage;
+        }
+      }
+      
+      console.log("🔥 FIXED - Sending payload:", {
+        question_text_length: payload.question_text.length,
+        type: payload.type,
+        has_html_tags: payload.question_text.includes('<'),
+        payload_preview: payload.question_text.substring(0, 100),
+        has_options: !!payload.options,
+        options_count: payload.options?.length || 0,
+      });
+
+      if (editingQuestionId) {
+        await updateQuestionInTest(
+          selectedBatch,
+          selectedCourse,
+          questionEditTestId,
+          editingQuestionId,
+          payload as any, // Type assertion to handle API compatibility
+        );
+        setSuccess("Question updated successfully!");
+      } else {
+        await addQuestionToTest(
+          selectedBatch,
+          selectedCourse,
+          questionEditTestId,
+          payload as any, // Type assertion to handle API compatibility
+        );
+        setSuccess("Question added successfully!");
+      }
+      
+      const res = await getQuestions(selectedBatch, selectedCourse, questionEditTestId);
+      setQuestions(Array.isArray(res.data?.questions) ? res.data.questions : []);
+      
+      // Reset form
+      setQuestionForm({
+        question_text: "",
+        type: "MCQ",
+        marks: 1,
+        options: [{ text: "", correct: false }],
+        expectedWordCount: undefined,
+        codeLanguage: undefined,
+      });
+      setEditingQuestionId("");
+      editorRef.current?.setContent("");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to save question");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearQuestionForm = () => {
+    setQuestionForm({
+      question_text: "",
+      type: "MCQ",
+      marks: 1,
+      options: [{ text: "", correct: false }],
+      expectedWordCount: undefined,
+      codeLanguage: undefined,
+    });
+    setEditingQuestionId("");
+    editorRef.current?.setContent("");
+  };
+
+  const handleEditQuestion = (q: Question) => {
+    console.log("🔥 FIXED - Loading question for edit:", {
+      questionId: q.id,
+      question_text_length: q.question_text?.length,
+      has_html_tags: q.question_text?.includes('<'),
+      question_text_preview: q.question_text?.substring(0, 100),
+      type: q.type,
+    });
+
+    setQuestionForm({
+      question_text: q.question_text,
+      type: q.type,
+      marks: q.marks,
+      options: q.options ? q.options.map((o) => ({ text: o.text, correct: o.correct })) : [{ text: "", correct: false }],
+      expectedWordCount: q.expectedWordCount,
+      codeLanguage: q.codeLanguage,
+    });
+    setEditingQuestionId(q.id);
+    editorRef.current?.setContent(q.question_text || "");
+  };
 
   const handleSelectTest = (testId: string) => {
     const test = tests.find((t) => t.id === testId);
@@ -188,15 +332,9 @@ const ManageTest: React.FC = () => {
     setEditTitle(test?.title || "");
     setEditDescription(test?.description || "");
     setEditMaxMarks(typeof test?.maxMarks === "number" ? test.maxMarks : 1);
-    setEditPassingMarks(
-      typeof test?.passingMarks === "number" ? test.passingMarks : 0,
-    );
-    setEditDuration(
-      typeof test?.durationInMinutes === "number" ? test.durationInMinutes : 1,
-    );
-    setEditStartDate(
-      test?.startDate ? utcToLocalDatetimeInput(test.startDate) : "",
-    );
+    setEditPassingMarks(typeof test?.passingMarks === "number" ? test.passingMarks : 0);
+    setEditDuration(typeof test?.durationInMinutes === "number" ? test.durationInMinutes : 1);
+    setEditStartDate(test?.startDate ? utcToLocalDatetimeInput(test.startDate) : "");
     setEditEndDate(test?.endDate ? utcToLocalDatetimeInput(test.endDate) : "");
     setEditShuffleQuestions(!!test?.shuffleQuestions);
     setEditShowResults(!!test?.showResults);
@@ -217,9 +355,7 @@ const ManageTest: React.FC = () => {
       let payload: UpdateTestPayload;
       if (isPublished) {
         if (!editStartDate || !editEndDate) {
-          throw new Error(
-            "Both start and end date/time are required for published tests.",
-          );
+          throw new Error("Both start and end date/time are required for published tests.");
         }
         const startDateISO = localDatetimeInputToUTC(editStartDate) || "";
         const endDateISO = localDatetimeInputToUTC(editEndDate) || "";
@@ -252,9 +388,7 @@ const ManageTest: React.FC = () => {
       await updateTest(selectedBatch, selectedCourse, selectedTestId, payload);
       setSuccess("Test updated successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
-      setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
-      );
+      setTests(Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []);
       setSelectedTestId("");
       setEditTitle("");
       setEditDescription("");
@@ -286,9 +420,7 @@ const ManageTest: React.FC = () => {
       setSuccess("Test deleted successfully!");
       setSelectedTestId("");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
-      setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
-      );
+      setTests(Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -306,9 +438,7 @@ const ManageTest: React.FC = () => {
     setSuccess("");
     try {
       const res = await getQuestions(selectedBatch, selectedCourse, testId);
-      const questionsArr = Array.isArray(res.data?.questions)
-        ? res.data.questions
-        : [];
+      const questionsArr = Array.isArray(res.data?.questions) ? res.data.questions : [];
       setQuestions(questionsArr);
       setQuestionEditTestId(testId);
       setShowQuestionManager(true);
@@ -323,140 +453,13 @@ const ManageTest: React.FC = () => {
     }
   };
 
-  // 🔥 FIXED: Complete handleSaveQuestion with proper HTML handling
-  const handleSaveQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    
-    // 🔥 FIXED: Get HTML content properly from editor
-    const html = editorRef.current?.getContent() || "";
-    console.log("🔥 FIXED - Editor HTML content:", {
-      htmlLength: html.length,
-      hasHtmlTags: html.includes('<'),
-      htmlPreview: html.substring(0, 100),
-    });
-    
-    if (!html || !html.replace(/<[^>]+>/g, "").trim()) {
-      setLoading(false);
-      setError("Question text cannot be empty.");
-      return;
-    }
-    
-    try {
-      // 🔥 FIXED: Ensure proper type casting and HTML content
-      const payload = {
-        question_text: html, // 🔥 FIXED: Pass HTML content from editor
-        type: questionForm.type as "MCQ" | "DESCRIPTIVE" | "CODE", // 🔥 FIXED: Type casting
-        marks: questionForm.marks,
-        options: questionForm.type === "MCQ" ? questionForm.options : undefined,
-      };
-      
-      console.log("🔥 FIXED - Sending payload:", {
-        question_text_length: payload.question_text.length,
-        type: payload.type,
-        has_html_tags: payload.question_text.includes('<'),
-        payload_preview: payload.question_text.substring(0, 100),
-      });
-
-      if (editingQuestionId) {
-        await updateQuestionInTest(
-          selectedBatch,
-          selectedCourse,
-          questionEditTestId,
-          editingQuestionId,
-          payload,
-        );
-        setSuccess("Question updated successfully!");
-      } else {
-        await addQuestionToTest(
-          selectedBatch,
-          selectedCourse,
-          questionEditTestId,
-          payload,
-        );
-        setSuccess("Question added successfully!");
-      }
-      const res = await getQuestions(
-        selectedBatch,
-        selectedCourse,
-        questionEditTestId,
-      );
-      setQuestions(
-        Array.isArray(res.data?.questions) ? res.data.questions : [],
-      );
-      setQuestionForm({
-        question_text: "",
-        type: "MCQ",
-        marks: 1,
-        options: [{ text: "", correct: false }],
-      });
-      setEditingQuestionId("");
-      editorRef.current?.setContent(""); // 🔥 FIXED: Clear editor content
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to save question");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const clearQuestionForm = () => {
-    setQuestionForm({
-      question_text: "",
-      type: "MCQ",
-      marks: 1,
-      options: [{ text: "", correct: false }],
-    });
-    setEditingQuestionId("");
-    editorRef.current?.setContent("");
-  };
-
-  // 🔥 FIXED: Handle question editing with proper HTML content loading
-  const handleEditQuestion = (q: Question) => {
-    console.log("🔥 FIXED - Loading question for edit:", {
-      questionId: q.id,
-      question_text_length: q.question_text?.length,
-      has_html_tags: q.question_text?.includes('<'),
-      question_text_preview: q.question_text?.substring(0, 100),
-    });
-
-    setQuestionForm({
-      question_text: q.question_text,
-      type: q.type,
-      marks: q.marks,
-      options: q.options
-        ? q.options.map((o) => ({ text: o.text, correct: o.correct }))
-        : [{ text: "", correct: false }],
-    });
-    setEditingQuestionId(q.id);
-    
-    // 🔥 FIXED: Load HTML content into editor properly
-    editorRef.current?.setContent(q.question_text || "");
-  };
-
   const handleDeleteQuestion = async (qid: string) => {
     setLoading(true);
     setError("");
     try {
-      await deleteQuestionFromTest(
-        selectedBatch,
-        selectedCourse,
-        questionEditTestId,
-        qid,
-      );
-      const res = await getQuestions(
-        selectedBatch,
-        selectedCourse,
-        questionEditTestId,
-      );
-      setQuestions(
-        Array.isArray(res.data?.questions) ? res.data.questions : [],
-      );
+      await deleteQuestionFromTest(selectedBatch, selectedCourse, questionEditTestId, qid);
+      const res = await getQuestions(selectedBatch, selectedCourse, questionEditTestId);
+      setQuestions(Array.isArray(res.data?.questions) ? res.data.questions : []);
       setSuccess("Question deleted successfully!");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -469,11 +472,7 @@ const ManageTest: React.FC = () => {
     }
   };
 
-  const handleOptionChange = (
-    idx: number,
-    field: "text" | "correct",
-    value: string | boolean,
-  ) => {
+  const handleOptionChange = (idx: number, field: "text" | "correct", value: string | boolean) => {
     setQuestionForm((prev) => {
       const options = [...prev.options];
       options[idx] = { ...options[idx], [field]: value };
@@ -501,9 +500,7 @@ const ManageTest: React.FC = () => {
     setSuccess("");
     try {
       const res = await getQuestions(selectedBatch, selectedCourse, testId);
-      const testQuestions = Array.isArray(res.data?.questions)
-        ? res.data.questions
-        : [];
+      const testQuestions = Array.isArray(res.data?.questions) ? res.data.questions : [];
       console.log("[DEBUG] testQuestions before publish:", testQuestions);
       if (testQuestions.length === 0) {
         setError("Cannot publish: Test must have at least one question.");
@@ -512,15 +509,12 @@ const ManageTest: React.FC = () => {
       }
       const mcqWithNoCorrect = testQuestions.filter(
         (q: { type: string; options?: { correct: boolean }[] }) =>
-          q.type === "MCQ" &&
-          (!q.options || q.options.filter((o) => o.correct).length === 0),
+          q.type === "MCQ" && (!q.options || q.options.filter((o) => o.correct).length === 0),
       );
       if (mcqWithNoCorrect.length > 0) {
         setError(
           "Cannot publish: All MCQ questions must have at least one correct answer. Debug: Offending question(s): " +
-            mcqWithNoCorrect
-              .map((q: Question) => q.question_text || q.id)
-              .join(", "),
+            mcqWithNoCorrect.map((q: Question) => q.question_text || q.id).join(", "),
         );
         setLoading(false);
         return;
@@ -528,9 +522,7 @@ const ManageTest: React.FC = () => {
       await publishTest(selectedBatch, selectedCourse, testId);
       setSuccess("Test published successfully!");
       const updatedTests = await fetchTests(selectedBatch, selectedCourse);
-      setTests(
-        Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : [],
-      );
+      setTests(Array.isArray(updatedTests?.data?.tests) ? updatedTests.data.tests : []);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -592,6 +584,7 @@ const ManageTest: React.FC = () => {
         </div>
       )}
 
+      {/* Test editing form */}
       {selectedTestId && (() => {
           const selectedTest = tests.find((t) => t.id === selectedTestId);
           if (!selectedTest) return null;
@@ -603,9 +596,7 @@ const ManageTest: React.FC = () => {
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Title
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
                   <input
                     type="text"
                     value={editTitle}
@@ -615,9 +606,7 @@ const ManageTest: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <input
                     type="text"
                     value={editDescription}
@@ -627,9 +616,7 @@ const ManageTest: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max Marks
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Marks</label>
                   <input
                     type="number"
                     value={editMaxMarks}
@@ -639,9 +626,7 @@ const ManageTest: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Passing Marks
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Passing Marks</label>
                   <input
                     type="number"
                     value={editPassingMarks}
@@ -651,9 +636,7 @@ const ManageTest: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Duration (minutes)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
                   <input
                     type="number"
                     value={editDuration}
@@ -663,9 +646,7 @@ const ManageTest: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date & Time
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date & Time</label>
                   <input
                     type="datetime-local"
                     value={editStartDate}
@@ -674,9 +655,7 @@ const ManageTest: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date & Time
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date & Time</label>
                   <input
                     type="datetime-local"
                     value={editEndDate}
@@ -744,10 +723,7 @@ const ManageTest: React.FC = () => {
                 className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition"
               >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                  <div
-                    className="flex-1"
-                    onClick={() => handleSelectTest(test.id)}
-                  >
+                  <div className="flex-1" onClick={() => handleSelectTest(test.id)}>
                     <div className="flex items-center gap-3 mb-2">
                       <span
                         className={`px-3 py-1 rounded text-xs font-medium ${
@@ -762,19 +738,11 @@ const ManageTest: React.FC = () => {
                     </div>
                     <p className="text-gray-600">{test.description}</p>
                     <p className="text-sm text-gray-500">
-                      Max Marks: {test.maxMarks} | Passing: {test.passingMarks}{" "}
-                      | Duration: {test.durationInMinutes} min
+                      Max Marks: {test.maxMarks} | Passing: {test.passingMarks} | Duration: {test.durationInMinutes} min
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Start:{" "}
-                      {test.startDate
-                        ? new Date(test.startDate).toLocaleString()
-                        : "-"}{" "}
-                      <br />
-                      End:{" "}
-                      {test.endDate
-                        ? new Date(test.endDate).toLocaleString()
-                        : "-"}
+                      Start: {test.startDate ? new Date(test.startDate).toLocaleString() : "-"} <br />
+                      End: {test.endDate ? new Date(test.endDate).toLocaleString() : "-"}
                     </p>
                   </div>
                   <div className="flex gap-3 mt-4 md:mt-0">
@@ -832,11 +800,7 @@ const ManageTest: React.FC = () => {
               <li className="text-gray-500 text-center">No questions yet.</li>
             ) : (
               questions.map((q) => (
-                <li
-                  key={q.id}
-                  className="flex justify-between items-center p-4 bg-gray-50 rounded-lg"
-                >
-                  {/* 🔥 FIXED: Proper HTML content rendering with styles */}
+                <li key={q.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                   <div className="content-display flex-1">
                     <div
                       dangerouslySetInnerHTML={{ __html: q.question_text }}
@@ -856,16 +820,10 @@ const ManageTest: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex gap-3 ml-4">
-                    <button
-                      className="text-blue-600 hover:underline"
-                      onClick={() => handleEditQuestion(q)}
-                    >
+                    <button className="text-blue-600 hover:underline" onClick={() => handleEditQuestion(q)}>
                       Edit
                     </button>
-                    <button
-                      className="text-red-600 hover:underline"
-                      onClick={() => handleDeleteQuestion(q.id)}
-                    >
+                    <button className="text-red-600 hover:underline" onClick={() => handleDeleteQuestion(q.id)}>
                       Delete
                     </button>
                   </div>
@@ -873,18 +831,14 @@ const ManageTest: React.FC = () => {
               ))
             )}
           </ul>
-          <form
-            onSubmit={handleSaveQuestion}
-            className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm"
-          >
+          
+          {/* Question form */}
+          <form onSubmit={handleSaveQuestion} className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
             <h4 className="text-lg font-semibold mb-4 border-b pb-2">
               {editingQuestionId ? "Edit" : "Add"} Question
             </h4>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Question Text
-              </label>
-              {/* 🔥 FIXED: Proper RichTextEditor integration */}
+              <label className="block text-sm font-medium text-gray-700 mb-2">Question Text</label>
               <RichTextEditor
                 ref={editorRef}
                 initialContent={questionForm.question_text}
@@ -900,17 +854,9 @@ const ManageTest: React.FC = () => {
                 minHeight="150px"
               />
             </div>
-            <input
-              type="hidden"
-              value={questionForm.question_text}
-              required
-              readOnly
-            />
-            <input type="hidden" name="type" value="MCQ" />
+            <input type="hidden" value={questionForm.question_text} required readOnly />
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Question Type
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Question Type</label>
               <select
                 value={questionForm.type}
                 onChange={(e) =>
@@ -927,9 +873,7 @@ const ManageTest: React.FC = () => {
               </select>
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Marks
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Marks</label>
               <input
                 type="number"
                 value={questionForm.marks}
@@ -944,19 +888,63 @@ const ManageTest: React.FC = () => {
                 required
               />
             </div>
+
+            {/* Conditional fields for different question types */}
+            {(questionForm.type === "DESCRIPTIVE" || questionForm.type === "CODE") && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Expected Word Count (Optional)</label>
+                <input
+                  type="number"
+                  value={questionForm.expectedWordCount || ""}
+                  onChange={(e) =>
+                    setQuestionForm((prev) => ({
+                      ...prev,
+                      expectedWordCount: e.target.value ? parseInt(e.target.value) : undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  min="1"
+                  placeholder="e.g., 500"
+                />
+              </div>
+            )}
+
+            {questionForm.type === "CODE" && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Programming Language (Optional)</label>
+                <select
+                  value={questionForm.codeLanguage || ""}
+                  onChange={(e) =>
+                    setQuestionForm((prev) => ({
+                      ...prev,
+                      codeLanguage: e.target.value || undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Language</option>
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                  <option value="c">C</option>
+                  <option value="html">HTML</option>
+                  <option value="css">CSS</option>
+                  <option value="sql">SQL</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            )}
+
             {questionForm.type === "MCQ" && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Options
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Options</label>
                 {questionForm.options.map((opt, idx) => (
                   <div key={idx} className="flex items-center gap-3 mb-2">
                     <input
                       type="text"
                       value={opt.text}
-                      onChange={(e) =>
-                        handleOptionChange(idx, "text", e.target.value)
-                      }
+                      onChange={(e) => handleOptionChange(idx, "text", e.target.value)}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                       placeholder={`Option ${String.fromCharCode(65 + idx)}`}
                       required
@@ -965,9 +953,7 @@ const ManageTest: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={opt.correct}
-                        onChange={(e) =>
-                          handleOptionChange(idx, "correct", e.target.checked)
-                        }
+                        onChange={(e) => handleOptionChange(idx, "correct", e.target.checked)}
                         className="mr-2"
                       />
                       Correct
@@ -1018,20 +1004,16 @@ const ManageTest: React.FC = () => {
           </form>
         </div>
       )}
+      
       {error && (
-        <div className="mt-6 p-4 bg-red-100 text-red-800 rounded-lg text-center">
-          {error}
-        </div>
+        <div className="mt-6 p-4 bg-red-100 text-red-800 rounded-lg text-center">{error}</div>
       )}
       {success && (
-        <div className="mt-6 p-4 bg-green-100 text-green-800 rounded-lg text-center">
-          {success}
-        </div>
+        <div className="mt-6 p-4 bg-green-100 text-green-800 rounded-lg text-center">{success}</div>
       )}
 
-      {/* 🔥 FIXED: Global styles for content rendering */}
+      {/* Global styles for content rendering */}
       <style jsx global>{`
-        /* Content Display Styles for Questions */
         .content-display h1 {
           font-size: 1.875rem !important;
           font-weight: 700 !important;
