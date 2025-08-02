@@ -55,9 +55,23 @@ export interface CreateCourseData {
   logo?: string;
   start_date: string;
   end_date: string;
-  batch_ids: string[]; // Changed from batch_id to batch_ids
+  batch_ids: string[];
   is_public: boolean;
   instructor_name: string;
+  overview?: string;
+  trainer_name?: string;
+  trainer_bio?: string;
+  trainer_avatar?: string;
+  trainer_linkedin?: string;
+  price?: number;
+  duration?: string;
+  image?: string;
+  features?: string[];
+  curriculum?: string[];
+  prerequisites?: string[];
+  tags?: string[];
+  mode?: "online" | "offline" | "hybrid";
+  what_you_will_learn?: string[];
   modules?: {
     title: string;
     order: number;
