@@ -202,7 +202,7 @@ export const API_ENDPOINTS = {
     // Dashboard
     DASHBOARD: {
       OVERVIEW: "/api/instructor/dashboard/overview",
-      STATS: "/api/instructor/dashboard/stats",
+      STATS: "/api/instructor/dashboard/analytics",
     },
 
     // Test Management
