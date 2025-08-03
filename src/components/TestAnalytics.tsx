@@ -652,7 +652,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                   <Target className="text-purple-600 mb-2" size={24} />
                   <p className="text-sm text-gray-600">Avg Score</p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {analytics?.totalAvgScore?.toFixed(2) ?? '0.00'}
+                    {analytics?.totalAvgScore?.toFixed(2) ?? "0.00"}
                   </p>
                 </MyCardContent>
               </MyCard>

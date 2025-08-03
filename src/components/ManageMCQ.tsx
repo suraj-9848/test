@@ -52,6 +52,7 @@ const ManageMCQ: React.FC<ManageMCQProps> = ({
     correct_answer: 0,
     explanation: "",
     difficulty: "medium" as "easy" | "medium" | "hard",
+    passingScore: 70,
   });
 
   // Helper function to safely extract string content from rich text or plain text
@@ -136,6 +137,7 @@ const ManageMCQ: React.FC<ManageMCQProps> = ({
             correct_answer: correctAnswerIndex,
             explanation: extractStringContent(firstQuestion.explanation || ""),
             difficulty: firstQuestion.difficulty || "medium",
+            passingScore: mcq?.passingScore || 70,
           });
         } else if (mcq.question) {
           // Legacy individual question format
@@ -167,6 +169,7 @@ const ManageMCQ: React.FC<ManageMCQProps> = ({
             correct_answer: correctAnswerIndex,
             explanation: extractStringContent(mcq.explanation || ""),
             difficulty: mcq.difficulty || "medium",
+            passingScore: mcq?.passingScore || 70,
           });
         }
       } else {
@@ -177,6 +180,7 @@ const ManageMCQ: React.FC<ManageMCQProps> = ({
           correct_answer: 0,
           explanation: "",
           difficulty: "medium",
+          passingScore: 70,
         });
       }
       setError("");
@@ -224,7 +228,7 @@ const ManageMCQ: React.FC<ManageMCQProps> = ({
             difficulty: formData.difficulty,
           },
         ],
-        passingScore: 70,
+        passingScore: formData.passingScore,
       };
 
       if (mode === "create") {
@@ -256,7 +260,7 @@ const ManageMCQ: React.FC<ManageMCQProps> = ({
               difficulty: formData.difficulty,
             },
           ],
-          passingScore: mcq?.passingScore || 70,
+          passingScore: formData.passingScore,
         };
 
         console.log(
@@ -400,6 +404,32 @@ const ManageMCQ: React.FC<ManageMCQProps> = ({
               <option value="medium">Medium</option>
               <option value="hard">Hard</option>
             </select>
+          </div>
+
+          {/* Passing Score */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Passing Score (%) *
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={formData.passingScore}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  passingScore: parseInt(e.target.value) || 70,
+                })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="Enter passing score (e.g., 70)"
+              required
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Students need to score at least this percentage to pass the MCQ
+              test.
+            </p>
           </div>
 
           {/* Options */}

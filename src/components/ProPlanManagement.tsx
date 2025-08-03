@@ -122,7 +122,7 @@ export default function ProPlanManagement() {
       const response = await proPlanApi.getProPlanAnalytics(planId);
       setAnalytics({
         ...response.data,
-        planName: planName
+        planName: planName,
       });
       setShowAnalyticsModal(true);
     } catch (error) {
@@ -427,16 +427,18 @@ export default function ProPlanManagement() {
                 <strong>Recent Subscriptions:</strong>
               </p>
               <ul className="list-disc list-inside">
-                {(analytics.recentSubscriptions || []).map((sub: {
-                  id: string;
-                  created_at: string;
-                  user?: { name: string };
-                }) => (
-                  <li key={sub.id}>
-                    {sub.user?.name || "Unknown User"} -{" "}
-                    {new Date(sub.created_at).toLocaleDateString()}
-                  </li>
-                ))}
+                {(analytics.recentSubscriptions || []).map(
+                  (sub: {
+                    id: string;
+                    created_at: string;
+                    user?: { name: string };
+                  }) => (
+                    <li key={sub.id}>
+                      {sub.user?.name || "Unknown User"} -{" "}
+                      {new Date(sub.created_at).toLocaleDateString()}
+                    </li>
+                  ),
+                )}
               </ul>
             </div>
             <div className="flex justify-end mt-6">
