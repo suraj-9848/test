@@ -18,12 +18,11 @@ import CreateTest from "../../../components/CreateTest";
 import ManageTest from "../../../components/ManageTest";
 import TestAnalytics from "@/components/TestAnalytics";
 import CourseAssignment from "../../../components/CourseAssignment";
-import StudentAnalytics from "../../../components/StudentAnalytics";
-import ProgressAnalytics from "../../../components/ProgressAnalytics";
-import EvaluationStatistics from "../../../components/EvaluationStatistics";
+// import StudentAnalytics from "../../../components/StudentAnalytics";
+// import ProgressAnalytics from "../../../components/ProgressAnalytics";
+// import EvaluationStatistics from "../../../components/EvaluationStatistics";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
-import { instructorApi } from "@/api/instructorApi";
 import CourseBatchAssignment from "@/components/CourseBatchAssignment";
 
 interface DashboardStats {
@@ -252,14 +251,14 @@ const InstructorDashboard: React.FC = () => {
         return <CourseBatchAssignment />;
 
       // Analytics & Reports
-      case "student-analytics":
-        return <StudentAnalytics />;
-      case "progress-analytics":
-        return <ProgressAnalytics />;
+      // case "student-analytics":
+      //   return <StudentAnalytics />;
+      // case "progress-analytics":
+      //   return <ProgressAnalytics />;
+      // case "evaluation-statistics":
+      //   return <EvaluationStatistics />;
       case "test-analytics":
         return <TestAnalytics />;
-      case "evaluation-statistics":
-        return <EvaluationStatistics />;
 
       // Batch Management
       case "batch-management":

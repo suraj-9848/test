@@ -92,24 +92,14 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
 
   const analyticsMenuItems = [
     {
-      key: "student-analytics",
-      label: "Student Analytics",
-      icon: Users,
-    },
-    {
-      key: "progress-analytics",
-      label: "Progress Analytics",
-      icon: TrendingUp,
+      key: "course-analytics",
+      label: "Course Analytics",
+      icon: Eye,
     },
     {
       key: "test-analytics",
       label: "Test Analytics",
       icon: BarChart3,
-    },
-    {
-      key: "evaluation-statistics",
-      label: "Evaluation Statistics",
-      icon: Percent,
     },
   ];
 

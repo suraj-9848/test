@@ -1,4 +1,31 @@
 import apiClient from "../utils/axiosInterceptor";
+// Add missing type imports or definitions
+export interface CourseResponse {
+  course: Course;
+  message: string;
+}
+
+export interface BatchResponse {
+  batches: Batch[];
+  message: string;
+}
+
+export interface Test {
+  id: string;
+  title: string;
+  description?: string;
+  maxMarks?: number;
+  passingMarks?: number;
+  durationInMinutes?: number;
+  startDate?: string;
+  endDate?: string;
+  shuffleQuestions?: boolean;
+  showResults?: boolean;
+  showCorrectAnswers?: boolean;
+  status?: string;
+  course?: Course;
+  questions?: Question[];
+}
 import { API_ENDPOINTS, buildApiUrl } from "../config/urls";
 import { getAuthHeaders } from "@/utils/auth";
 
@@ -89,43 +116,24 @@ export interface CreateCourseData {
   logo?: string;
   start_date: string;
   end_date: string;
+  batch_ids: string[];
   is_public: boolean;
   instructor_name: string;
-  description?: string;
+  overview?: string;
+  trainer_name?: string;
+  trainer_bio?: string;
+  trainer_avatar?: string;
+  trainer_linkedin?: string;
+  price?: number;
+  duration?: string;
+  image?: string;
+  features?: string[];
+  curriculum?: string[];
+  prerequisites?: string[];
+  tags?: string[];
+  mode?: "online" | "offline" | "hybrid";
+  what_you_will_learn?: string[];
   modules?: any[];
-  batch_ids?: string[];
-}
-
-export interface CourseResponse {
-  course: Course;
-  message: string;
-}
-
-export interface BatchResponse {
-  batches: Batch[];
-  totalCount: number;
-  page: number;
-  limit: number;
-}
-
-export interface Test {
-  id: string;
-  title: string;
-  description: string;
-  maxMarks: number;
-  passingMarks: number;
-  durationInMinutes: number;
-  startDate: string;
-  endDate: string;
-  shuffleQuestions: boolean;
-  showResults: boolean;
-  showCorrectAnswers: boolean;
-  status: "DRAFT" | "PUBLISHED" | "ACTIVE" | "COMPLETED";
-  course: {
-    id: string;
-    title: string;
-  };
-  questions?: Question[];
 }
 
 export interface Question {
@@ -184,21 +192,69 @@ export const instructorApi = {
         throw new Error("Private courses require at least one batch selection");
       }
 
-      const requestBody = {
-        title: courseData.title,
-        logo: courseData.logo || "",
-        start_date: courseData.start_date,
-        end_date: courseData.end_date,
-        is_public: courseData.is_public,
-        instructor_name: courseData.instructor_name,
-        description: courseData.description || "Course description",
-        modules: courseData.modules || [],
-        batch_ids: courseData.is_public ? [] : courseData.batch_ids || [],
-      };
+      // Detect if any file is present in courseData
+      let hasFile = false;
+      const fileFields: Array<keyof CreateCourseData> = [
+        "logo",
+        "trainer_avatar",
+        "image",
+      ];
+      for (const field of fileFields) {
+        const value = courseData[field];
+        if (value && typeof value !== "string") {
+          hasFile = true;
+          break;
+        }
+      }
+
+      let payload: FormData | Record<string, any>;
+      let config = {};
+      if (hasFile) {
+        payload = new FormData();
+        Object.entries(courseData).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            (payload as FormData).append(key, JSON.stringify(value));
+          } else if (value instanceof File) {
+            (payload as FormData).append(key, value);
+          } else {
+            (payload as FormData).append(
+              key,
+              value == null ? "" : String(value),
+            );
+          }
+        });
+        config = { headers: { "Content-Type": "multipart/form-data" } };
+      } else {
+        payload = {
+          title: courseData.title,
+          logo: courseData.logo || "",
+          start_date: courseData.start_date,
+          end_date: courseData.end_date,
+          batch_ids: courseData.is_public ? [] : courseData.batch_ids || [],
+          is_public: courseData.is_public,
+          instructor_name: courseData.instructor_name,
+          overview: courseData.overview || "",
+          trainer_name: courseData.trainer_name || "",
+          trainer_bio: courseData.trainer_bio || "",
+          trainer_avatar: courseData.trainer_avatar || "",
+          trainer_linkedin: courseData.trainer_linkedin || "",
+          price: courseData.price ?? 0,
+          duration: courseData.duration || "",
+          image: courseData.image || "",
+          features: courseData.features || [],
+          curriculum: courseData.curriculum || [],
+          prerequisites: courseData.prerequisites || [],
+          tags: courseData.tags || [],
+          mode: courseData.mode || "online",
+          what_you_will_learn: courseData.what_you_will_learn || [],
+          modules: courseData.modules || [],
+        };
+      }
 
       const response = await apiClient.post(
         API_ENDPOINTS.INSTRUCTOR.COURSES,
-        requestBody,
+        payload,
+        config,
       );
 
       return response.data;
