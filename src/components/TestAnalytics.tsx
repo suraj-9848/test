@@ -625,7 +625,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                   <Users className="text-gray-400 mb-2" size={24} />
                   <p className="text-sm text-gray-600">Total Enrolled</p>
                   <p className="text-2xl font-bold">
-                    {analytics.totalEnrolled}
+                    {analytics?.totalEnrolled ?? 0}
                   </p>
                 </MyCardContent>
               </MyCard>
@@ -634,7 +634,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                   <CheckCircle className="text-green-600 mb-2" size={24} />
                   <p className="text-sm text-gray-600">Gave Test</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {analytics.gaveTest}
+                    {analytics?.gaveTest ?? 0}
                   </p>
                 </MyCardContent>
               </MyCard>
@@ -643,7 +643,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                   <XCircle className="text-red-600 mb-2" size={24} />
                   <p className="text-sm text-gray-600">Did Not Give</p>
                   <p className="text-2xl font-bold text-red-600">
-                    {analytics.didNotGiveTest}
+                    {analytics?.didNotGiveTest ?? 0}
                   </p>
                 </MyCardContent>
               </MyCard>
@@ -652,7 +652,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                   <Target className="text-purple-600 mb-2" size={24} />
                   <p className="text-sm text-gray-600">Avg Score</p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {analytics.totalAvgScore.toFixed(2)}
+                    {analytics?.totalAvgScore?.toFixed(2) ?? '0.00'}
                   </p>
                 </MyCardContent>
               </MyCard>
@@ -661,7 +661,7 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                   <FileText className="text-blue-600 mb-2" size={24} />
                   <p className="text-sm text-gray-600">Possible Marks</p>
                   <p className="text-2xl font-bold text-blue-600">
-                    {analytics.totalPossibleMarks}
+                    {analytics?.totalPossibleMarks ?? 0}
                   </p>
                 </MyCardContent>
               </MyCard>
