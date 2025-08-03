@@ -47,20 +47,117 @@ export const API_ENDPOINTS = {
     BATCH_BY_ID: (id: string) => `/api/instructor/batches/${id}`,
     BATCH_COURSES: (batchId: string) =>
       `/api/instructor/batches/${batchId}/courses`,
+    BATCH_COURSE_ASSIGN_STUDENT: (batchId: string, courseId: string) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/assign-student`,
+    BATCH_COURSE_PROGRESS: (batchId: string, courseId: string) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/progress`,
+
+    // Batch Student Management
+    BATCH_STUDENTS: (batchId: string) =>
+      `/api/instructor/batches/${batchId}/students`,
+    BATCH_REMOVE_STUDENTS: (batchId: string) =>
+      `/api/instructor/batches/${batchId}/remove-students`,
+    BATCH_STUDENT_CHECK: (batchId: string, studentId: string) =>
+      `/api/instructor/batches/${batchId}/students/${studentId}/check`,
+    BATCH_BULK_ASSIGN: "/api/instructor/batches/bulk-assign",
+    BATCH_TRANSFER_STUDENT: "/api/instructor/batches/transfer-student",
+    BATCH_ASSIGN_STUDENTS: (batchId: string) =>
+      `/api/instructor/batches/${batchId}/assign-students`,
+    BATCHES_WITH_STUDENT_COUNT:
+      "/api/instructor/batches?include_student_count=true",
+    STUDENTS_WITH_BATCHES: "/api/instructor/students-with-batches",
+    USER_BATCHES: (userId: string) => `/api/instructor/users/${userId}/batches`,
 
     // Tests
     TESTS: "/api/instructor/tests",
     TEST_BY_ID: (id: string) => `/api/instructor/tests/${id}`,
+    TEST_QUESTIONS: (testId: string) =>
+      `/api/instructor/tests/${testId}/questions`,
+    TEST_QUESTION_BY_ID: (testId: string, questionId: string) =>
+      `/api/instructor/tests/${testId}/questions/${questionId}`,
+    BATCH_COURSE_TESTS: (batchId: string, courseId: string) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
+    BATCH_COURSE_BULK_TESTS: (batchId: string) =>
+      `/api/instructor/batches/${batchId}/courses/bulk/tests`,
+    BATCH_COURSE_TEST_BY_ID: (
+      batchId: string,
+      courseId: string,
+      testId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}`,
+    BATCH_COURSE_TEST_QUESTIONS: (
+      batchId: string,
+      courseId: string,
+      testId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/questions`,
+    BATCH_COURSE_TEST_QUESTION_BY_ID: (
+      batchId: string,
+      courseId: string,
+      testId: string,
+      questionId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
 
-    // Questions Management
-    QUESTIONS: {
-      LIST: (testId: string) => `/api/instructor/tests/${testId}/questions`,
-      CREATE: (testId: string) => `/api/instructor/tests/${testId}/questions`,
-      UPDATE: (testId: string, questionId: string) =>
-        `/api/instructor/tests/${testId}/questions/${questionId}`,
-      DELETE: (testId: string, questionId: string) =>
-        `/api/instructor/tests/${testId}/questions/${questionId}`,
-    },
+    // Modules
+    BATCH_COURSE_MODULES: (batchId: string, courseId: string) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
+    BATCH_COURSE_MODULE_CREATE: (batchId: string, courseId: string) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/modules`,
+    BATCH_COURSE_MODULE_BY_ID: (
+      batchId: string,
+      courseId: string,
+      moduleId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}`,
+
+    // Day Content
+    BATCH_COURSE_MODULE_DAY_CONTENT: (
+      batchId: string,
+      courseId: string,
+      moduleId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content`,
+    BATCH_COURSE_MODULE_DAY_CONTENT_BY_ID: (
+      batchId: string,
+      courseId: string,
+      moduleId: string,
+      dayContentId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/day-content/${dayContentId}`,
+
+    // MCQs
+    BATCH_COURSE_MODULE_MCQ: (
+      batchId: string,
+      courseId: string,
+      moduleId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq`,
+    BATCH_COURSE_MODULE_MCQ_BY_ID: (
+      batchId: string,
+      courseId: string,
+      moduleId: string,
+      mcqId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/modules/${moduleId}/mcq/${mcqId}`,
+    BATCH_COURSE_TEST_PUBLISH: (
+      batchId: string,
+      courseId: string,
+      testId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/publish`,
+    BATCH_COURSE_TEST_EVALUATE: (
+      batchId: string,
+      courseId: string,
+      testId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluate`,
+    BATCH_COURSE_TEST_SUBMISSION_COUNT: (
+      batchId: string,
+      courseId: string,
+      testId: string,
+    ) =>
+      `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/submission-count`,
 
     // Students
     STUDENTS: "/api/instructor/students",

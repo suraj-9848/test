@@ -11,6 +11,7 @@ import CreateCourse from "../../../components/CreateCourse";
 import ManageModules from "../../../components/ManageModules";
 import ModuleContent from "../../../components/ModuleContent";
 import MCQManagement from "../../../components/MCQManagement";
+import ModuleMcqManagement from "../../../components/ModuleMcqManagement";
 
 import UnifiedBatchManagement from "@/components/UnifiedBatchManagement";
 import CreateTest from "../../../components/CreateTest";
@@ -234,6 +235,8 @@ const InstructorDashboard: React.FC = () => {
         return <ModuleContent onClose={() => setActiveSection("dashboard")} />;
       case "mcq-management":
         return <MCQManagement />;
+      case "module-mcq-management":
+        return <ModuleMcqManagement />;
 
       // Test Management
       case "create-test":

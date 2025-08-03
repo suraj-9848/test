@@ -22,8 +22,7 @@ import {
   FaEquals,
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
-import apiClient from "../utils/axiosInterceptor";
-import { API_ENDPOINTS } from "../config/urls";
+import axios from "axios";
 
 // Types
 interface EvaluationStatistics {
@@ -164,6 +163,11 @@ const EvaluationStatistics: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<string>("accuracy");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [backendJwt, setBackendJwt] = useState<string>("");
+
+  // API Base URL
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
 
   // Initialize component mounting and cleanup
   useEffect(() => {
@@ -187,79 +191,151 @@ const EvaluationStatistics: React.FC = () => {
     };
   }, []);
 
-  // API Helper with stable reference - now using centralized apiClient
-  const apiCall = useCallback(async (endpoint: string) => {
-    const startTime = Date.now();
-    const requestId = Math.random().toString(36).substr(2, 9);
+  // API Helper with stable reference
+  const apiCall = useCallback(
+    async (endpoint: string, options: RequestInit = {}) => {
+      const startTime = Date.now();
+      const requestId = Math.random().toString(36).substr(2, 9);
 
-    // Log outgoing request
-    const isAnalyticsCall =
-      endpoint.includes("evaluation-statistics") ||
-      endpoint.includes("analytics") ||
-      endpoint.includes("tests");
-    const logPrefix = isAnalyticsCall ? "📊 EVALUATION API" : "🌐 EVAL API";
+      // Abort previous request if exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
-    console.log(`${logPrefix} REQUEST [${requestId}]:`, {
-      endpoint,
-      method: "GET",
-      timestamp: new Date().toISOString(),
-      isAnalytics: isAnalyticsCall,
-    });
+      abortControllerRef.current = new AbortController();
 
-    try {
-      const response = await apiClient.get(endpoint);
+      // Log outgoing request
+      const isAnalyticsCall =
+        endpoint.includes("evaluation-statistics") ||
+        endpoint.includes("analytics") ||
+        endpoint.includes("tests");
+      const logPrefix = isAnalyticsCall ? "📊 EVALUATION API" : "🌐 EVAL API";
 
-      const duration = Date.now() - startTime;
-
-      // Log successful response
-      console.log(`${logPrefix} RESPONSE [${requestId}]:`, {
-        status: 200,
+      console.log(`${logPrefix} REQUEST [${requestId}]:`, {
         endpoint,
-        duration: `${duration}ms`,
-        dataSize: JSON.stringify(response.data).length,
+        fullURL: `${API_BASE_URL}${endpoint}`,
+        method: options.method || "GET",
+        hasToken: !!backendJwt,
         timestamp: new Date().toISOString(),
         isAnalytics: isAnalyticsCall,
       });
 
-      // Log response data for analytics calls
-      if (isAnalyticsCall) {
-        console.log(`${logPrefix} DATA [${requestId}]:`, {
-          dataType: typeof response.data,
-          dataKeys:
-            response.data && typeof response.data === "object"
-              ? Object.keys(response.data)
-              : "N/A",
-          dataPreview:
-            response.data && typeof response.data === "object"
-              ? JSON.stringify(response.data).substring(0, 200) + "..."
-              : response.data,
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          signal: abortControllerRef.current.signal,
+          headers: {
+            Authorization: `Bearer ${backendJwt}`,
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
         });
-      }
 
-      return response.data;
-    } catch (err: any) {
-      const duration = Date.now() - startTime;
+        const duration = Date.now() - startTime;
 
-      if (err.name === "AbortError") {
-        console.log(`${logPrefix} ABORTED [${requestId}]:`, {
+        if (!response.ok) {
+          console.error(`${logPrefix} ERROR [${requestId}]:`, {
+            endpoint,
+            status: response.status,
+            statusText: response.statusText,
+            duration: `${duration}ms`,
+            timestamp: new Date().toISOString(),
+          });
+          throw new Error(
+            `API Error: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        const data = await response.json();
+
+        // Log successful response
+        console.log(`${logPrefix} RESPONSE [${requestId}]:`, {
+          status: response.status,
+          statusText: response.statusText,
           endpoint,
           duration: `${duration}ms`,
+          dataSize: JSON.stringify(data).length,
           timestamp: new Date().toISOString(),
+          isAnalytics: isAnalyticsCall,
         });
-        return null;
+
+        // Log response data for analytics calls
+        if (isAnalyticsCall) {
+          console.log(`${logPrefix} DATA [${requestId}]:`, {
+            dataType: typeof data,
+            dataKeys:
+              data && typeof data === "object" ? Object.keys(data) : "N/A",
+            dataPreview:
+              data && typeof data === "object"
+                ? JSON.stringify(data).substring(0, 200) + "..."
+                : data,
+          });
+        }
+
+        return data;
+      } catch (err: any) {
+        const duration = Date.now() - startTime;
+
+        if (err.name === "AbortError") {
+          console.log(`${logPrefix} ABORTED [${requestId}]:`, {
+            endpoint,
+            duration: `${duration}ms`,
+            timestamp: new Date().toISOString(),
+          });
+          return null;
+        }
+
+        console.error(`${logPrefix} ERROR [${requestId}]:`, {
+          endpoint,
+          error: err.message,
+          duration: `${duration}ms`,
+          timestamp: new Date().toISOString(),
+          isAnalytics: isAnalyticsCall,
+        });
+
+        throw err;
       }
+    },
+    [API_BASE_URL, backendJwt],
+  );
 
-      console.error(`${logPrefix} ERROR [${requestId}]:`, {
-        endpoint,
-        error: err.message,
-        duration: `${duration}ms`,
-        timestamp: new Date().toISOString(),
-        isAnalytics: isAnalyticsCall,
-      });
+  // Authentication effect
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!session || !mountedRef.current) return;
 
-      throw err;
-    }
-  }, []);
+      try {
+        const googleIdToken = (session as { id_token?: string })?.id_token;
+        if (!googleIdToken) {
+          console.error("No Google ID token found");
+          if (mountedRef.current) {
+            setError("Authentication failed: No Google ID token found");
+          }
+          return;
+        }
+
+        const loginRes = await axios.post(
+          `${API_BASE_URL}/api/auth/admin-login`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${googleIdToken}` },
+            withCredentials: true,
+          },
+        );
+
+        if (mountedRef.current) {
+          setBackendJwt(loginRes.data.token);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user profile:", err);
+        if (mountedRef.current) {
+          setError("Failed to authenticate with backend");
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [session, API_BASE_URL]);
 
   // Fetch statistics
   const fetchStatistics = useCallback(
@@ -268,17 +344,25 @@ const EvaluationStatistics: React.FC = () => {
         batchId,
         courseId,
         testId,
+        hasJWT: !!backendJwt,
         mounted: mountedRef.current,
         timestamp: new Date().toISOString(),
       });
 
-      if (!batchId || !courseId || !testId || !mountedRef.current) {
+      if (
+        !batchId ||
+        !courseId ||
+        !testId ||
+        !backendJwt ||
+        !mountedRef.current
+      ) {
         console.log(
           "⚠️ EVALUATION STATISTICS SKIPPED: Missing required data:",
           {
             batchId: !!batchId,
             courseId: !!courseId,
             testId: !!testId,
+            backendJwt: !!backendJwt,
             mounted: mountedRef.current,
           },
         );
@@ -289,9 +373,10 @@ const EvaluationStatistics: React.FC = () => {
         setLoading(true);
         setError("");
 
-        const endpoint = `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`;
+        const endpoint = `/api/instructor/batches/${batchId}/courses/${courseId}/tests/${testId}/evaluation-statistics`;
         console.log("📊 EVALUATION STATISTICS URL:", {
           endpoint,
+          fullURL: `${API_BASE_URL}${endpoint}`,
         });
 
         console.log("📊 EVALUATION STATISTICS API CALL: Making request...");
@@ -408,7 +493,7 @@ const EvaluationStatistics: React.FC = () => {
         }
       }
     },
-    [apiCall],
+    [apiCall, backendJwt],
   );
 
   // Store fetchStatistics in ref for stable access
@@ -419,13 +504,13 @@ const EvaluationStatistics: React.FC = () => {
   // Fetch tests for selected batch and course
   const fetchTests = useCallback(
     async (batchId: string, courseId: string) => {
-      if (!batchId || !courseId || !mountedRef.current) {
+      if (!batchId || !courseId || !backendJwt || !mountedRef.current) {
         return;
       }
 
       try {
         const response = await apiCall(
-          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests`,
+          `/api/instructor/batches/${batchId}/courses/${courseId}/tests`,
         );
         if (!response || !mountedRef.current) return;
 
@@ -454,7 +539,7 @@ const EvaluationStatistics: React.FC = () => {
         }
       }
     },
-    [apiCall],
+    [apiCall, backendJwt],
   );
 
   // Store fetchTests in ref for stable access
@@ -465,13 +550,13 @@ const EvaluationStatistics: React.FC = () => {
   // Fetch courses for selected batch
   const fetchCourses = useCallback(
     async (batchId: string) => {
-      if (!batchId || !mountedRef.current) {
+      if (!batchId || !backendJwt || !mountedRef.current) {
         return;
       }
 
       try {
         const response = await apiCall(
-          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses`,
+          `/api/instructor/batches/${batchId}/courses`,
         );
         if (!response || !mountedRef.current) return;
 
@@ -499,7 +584,7 @@ const EvaluationStatistics: React.FC = () => {
         }
       }
     },
-    [apiCall],
+    [apiCall, backendJwt],
   );
 
   // Store fetchCourses in ref for stable access
@@ -516,9 +601,12 @@ const EvaluationStatistics: React.FC = () => {
   const fetchInitialData = useCallback(async () => {
     console.log("🔄 EvaluationStatistics fetchInitialData called");
     console.log("🔍 EvaluationStatistics Mounted:", mountedRef.current);
+    console.log("🔍 EvaluationStatistics Has JWT:", !!backendJwt);
 
-    if (!mountedRef.current) {
-      console.log(" EvaluationStatistics: Not mounted, skipping");
+    if (!backendJwt || !mountedRef.current) {
+      console.log(
+        " EvaluationStatistics: Missing JWT or not mounted, skipping",
+      );
       if (!mountedRef.current) {
         console.log("🔧 EvaluationStatistics: Attempting to fix mountedRef...");
         mountedRef.current = true;
@@ -537,7 +625,7 @@ const EvaluationStatistics: React.FC = () => {
       console.log(
         "🚀 EvaluationStatistics: Making API call to fetch batches...",
       );
-      const batchesResponse = await apiCall(API_ENDPOINTS.INSTRUCTOR.BATCHES);
+      const batchesResponse = await apiCall("/api/instructor/batches");
 
       if (!batchesResponse || !mountedRef.current) {
         console.log(
@@ -587,30 +675,33 @@ const EvaluationStatistics: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [apiCall]);
+  }, [apiCall, backendJwt]);
 
-  // Initialize data when component mounts
+  // Initialize data when JWT is available
   useEffect(() => {
-    if (mountedRef.current) {
+    if (backendJwt && mountedRef.current) {
       fetchInitialData();
     }
-  }, [fetchInitialData]);
+  }, [backendJwt, fetchInitialData]);
 
   // Handle batch change
-  const handleBatchChange = useCallback((batchId: string) => {
-    if (!mountedRef.current) return;
+  const handleBatchChange = useCallback(
+    (batchId: string) => {
+      if (!mountedRef.current) return;
 
-    setSelectedBatch(batchId);
-    setSelectedCourse("");
-    setSelectedTest("");
-    setCourses([]);
-    setTests([]);
-    setStatistics(null);
+      setSelectedBatch(batchId);
+      setSelectedCourse("");
+      setSelectedTest("");
+      setCourses([]);
+      setTests([]);
+      setStatistics(null);
 
-    if (batchId && fetchCoursesRef.current) {
-      fetchCoursesRef.current(batchId);
-    }
-  }, []);
+      if (batchId && backendJwt && fetchCoursesRef.current) {
+        fetchCoursesRef.current(batchId);
+      }
+    },
+    [backendJwt],
+  );
 
   // Handle course change
   const handleCourseChange = useCallback(
@@ -622,11 +713,11 @@ const EvaluationStatistics: React.FC = () => {
       setTests([]);
       setStatistics(null);
 
-      if (selectedBatch && courseId && fetchTestsRef.current) {
+      if (selectedBatch && courseId && backendJwt && fetchTestsRef.current) {
         fetchTestsRef.current(selectedBatch, courseId);
       }
     },
-    [selectedBatch],
+    [selectedBatch, backendJwt],
   );
 
   // Handle test change
@@ -640,6 +731,7 @@ const EvaluationStatistics: React.FC = () => {
           selectedCourse,
           newTestId: testId,
           mountedRef: mountedRef.current,
+          hasJWT: !!backendJwt,
           testsLength: tests.length,
         },
       );
@@ -654,7 +746,7 @@ const EvaluationStatistics: React.FC = () => {
       setSelectedTest(testId);
       setStatistics(null);
 
-      if (selectedBatch && selectedCourse && testId) {
+      if (selectedBatch && selectedCourse && testId && backendJwt) {
         console.log(
           "📊 EVALUATION STATISTICS TRIGGER: About to fetch evaluation statistics for:",
           {
@@ -685,18 +777,21 @@ const EvaluationStatistics: React.FC = () => {
             selectedBatch: !!selectedBatch,
             selectedCourse: !!selectedCourse,
             testId: !!testId,
+            backendJwt: !!backendJwt,
             reason: !selectedBatch
               ? "No batch selected"
               : !selectedCourse
                 ? "No course selected"
                 : !testId
                   ? "No test provided"
-                  : "Unknown",
+                  : !backendJwt
+                    ? "No JWT token"
+                    : "Unknown",
           },
         );
       }
     },
-    [selectedBatch, selectedCourse],
+    [selectedBatch, selectedCourse, backendJwt],
   );
 
   const exportStatistics = () => {

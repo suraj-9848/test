@@ -17,6 +17,7 @@ import {
 import { instructorApi, Course, Batch } from "@/api/instructorApi";
 import { getCoursesForBatch } from "@/api/batchCourseApi";
 import { getAuthHeaders } from "@/utils/auth";
+import { API_ENDPOINTS, buildApiUrl } from "@/config/urls";
 
 interface CourseWithBatches extends Course {
   batches?: Batch[];
@@ -89,14 +90,9 @@ const CourseBatchAssignment: React.FC = () => {
     courseId: string,
     batchIds: string[],
   ) => {
-    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
-    if (!baseUrl) {
-      throw new Error("Backend URL not configured");
-    }
-
     const headers = await getAuthHeaders();
     const response = await fetch(
-      `${baseUrl}/api/instructor/courses/${courseId}`,
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.COURSE_BY_ID(courseId)),
       {
         method: "PUT",
         headers: {

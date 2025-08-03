@@ -1,8 +1,9 @@
 import { useSession } from "next-auth/react";
 import { useBatchStore, Batch } from "../store/batchStore";
+import { getBackendJwt } from "../utils/auth";
 import { useEffect, useState } from "react";
-import apiClient from "../utils/axiosInterceptor";
-import { API_ENDPOINTS } from "../config/urls";
+import axios from "axios";
+import { API_ENDPOINTS, buildApiUrl } from "../config/urls";
 import {
   FaCheckCircle,
   FaExclamationTriangle,
@@ -27,6 +28,7 @@ const CreateBatch: React.FC = () => {
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [backendJwt, setBackendJwt] = useState<string>("");
   const [loadingBatch, setLoadingBatch] = useState<boolean>(false);
 
   // Fetch user profile and set org_id
@@ -34,9 +36,14 @@ const CreateBatch: React.FC = () => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
+        const jwt = await getBackendJwt();
+        setBackendJwt(jwt);
 
-        const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
-        const orgId = response.data?.user?.org_id || "";
+        const res = await axios.get(buildApiUrl(API_ENDPOINTS.AUTH.ME), {
+          headers: { Authorization: `Bearer ${jwt}` },
+          withCredentials: true,
+        });
+        const orgId = res.data?.user?.org_id || "";
         setUserOrgId(orgId);
         setForm((f) => ({ ...f, org_id: orgId }));
       } catch (err) {
@@ -53,13 +60,13 @@ const CreateBatch: React.FC = () => {
   const resetForm = () =>
     setForm({ name: "", description: "", org_id: userOrgId });
 
-  // Fetch batches after component mounts
+  // Fetch batches after JWT is set
   useEffect(() => {
     const loadBatches = async () => {
-      if (session && userOrgId) {
+      if (backendJwt) {
         setIsLoading(true);
         try {
-          await fetchBatches();
+          await fetchBatches(backendJwt);
         } catch (err) {
           console.error("Failed to fetch batches:", err);
           setError("Failed to load batches");
@@ -70,12 +77,12 @@ const CreateBatch: React.FC = () => {
     };
 
     loadBatches();
-  }, [session, userOrgId, fetchBatches]);
+  }, [backendJwt, fetchBatches]);
 
   // Load batch for editing if editId is provided in URL
   useEffect(() => {
     const loadBatchForEditing = async () => {
-      if (!editIdFromURL) return;
+      if (!backendJwt || !editIdFromURL) return;
 
       setLoadingBatch(true);
       setError("");
@@ -83,8 +90,11 @@ const CreateBatch: React.FC = () => {
       try {
         console.log(`Loading batch ${editIdFromURL} for editing`);
 
-        const response = await apiClient.get(
-          `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${editIdFromURL}`,
+        const response = await axios.get(
+          buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCH_BY_ID(editIdFromURL)),
+          {
+            headers: { Authorization: `Bearer ${backendJwt}` },
+          },
         );
 
         console.log("Batch data received:", response.data);
@@ -114,10 +124,10 @@ const CreateBatch: React.FC = () => {
       }
     };
 
-    if (editIdFromURL) {
+    if (backendJwt && editIdFromURL) {
       loadBatchForEditing();
     }
-  }, [editIdFromURL, userOrgId]);
+  }, [backendJwt, editIdFromURL, userOrgId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +141,7 @@ const CreateBatch: React.FC = () => {
 
     try {
       if (editingId !== null) {
-        await updateBatch({ ...form, id: editingId });
+        await updateBatch({ ...form, id: editingId }, backendJwt);
         setSuccess("Batch updated successfully");
 
         // If we came from the batch management page (via editId URL param), go back there
@@ -145,7 +155,7 @@ const CreateBatch: React.FC = () => {
           setEditingId(null);
         }
       } else {
-        const newBatch = await addBatch(form);
+        const newBatch = await addBatch(form, backendJwt);
         setSuccess(
           "New empty batch created successfully. Redirecting to student assignment page...",
         );
@@ -190,13 +200,18 @@ const CreateBatch: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this batch?")) return;
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      await deleteBatch(id);
+      await deleteBatch(id, backendJwt);
       setSuccess("Batch deleted successfully");
     } catch (err) {
-      setError("Error deleting batch: " + String(err));
+      console.error("Failed to delete batch:", err);
+      setError("Failed to delete batch");
+    } finally {
+      setIsLoading(false);
     }
   };
 
