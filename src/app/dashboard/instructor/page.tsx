@@ -25,6 +25,7 @@ import UnifiedBatchManagement from "@/components/UnifiedBatchManagement";
 import CreateTest from "../../../components/CreateTest";
 import ManageTest from "../../../components/ManageTest";
 import TestAnalytics from "@/components/TestAnalytics";
+import CourseAnalytics from "@/components/CourseAnalytics";
 import CourseAssignment from "../../../components/CourseAssignment";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
@@ -307,6 +308,8 @@ const InstructorDashboard: React.FC = () => {
       //   return <EvaluationStatistics />;
       case "test-analytics":
         return <TestAnalytics />;
+      case "course-analytics":
+        return <CourseAnalytics />;
 
       // Batch Management
       case "batch-management":

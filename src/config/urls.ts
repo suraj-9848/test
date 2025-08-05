@@ -200,8 +200,8 @@ export const API_ENDPOINTS = {
         studentId: string,
       ) =>
         `/api/instructor/batches/${batchId}/courses/${courseId}/students/${studentId}/scores`,
-      BATCH_ATTENDANCE: (batchId: string) =>
-        `/api/instructor/batches/${batchId}/analytics/attendance`,
+      COURSE_ANALYTICS: (batchId: string, courseId: string) =>
+        `/api/instructor/batches/${batchId}/courses/${courseId}/analytics`,
     },
 
     // Dashboard

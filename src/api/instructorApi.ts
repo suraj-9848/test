@@ -779,6 +779,24 @@ export const instructorApi = {
       );
     }
   },
+
+  getCourseAnalytics: async (
+    batchId: string,
+    courseId: string,
+  ): Promise<any> => {
+    try {
+      const response = await apiClient.get(
+        API_ENDPOINTS.INSTRUCTOR.ANALYTICS.COURSE_ANALYTICS(batchId, courseId),
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to fetch course analytics:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch course analytics",
+      );
+    }
+  },
+
   safeApiCall: safeApiCall,
   parseErrorResponse: parseErrorResponse,
 };
