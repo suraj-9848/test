@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import {
   FaChartBar,
   FaGraduationCap,
@@ -13,6 +12,8 @@ import {
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
 import { getBackendJwt } from "../utils/auth";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
 
 // Types
 interface Batch {
@@ -48,8 +49,6 @@ const BatchAnalyticsComponent: React.FC = () => {
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
-
   // Authentication setup
   useEffect(() => {
     let isMounted = true;
@@ -81,22 +80,12 @@ const BatchAnalyticsComponent: React.FC = () => {
   }, [session, backendJwt]);
 
   const fetchBatches = useCallback(async () => {
-    if (!backendJwt) {
-      console.log("Cannot fetch batches: No JWT available");
-      return;
-    }
-
     try {
       setLoading(true);
       setError("");
 
-      console.log("Making API call to fetch batches");
-      const response = await axios.get(
-        `${API_BASE_URL}/api/instructor/batches`,
-        {
-          headers: { Authorization: `Bearer ${backendJwt}` },
-        },
-      );
+      // Fetch batches via centralized apiClient
+      const response = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCHES);
 
       console.log("Batches API response:", response.data);
 
@@ -111,39 +100,16 @@ const BatchAnalyticsComponent: React.FC = () => {
       // Fetch additional metrics for each batch using available endpoints
       const batchesWithMetrics = await Promise.all(
         batchesData.map(async (batch) => {
-          try {
-            // Get courses for this batch
-            const coursesResponse = await axios.get(
-              `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
-              {
-                headers: {
-                  Authorization: `Bearer ${backendJwt}`,
-                },
-              },
-            );
-            const courses =
-              coursesResponse.data?.data?.courses ||
-              coursesResponse.data?.courses ||
-              coursesResponse.data ||
-              [];
-
-            // Mock student count since /students endpoint may not exist
-            // Generate realistic student counts based on batch data
-            const mockStudentCount = Math.floor(Math.random() * 50) + 10; // 10-60 students
-
-            return {
-              ...batch,
-              courseCount: courses.length,
-              studentCount: batch.studentCount || mockStudentCount,
-            };
-          } catch (err) {
-            console.error(`Error fetching data for batch ${batch.id}:`, err);
-            return {
-              ...batch,
-              courseCount: Math.floor(Math.random() * 5) + 1, // 1-5 courses
-              studentCount: Math.floor(Math.random() * 30) + 15, // 15-45 students
-            };
-          }
+          // Fetch courses for this batch
+          const coursesRes = await apiClient.get(
+            API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batch.id),
+          );
+          const courses = coursesRes.data.courses || coursesRes.data || [];
+          return {
+            ...batch,
+            courseCount: courses.length,
+            studentCount: batch.studentCount || 0,
+          };
         }),
       );
 
@@ -154,103 +120,27 @@ const BatchAnalyticsComponent: React.FC = () => {
         const studentCount = batch.studentCount || 0;
         const courseCount = batch.courseCount || 0;
 
-        let avgProgress = 0;
-        let avgTestScore = 0;
-        let completionRate = 0;
+        const avgProgress = 0;
+        const avgTestScore = 0;
+        const completionRate = 0;
 
-        try {
-          // Get courses for this batch
-          const coursesResponse = await fetch(
-            `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
-            {
-              headers: {
-                Authorization: `Bearer ${backendJwt}`,
-                "Content-Type": "application/json",
-              },
-            },
-          );
-
-          if (coursesResponse.ok) {
-            const coursesData = await coursesResponse.json();
-            const courses = coursesData.courses || [];
-
-            // Calculate progress across all courses in batch
-            let totalProgress = 0;
-            let totalCompletions = 0;
-            let courseProgressCount = 0;
-
-            for (const course of courses) {
-              try {
-                const progressResponse = await fetch(
-                  `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses/${course.id}/progress`,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${backendJwt}`,
-                      "Content-Type": "application/json",
-                    },
-                  },
-                );
-
-                if (progressResponse.ok) {
-                  const progressData = await progressResponse.json();
-                  const report = progressData.report || [];
-
-                  if (report.length > 0) {
-                    const courseProgress = report.reduce(
-                      (sum: number, student: any) => {
-                        const progress = Math.min(
-                          100,
-                          (student.currentPage || 0) * 10,
-                        );
-                        totalProgress += progress;
-                        if (student.status === "completed") totalCompletions++;
-                        return sum + progress;
-                      },
-                      0,
-                    );
-
-                    courseProgressCount += report.length;
-                  }
-                }
-              } catch (courseErr) {
-                console.warn(
-                  `Failed to fetch progress for course ${course.id}:`,
-                  courseErr,
-                );
-              }
-            }
-
-            // Calculate averages
-            if (courseProgressCount > 0) {
-              avgProgress = Math.round(totalProgress / courseProgressCount);
-              completionRate = Math.round(
-                (totalCompletions / courseProgressCount) * 100,
-              );
-            }
-          }
-        } catch (batchErr) {
-          console.warn(
-            `Failed to calculate analytics for batch ${batch.id}:`,
-            batchErr,
-          );
-          // Fallback to reasonable defaults
-          avgProgress = 75;
-          completionRate = 65;
-        }
-
-        // Use mock attendance and test scores for now since we don't have direct endpoints
-        const mockAttendance = Math.floor(Math.random() * 20) + 80; // 80-100%
-        avgTestScore = avgTestScore || Math.floor(Math.random() * 30) + 70; // 70-100%
+        // Get courses for this batch
+        await apiClient.get(API_ENDPOINTS.INSTRUCTOR.BATCH_COURSES(batch.id));
+        // Attendance and test score to be derived from real data
+        const attendanceData = await apiClient.get(
+          API_ENDPOINTS.INSTRUCTOR.ANALYTICS.BATCH_ATTENDANCE(batch.id),
+        );
+        const mockAttendance = attendanceData?.data?.attendanceRate || 0;
 
         return {
           id: batch.id,
           name: batch.name,
           totalStudents: studentCount,
           totalCourses: courseCount,
-          avgProgress: avgProgress,
-          avgAttendance: mockAttendance, // Still mock - no attendance tracking endpoint
-          avgTestScore: avgTestScore, // Still mock - would need to aggregate test results
-          completionRate: completionRate,
+          avgProgress,
+          avgAttendance: mockAttendance,
+          avgTestScore,
+          completionRate,
         };
       });
 
@@ -258,14 +148,16 @@ const BatchAnalyticsComponent: React.FC = () => {
       console.log("Calculated batch analytics with real data:", analyticsData);
 
       setBatchAnalytics(analyticsData);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching batches:", err);
-      const errorMsg = err.response?.data?.message || "Failed to load batches";
+      const errorMsg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to load batches";
       setError(errorMsg);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, backendJwt]);
+  }, []);
 
   // Fetch data when JWT is available
   useEffect(() => {

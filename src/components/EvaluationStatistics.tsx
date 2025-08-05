@@ -445,9 +445,21 @@ const EvaluationStatistics: React.FC = () => {
               }),
             ) || [],
           difficultyAnalysis: response.data?.difficultyAnalysis || {
-            easy: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
-            medium: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
-            hard: { totalQuestions: 0, averageAccuracy: 0, averageMarks: 0 },
+            easy: {
+              totalQuestions: 0,
+              averageAccuracy: 0,
+              averageMarks: 0,
+            },
+            medium: {
+              totalQuestions: 0,
+              averageAccuracy: 0,
+              averageMarks: 0,
+            },
+            hard: {
+              totalQuestions: 0,
+              averageAccuracy: 0,
+              averageMarks: 0,
+            },
           },
           performanceMetrics: response.data?.performanceMetrics || {
             excellentPerformers: 0,
@@ -821,7 +833,9 @@ const EvaluationStatistics: React.FC = () => {
     ];
 
     const csvContent = csvData.map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const link = document.createElement("a");
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
@@ -1151,7 +1165,9 @@ const EvaluationStatistics: React.FC = () => {
                       <div className="flex-1 bg-gray-200 rounded-full h-4">
                         <div
                           className="bg-blue-600 h-4 rounded-full transition-all duration-300"
-                          style={{ width: `${item.percentage}%` }}
+                          style={{
+                            width: `${item.percentage}%`,
+                          }}
                         ></div>
                       </div>
                       <div className="w-16 text-sm font-medium text-gray-900">

@@ -600,7 +600,7 @@ export async function evaluateTest(
   batchId: string,
   courseId: string,
   testId: string,
-  data: EvaluateTestRequest,
+  data: any,
 ) {
   const headers = await getAuthHeaders();
   const res = await fetch(

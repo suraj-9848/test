@@ -75,9 +75,9 @@ const ProgressAnalytics: React.FC<ProgressAnalyticsProps> = ({ onClose }) => {
               studentId: item.studentId,
               studentName: item.username,
               progress: item.currentPage || 0,
-              modulesCompleted: item.currentPage || 0, // Use currentPage as modules completed
-              totalModules: 10, // Mock total - adjust based on your course structure
-              lastActivity: new Date().toISOString(), // Mock - backend doesn't provide this
+              modulesCompleted: item.currentPage || 0,
+              totalModules: item.totalModules || item.moduleCount || 0,
+              lastActivity: item.lastActivity || item.last_activity || null,
               status: item.status || "not-started",
             }),
           );

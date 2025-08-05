@@ -1,10 +1,13 @@
+import { BASE_URLS, API_ENDPOINTS, buildAuthUrl } from "../src/config/urls";
+
 export async function validateOAuthUser(sessionJwt: string) {
   if (!sessionJwt) {
     return { valid: false, error: "Missing Session, please login again." };
   }
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+
   try {
-    const response = await fetch(`${baseUrl}/api/auth/admin-login`, {
+    const url = buildAuthUrl(API_ENDPOINTS.AUTH.ADMIN_LOGIN);
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

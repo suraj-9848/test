@@ -84,15 +84,15 @@ export const useTestStore = create<TestState>((set, get) => ({
   fetchTests: async (batchId: string, courseId: string) => {
     set({ loading: true, error: null });
     try {
-      // Mock implementation - replace with actual API when available
+      // TODO: implement API calls instead of mock
       console.log("Fetching tests for batch:", batchId, "course:", courseId);
       set({
         tests: [], // Mock empty tests
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to fetch tests",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -106,9 +106,9 @@ export const useTestStore = create<TestState>((set, get) => ({
       set({
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to create test",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -122,9 +122,9 @@ export const useTestStore = create<TestState>((set, get) => ({
       set({
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to update test",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -139,9 +139,9 @@ export const useTestStore = create<TestState>((set, get) => ({
         tests: get().tests.filter((test) => test.id !== testId),
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to delete test",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -155,9 +155,9 @@ export const useTestStore = create<TestState>((set, get) => ({
       set({
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to publish test",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -172,9 +172,9 @@ export const useTestStore = create<TestState>((set, get) => ({
         questions: [], // Mock empty questions
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to fetch questions",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -188,9 +188,9 @@ export const useTestStore = create<TestState>((set, get) => ({
       set({
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to create question",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -207,9 +207,9 @@ export const useTestStore = create<TestState>((set, get) => ({
       set({
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to update question",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -224,9 +224,9 @@ export const useTestStore = create<TestState>((set, get) => ({
         questions: get().questions.filter((q) => q.id !== questionId),
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to delete question",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -251,9 +251,9 @@ export const useTestStore = create<TestState>((set, get) => ({
         },
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to fetch statistics",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }
@@ -272,9 +272,9 @@ export const useTestStore = create<TestState>((set, get) => ({
         },
         loading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
-        error: error.message || "Failed to fetch analytics",
+        error: error instanceof Error ? error.message : String(error),
         loading: false,
       });
     }

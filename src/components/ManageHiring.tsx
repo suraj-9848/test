@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import {
   FaUser,
   FaBriefcase,
@@ -12,6 +12,8 @@ import {
   FaPlus,
 } from "react-icons/fa";
 import { useHiringStore, JobStatus, JobType } from "@/store/hiringStore";
+import { useToast } from "./ToastContext";
+import { recruiterApi } from "@/api/recruiterApi";
 
 const ManageHiring: React.FC = () => {
   const {
@@ -27,6 +29,10 @@ const ManageHiring: React.FC = () => {
 
     deleteJob,
   } = useHiringStore();
+
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -80,6 +86,60 @@ const ManageHiring: React.FC = () => {
   //     </span>
   //   );
   // };
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+        setApiError(null);
+        // Fetch jobs from recruiter API
+        const query: Record<string, string> = {};
+        if (statusFilter !== "All") query.status = statusFilter;
+        if (search) query.search = search;
+        // You may add department/type filters if API supports
+        const response = await recruiterApi.getJobs(query);
+        if (response.success && response.jobs) {
+          // Update jobs in store
+          // If useHiringStore has a setJobs method, use it. Otherwise, update jobs directly if possible.
+          // setJobs(response.jobs);
+          // If jobs is managed in store, you may need to dispatch or call a setter here.
+        } else {
+          throw new Error(response.message || "Failed to fetch jobs");
+        }
+      } catch (error: any) {
+        setApiError(error.message || "Failed to fetch jobs");
+        showToast("error", "Failed to load jobs");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, [search, departmentFilter, typeFilter, statusFilter, showToast]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <span className="ml-3 text-lg text-gray-600">Loading jobs...</span>
+      </div>
+    );
+  }
+
+  if (apiError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <span className="text-red-500 text-lg font-semibold mb-2">
+          {apiError}
+        </span>
+        <button
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg mt-2"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">

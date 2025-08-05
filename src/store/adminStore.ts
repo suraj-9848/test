@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { useOrganizationStore } from "./organizationStore";
 import { userApi, CreateUserRequest, UpdateUserRequest } from "@/api/adminApi";
+import { fetchAllBatches } from "@/api/batchApi";
+import { getBackendJwt } from "@/utils/auth";
 
 // Types
 export type UserRole = "student" | "instructor" | "admin" | "recruiter";
@@ -84,16 +86,6 @@ interface AdminStoreState {
   fetchUsers: (role?: UserRole | "All") => Promise<void>;
 }
 
-const mockBatches = [
-  "2024-Batch-A",
-  "2024-Batch-B",
-  "2023-Batch-A",
-  "2023-Batch-B",
-  "2022-Batch-A",
-  "2022-Batch-B",
-];
-
-// Initial data
 const initialAdmins: AdminUser[] = [];
 const initialInstructors: InstructorUser[] = [];
 const initialStudents: StudentUser[] = [];
@@ -130,35 +122,16 @@ function roleToCategory(role: UserRole): UserCategory {
 function mapApiUserToStoreUser<
   T extends AdminUser | InstructorUser | StudentUser | RecruiterUser,
 >(apiUser: User, role: UserRole): T {
-  // IMPORTANT: Always use the original UUID string from the API response
-  // This ensures we're using the correct ID format expected by the backend
   const userId = apiUser.id;
 
-  // Log if ID appears invalid, but still use the original ID
-  if (
-    !userId ||
-    userId === "NaN" ||
-    userId === "undefined" ||
-    userId === "null"
-  ) {
-    console.warn(
-      `User with invalid ID found: ${apiUser.username}, ID: ${userId}`,
-    );
-  }
-
-  // Clean organization ID/name
-  let college = apiUser.org_id || "";
-  if (
-    college === "bruuh" ||
-    college === "CMRCET" ||
-    college === "NaN" ||
-    college === "undefined" ||
-    college === "null"
-  ) {
-    college = "Unknown Organization";
-    console.warn(
-      `Replaced invalid organization "${apiUser.org_id}" with "Unknown Organization" for user ${apiUser.username}`,
-    );
+  // Use orgs from store to validate and map organization name
+  const orgs = useOrganizationStore.getState().organizations;
+  let college = "Unknown Organization";
+  if (apiUser.org_id) {
+    const org = orgs.find((o) => o.id === apiUser.org_id);
+    if (org) {
+      college = org.name;
+    }
   }
 
   const baseUser = {
@@ -168,7 +141,7 @@ function mapApiUserToStoreUser<
     college: college,
     status: "Active" as UserStatus,
     joinDate: new Date().toISOString().split("T")[0],
-    userRole: role, // Store the actual database role
+    userRole: role,
   };
 
   switch (role) {
@@ -177,10 +150,7 @@ function mapApiUserToStoreUser<
     case "recruiter":
       return { ...baseUser, role: "Deputy Admin" as AdminRole } as T;
     case "instructor":
-      return {
-        ...baseUser,
-        role: "Senior Professor" as InstructorRole,
-      } as T;
+      return { ...baseUser, role: "Senior Professor" as InstructorRole } as T;
     case "student":
       return { ...baseUser, role: "First Year" as StudentRole } as T;
     default:
@@ -231,7 +201,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   deleteUser: async (id, role) => {
     try {
       set({ loading: true, error: null });
-      await userApi.deleteUser(id, role);
+      await userApi.deleteUser(id);
       const key = mapTypeToKey(roleToCategory(role));
       set((state) => ({
         [key]: (
@@ -349,7 +319,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
     try {
       set({ loading: true, error: null });
       console.log(`Fetching users with role: ${role}`);
-      const response = await userApi.getUsers(role);
+      const response = await userApi.getAllUsers({ role });
       console.log("API response:", response);
 
       if (!response.users || !Array.isArray(response.users)) {
@@ -360,22 +330,26 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
 
       if (role === "All") {
         const collegeAdmins = response.users
-          .filter((u) => ["admin"].includes(u.userRole))
-          .map((u) =>
+          .filter((u: User) => ["admin"].includes(u.userRole))
+          .map((u: User) =>
             mapApiUserToStoreUser<AdminUser>(u, u.userRole as UserRole),
           );
 
         const recruiterUsers = response.users
-          .filter((u) => u.userRole === "recruiter")
-          .map((u) => mapApiUserToStoreUser<RecruiterUser>(u, "recruiter"));
+          .filter((u: User) => u.userRole === "recruiter")
+          .map((u: User) =>
+            mapApiUserToStoreUser<RecruiterUser>(u, "recruiter"),
+          );
 
         const instructorUsers = response.users
-          .filter((u) => u.userRole === "instructor")
-          .map((u) => mapApiUserToStoreUser<InstructorUser>(u, "instructor"));
+          .filter((u: User) => u.userRole === "instructor")
+          .map((u: User) =>
+            mapApiUserToStoreUser<InstructorUser>(u, "instructor"),
+          );
 
         const studentUsers = response.users
-          .filter((u) => u.userRole === "student")
-          .map((u) => mapApiUserToStoreUser<StudentUser>(u, "student"));
+          .filter((u: User) => u.userRole === "student")
+          .map((u: User) => mapApiUserToStoreUser<StudentUser>(u, "student"));
 
         console.log(
           `Processed ${collegeAdmins.length} admins, ${recruiterUsers.length} recruiters, ${instructorUsers.length} instructors, ${studentUsers.length} students`,
@@ -390,7 +364,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
         });
       } else {
         const key = mapTypeToKey(roleToCategory(role));
-        const mappedUsers = response.users.map((u) => {
+        const mappedUsers = response.users.map((u: User) => {
           switch (role) {
             case "admin":
               return mapApiUserToStoreUser<AdminUser>(u, role);
@@ -431,4 +405,13 @@ export const getOrgs = () => {
   return organizations.map((org) => ({ id: org.id, name: org.name }));
 };
 
-export const getBatches = () => mockBatches;
+export const getBatches = async () => {
+  try {
+    const jwt = await getBackendJwt();
+    const batches = await fetchAllBatches(jwt);
+    return batches;
+  } catch (error) {
+    console.error("Failed to fetch batches:", error);
+    return [];
+  }
+};

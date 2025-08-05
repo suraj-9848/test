@@ -18,6 +18,7 @@ import {
 import { useSession } from "next-auth/react";
 import { getBackendJwt } from "../utils/auth";
 import Link from "next/link";
+import { BASE_URLS } from "../config/urls";
 
 // Types
 interface Batch {
@@ -97,7 +98,7 @@ const UnifiedBatchManagement: React.FC = () => {
   const [editError, setEditError] = useState("");
   const [editSuccess, setEditSuccess] = useState("");
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+  const API_BASE_URL = BASE_URLS.BACKEND;
 
   // Authentication setup
   useEffect(() => {
@@ -141,7 +142,7 @@ const UnifiedBatchManagement: React.FC = () => {
 
       console.log("Making API call to fetch batches");
       const response = await axios.get(
-        `${API_BASE_URL}/api/instructor/batches`,
+        `${BASE_URLS.BACKEND}/api/instructor/batches`,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
         },
@@ -164,7 +165,7 @@ const UnifiedBatchManagement: React.FC = () => {
             batchesData.map(async (batch: Batch) => {
               try {
                 const courseResponse = await axios.get(
-                  `${API_BASE_URL}/api/instructor/batches/${batch.id}/courses`,
+                  `${BASE_URLS.BACKEND}/api/instructor/batches/${batch.id}/courses`,
                   {
                     headers: {
                       Authorization: `Bearer ${backendJwt}`,

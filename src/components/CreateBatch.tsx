@@ -10,6 +10,7 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import { useSearchParams } from "next/navigation";
+import { BASE_URLS } from "../config/urls";
 
 const CreateBatch: React.FC = () => {
   const { data: session } = useSession();

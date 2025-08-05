@@ -33,6 +33,9 @@ export const API_ENDPOINTS = {
     PAYMENT_BY_ID: (id: string) => `/api/admin/payments/${id}`,
     ANALYTICS: "/api/admin/analytics",
     SYSTEM_HEALTH: "/api/admin/system/health",
+    USER_STATS: "/api/admin/users/stats",
+    BULK_CREATE_USERS: "/api/admin/users/bulk-create",
+    BULK_DELETE_USERS: "/api/admin/users/bulk-delete",
   },
 
   // Instructor Routes
@@ -197,6 +200,8 @@ export const API_ENDPOINTS = {
         studentId: string,
       ) =>
         `/api/instructor/batches/${batchId}/courses/${courseId}/students/${studentId}/scores`,
+      BATCH_ATTENDANCE: (batchId: string) =>
+        `/api/instructor/batches/${batchId}/analytics/attendance`,
     },
 
     // Dashboard
@@ -221,6 +226,17 @@ export const API_ENDPOINTS = {
       STUDENT: (studentId: string) =>
         `/api/instructor/progress/students/${studentId}`,
     },
+  },
+
+  // Recruiter Routes
+  RECRUITER: {
+    // Recruiter-specific API endpoints
+    DASHBOARD: "/api/recruiter/dashboard",
+    JOBS: "/api/recruiter/jobs",
+    JOB_BY_ID: (id: string) => `/api/recruiter/jobs/${id}`,
+    APPLICATIONS: "/api/recruiter/applications",
+    SUBSCRIPTIONS: "/api/recruiter/subscriptions",
+    SUBSCRIPTION_BY_ID: (id: string) => `/api/recruiter/subscriptions/${id}`,
   },
 
   // Course Management

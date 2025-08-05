@@ -1,17 +1,12 @@
 import { create } from "zustand";
 import axios from "axios";
 import { instructorApi } from "@/api/instructorApi";
+import { BASE_URLS } from "../config/urls";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+const baseUrl = BASE_URLS.BACKEND;
 
 // Debug log the base URL
 console.log("Backend base URL:", baseUrl);
-
-if (!baseUrl) {
-  console.error(
-    "NEXT_PUBLIC_BACKEND_BASE_URL is not set in environment variables",
-  );
-}
 
 export interface Course {
   id: string;
@@ -207,7 +202,10 @@ export const useCourseStore = create<CourseStore>((set) => ({
         },
       );
       const courses = response.data.courses || response.data || [];
-      set({ courses: Array.isArray(courses) ? courses : [], loading: false });
+      set({
+        courses: Array.isArray(courses) ? courses : [],
+        loading: false,
+      });
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string }; status?: number };

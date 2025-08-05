@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
 import {
   FaPlus,
   FaCheck,
@@ -17,7 +19,7 @@ import {
 import { instructorApi, Course, Batch } from "@/api/instructorApi";
 import { getCoursesForBatch } from "@/api/batchCourseApi";
 import { getAuthHeaders } from "@/utils/auth";
-import { API_ENDPOINTS, buildApiUrl } from "@/config/urls";
+import { buildApiUrl } from "@/config/urls";
 
 interface CourseWithBatches extends Course {
   batches?: Batch[];
@@ -103,16 +105,8 @@ const CourseBatchAssignment: React.FC = () => {
         }),
       },
     );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message ||
-          `Failed to update course ${courseId}: HTTP ${response.status}`,
-      );
-    }
-
-    return response.json();
+    // Use .json() to get the response body
+    return await response.json();
   };
 
   const handleAssignCoursesToBatches = async () => {
@@ -147,9 +141,9 @@ const CourseBatchAssignment: React.FC = () => {
             (failure) => failure.reason?.message || "Unknown error",
           );
           throw new Error(
-            `${failures.length} assignment(s) failed: ${errorMessages.join(
-              ", ",
-            )}`,
+            `${
+              failures.length
+            } assignment(s) failed: ${errorMessages.join(", ")}`,
           );
         }
 
@@ -663,7 +657,8 @@ const CourseBatchAssignment: React.FC = () => {
               {assignmentPreview.newAssignments.length > 0 && (
                 <div className="mb-2">
                   <span className="text-sm font-medium text-green-700">
-                    New assignments ({assignmentPreview.newAssignments.length}):
+                    New assignments ({assignmentPreview.newAssignments.length}
+                    ):
                   </span>
                   <div className="text-sm text-green-600 ml-4">
                     {assignmentPreview.newAssignments
@@ -716,7 +711,8 @@ const CourseBatchAssignment: React.FC = () => {
                 <div>
                   <span className="text-sm font-medium text-orange-700">
                     Already assigned (
-                    {assignmentPreview.existingAssignments.length}):
+                    {assignmentPreview.existingAssignments.length}
+                    ):
                   </span>
                   <div className="text-sm text-orange-600 ml-4">
                     {assignmentPreview.existingAssignments

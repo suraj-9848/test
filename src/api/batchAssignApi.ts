@@ -1,4 +1,5 @@
 import axios from "axios";
+import apiClient from "@/utils/apiClient";
 import { getSession } from "next-auth/react";
 import { instructorApi } from "./instructorApi";
 import { API_ENDPOINTS, buildApiUrl } from "@/config/urls";
@@ -325,19 +326,11 @@ export const transferStudentBetweenBatches = async (
 };
 
 export const fetchStudents = async () => {
-  try {
-    console.log("Fetching students...");
-    const result = await instructorApi.getStudents();
-    console.log("Students response:", result);
-
-    return result.users || [];
-  } catch (error) {
-    console.error("Fetch students error:", error);
-    throw new Error("Failed to fetch students");
-  }
+  const response = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.STUDENTS);
+  return response.data.users || [];
 };
 
-// Assign students to a batch with improved error handling
+// Assign students to a batch
 export const assignStudentsToBatch = async (
   batchId: string,
   studentIds: string[],

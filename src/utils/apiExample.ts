@@ -19,7 +19,7 @@ export const getStudentAnalytics = async (batchId: string) => {
 };
 
 // Example 2: POST request with data
-export const createCourse = async (courseData: any) => {
+export const createCourse = async (courseData: Record<string, unknown>) => {
   try {
     const response = await apiClient.post(
       "/api/instructor/courses",
@@ -33,7 +33,10 @@ export const createCourse = async (courseData: any) => {
 };
 
 // Example 3: PUT request for updates
-export const updateBatch = async (batchId: string, updateData: any) => {
+export const updateBatch = async (
+  batchId: string,
+  updateData: Record<string, unknown>,
+) => {
   try {
     const response = await apiClient.put(
       `/api/instructor/batches/${batchId}`,
@@ -98,12 +101,20 @@ export const getCoursesWithErrorHandling = async () => {
   try {
     const response = await apiClient.get("/api/instructor/courses");
     return response.data;
-  } catch (error: any) {
-    // The interceptor will handle token expiry automatically
-    // But you can still handle other specific errors
-    if (error.response?.status === 403) {
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "response" in error &&
+      (error as { response?: { status?: number } }).response?.status === 403
+    ) {
       throw new Error("You do not have permission to access courses");
-    } else if (error.response?.status === 404) {
+    } else if (
+      typeof error === "object" &&
+      error !== null &&
+      "response" in error &&
+      (error as { response?: { status?: number } }).response?.status === 404
+    ) {
       throw new Error("Courses not found");
     } else {
       throw new Error("Failed to fetch courses");

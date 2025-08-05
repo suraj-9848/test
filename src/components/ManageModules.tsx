@@ -22,6 +22,7 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
+import { BASE_URLS } from "../config/urls";
 
 // Custom styles for the editor
 const editorStyles = `
@@ -179,7 +180,7 @@ const ManageModules: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+        const baseUrl = BASE_URLS.BACKEND;
         const googleIdToken = (session as { id_token: string })?.id_token;
         if (!googleIdToken) return;
 
@@ -311,7 +312,7 @@ const ManageModules: React.FC = () => {
     if (!selectedModuleForContent || !backendJwt) return;
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+      const baseUrl = BASE_URLS.BACKEND;
       await axios.post(
         `${baseUrl}/api/instructor/batches/${selectedBatchId}/courses/${selectedCourseId}/modules/${selectedModuleForContent.id}/day-content`,
         contentForm,
@@ -335,7 +336,7 @@ const ManageModules: React.FC = () => {
     if (!selectedModuleForMCQ || !backendJwt) return;
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+      const baseUrl = BASE_URLS.BACKEND;
       await axios.post(
         `${baseUrl}/api/instructor/courses/${selectedCourseId}/modules/${selectedModuleForMCQ.id}/mcq`,
         mcqForm,
@@ -713,7 +714,10 @@ const ManageModules: React.FC = () => {
                                   className="font-medium line-clamp-2"
                                   dangerouslySetInnerHTML={{
                                     __html:
-                                      module.mcq.questions[0]?.question || "",
+                                      typeof module.mcq?.questions[0]
+                                        ?.question === "string"
+                                        ? module.mcq.questions[0].question
+                                        : "",
                                   }}
                                 />
                                 <div className="text-slate-600 text-xs mt-1">
@@ -871,7 +875,10 @@ const ManageModules: React.FC = () => {
                 <RichTextEditor
                   content={contentForm.content}
                   onChange={(content: string) =>
-                    setContentForm((prev) => ({ ...prev, content }))
+                    setContentForm((prev) => ({
+                      ...prev,
+                      content,
+                    }))
                   }
                   placeholder="Enter day content..."
                 />
@@ -917,7 +924,10 @@ const ManageModules: React.FC = () => {
                 <RichTextEditor
                   content={mcqForm.question}
                   onChange={(question: string) =>
-                    setMCQForm((prev) => ({ ...prev, question }))
+                    setMCQForm((prev) => ({
+                      ...prev,
+                      question,
+                    }))
                   }
                   placeholder="Enter your question here..."
                 />
@@ -981,7 +991,10 @@ const ManageModules: React.FC = () => {
                 <RichTextEditor
                   content={mcqForm.explanation}
                   onChange={(explanation: string) =>
-                    setMCQForm((prev) => ({ ...prev, explanation }))
+                    setMCQForm((prev) => ({
+                      ...prev,
+                      explanation,
+                    }))
                   }
                   placeholder="Provide an explanation for the correct answer..."
                 />

@@ -64,7 +64,7 @@ export const assignCoursesToBatches = async (
     batchId: string;
     success: boolean;
     message?: string;
-    data?: any;
+    data?: unknown;
   }[] = [];
 
   for (const batchId of batchIds) {
