@@ -1,9 +1,8 @@
 import axios from "axios";
+import apiClient from "@/utils/apiClient";
 import { getSession } from "next-auth/react";
 import { instructorApi } from "./instructorApi";
-
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
-const API_URL = `${baseUrl}/api/instructor/batches`;
+import { API_ENDPOINTS, buildApiUrl } from "@/config/urls";
 
 let cachedBackendJwt: string = "";
 
@@ -18,7 +17,7 @@ const getBackendJwt = async () => {
 
   try {
     const loginRes = await axios.post(
-      `${baseUrl}/api/auth/admin-login`,
+      buildApiUrl(API_ENDPOINTS.AUTH.ADMIN_LOGIN),
       {},
       {
         headers: { Authorization: `Bearer ${googleIdToken}` },
@@ -44,9 +43,14 @@ const getAuthHeaders = async () => {
 export const fetchBatches = async () => {
   try {
     const headers = await getAuthHeaders();
-    console.log("Fetching batches from:", API_URL);
+    console.log(
+      "Fetching batches from:",
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCHES),
+    );
 
-    const res = await axios.get(`${API_URL}`, { headers });
+    const res = await axios.get(buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCHES), {
+      headers,
+    });
     console.log("Batches response:", res.data);
 
     return res.data.batches || [];
@@ -72,7 +76,7 @@ export const removeStudentsFromBatch = async (
     console.log("Removing students from batch:", { batchId, studentIds });
 
     const response = await axios.delete(
-      `${API_URL}/${batchId}/remove-students`,
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCH_REMOVE_STUDENTS(batchId)),
       {
         headers,
         data: { userIds: studentIds },
@@ -107,9 +111,12 @@ export const getBatchStudents = async (batchId: string) => {
     const headers = await getAuthHeaders();
     console.log("Fetching students for batch:", batchId);
 
-    const response = await axios.get(`${API_URL}/${batchId}/students`, {
-      headers,
-    });
+    const response = await axios.get(
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCH_STUDENTS(batchId)),
+      {
+        headers,
+      },
+    );
 
     console.log("Batch students response:", response.data);
     return response.data.students || response.data.users || [];
@@ -133,7 +140,7 @@ export const fetchStudentsWithBatchInfo = async () => {
     const headers = await getAuthHeaders();
 
     const response = await axios.get(
-      `${baseUrl}/api/instructor/students-with-batches`,
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.STUDENTS_WITH_BATCHES),
       {
         headers,
       },
@@ -175,7 +182,7 @@ const fetchStudentsLegacy = async () => {
         try {
           const headers = await getAuthHeaders();
           const userResponse = await axios.get(
-            `${baseUrl}/api/instructor/users/${student.id}/batches`,
+            buildApiUrl(API_ENDPOINTS.INSTRUCTOR.USER_BATCHES(student.id)),
             { headers },
           );
 
@@ -211,7 +218,9 @@ export const isStudentInBatch = async (
     const headers = await getAuthHeaders();
 
     const response = await axios.get(
-      `${API_URL}/${batchId}/students/${studentId}/check`,
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_STUDENT_CHECK(batchId, studentId),
+      ),
       { headers },
     );
 
@@ -225,11 +234,17 @@ export const isStudentInBatch = async (
 export const fetchBatchesWithStudentCounts = async () => {
   try {
     const headers = await getAuthHeaders();
-    console.log("Fetching batches with student counts from:", API_URL);
+    console.log(
+      "Fetching batches with student counts from:",
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCHES_WITH_STUDENT_COUNT),
+    );
 
-    const response = await axios.get(`${API_URL}?include_student_count=true`, {
-      headers,
-    });
+    const response = await axios.get(
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCHES_WITH_STUDENT_COUNT),
+      {
+        headers,
+      },
+    );
 
     console.log("Batches with student counts response:", response.data);
     return response.data.batches || [];
@@ -255,7 +270,7 @@ export const bulkAssignStudentsToBatches = async (
     const headers = await getAuthHeaders();
 
     const response = await axios.post(
-      `${API_URL}/bulk-assign`,
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCH_BULK_ASSIGN),
       { assignments },
       { headers },
     );
@@ -285,7 +300,7 @@ export const transferStudentBetweenBatches = async (
     const headers = await getAuthHeaders();
 
     const response = await axios.post(
-      `${API_URL}/transfer-student`,
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCH_TRANSFER_STUDENT),
       {
         studentId,
         fromBatchId,
@@ -311,26 +326,20 @@ export const transferStudentBetweenBatches = async (
 };
 
 export const fetchStudents = async () => {
-  try {
-    console.log("Fetching students...");
-    const result = await instructorApi.getStudents();
-    console.log("Students response:", result);
-
-    return result.users || [];
-  } catch (error) {
-    console.error("Fetch students error:", error);
-    throw new Error("Failed to fetch students");
-  }
+  const response = await apiClient.get(API_ENDPOINTS.INSTRUCTOR.STUDENTS);
+  return response.data.users || [];
 };
 
-// Assign students to a batch with improved error handling
+// Assign students to a batch
 export const assignStudentsToBatch = async (
   batchId: string,
   studentIds: string[],
 ): Promise<{ success: boolean; message: string; details?: any }> => {
   try {
     const headers = await getAuthHeaders();
-    const endpoint = `${API_URL}/${batchId}/assign-students`;
+    const endpoint = buildApiUrl(
+      API_ENDPOINTS.INSTRUCTOR.BATCH_ASSIGN_STUDENTS(batchId),
+    );
 
     // Validate inputs
     if (!batchId || typeof batchId !== "string") {

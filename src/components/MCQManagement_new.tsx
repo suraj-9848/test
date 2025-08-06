@@ -14,6 +14,7 @@ import {
 } from "react-icons/fa";
 import { useSession } from "next-auth/react";
 import axios from "axios";
+import { BASE_URLS } from "../config/urls";
 
 // Types based on backend structure
 interface MCQQuestion {
@@ -107,14 +108,13 @@ const MCQManagement: React.FC = () => {
   });
 
   // API Base URL
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
+  const API_BASE_URL = BASE_URLS.BACKEND;
 
   // Fetch user profile and get JWT
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+        const baseUrl = BASE_URLS.BACKEND;
         const googleIdToken = (session as { id_token?: string })?.id_token;
         if (!googleIdToken) {
           console.error("No Google ID token found");
@@ -144,7 +144,7 @@ const MCQManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `${API_BASE_URL}/api/instructor/batches`,
+        `${BASE_URLS.BACKEND}/api/instructor/batches`,
         {
           headers: { Authorization: `Bearer ${backendJwt}` },
         },

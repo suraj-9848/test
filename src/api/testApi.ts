@@ -1,5 +1,4 @@
-import apiClient from "../utils/axiosInterceptor";
-import { API_ENDPOINTS } from "../config/urls";
+import { API_ENDPOINTS, buildApiUrl } from "../config/urls";
 
 interface CreateTestRequest {
   title: string;
@@ -23,16 +22,62 @@ interface CreateQuestionRequest {
   expectedWordCount?: number;
   codeLanguage?: string;
 }
+
+async function getAuthHeaders() {
+  // Try multiple sources for the token
+  let token = "";
+
+  // 1. Try sessionStorage first (most recent)
+  if (typeof window !== "undefined") {
+    token =
+      sessionStorage.getItem("adminToken") ||
+      sessionStorage.getItem("backendJwt") ||
+      localStorage.getItem("adminToken") ||
+      localStorage.getItem("backendJwt") ||
+      "";
+  }
+
+  console.log(" Auth Debug:", {
+    hasToken: !!token,
+    tokenLength: token.length,
+    tokenStart: token.substring(0, 20) + "...",
+    sessionStorageKeys:
+      typeof window !== "undefined" ? Object.keys(sessionStorage) : [],
+    localStorageKeys:
+      typeof window !== "undefined" ? Object.keys(localStorage) : [],
+  });
+
+  if (!token) {
+    console.error(" No authentication token found!");
+    console.log(" Available storage keys:");
+    if (typeof window !== "undefined") {
+      console.log("SessionStorage:", Object.keys(sessionStorage));
+      console.log("LocalStorage:", Object.keys(localStorage));
+    }
+    throw new Error("No authentication token found. Please login again.");
+  }
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+    "X-Requested-With": "XMLHttpRequest",
+  };
+}
 export async function createTest(
   batchId: string,
   courseIds: string[],
   testData: CreateTestRequest,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Creating test with data:", {
       batchId,
       courseIds,
       testData,
+      url: buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_BULK_TESTS(batchId),
+      ),
     });
 
     const requestBody = {
@@ -41,42 +86,93 @@ export async function createTest(
     };
 
     console.log(" Request body:", JSON.stringify(requestBody, null, 2));
+    console.log(" Request headers:", headers);
 
-    const response = await apiClient.post(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/bulk/tests`,
-      requestBody,
+    const res = await fetch(
+      buildApiUrl(API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_BULK_TESTS(batchId)),
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+      },
     );
 
-    console.log(" Test created successfully:", response.data);
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    console.log(" Response status:", res.status);
+    console.log(
+      " Response headers:",
+      Object.fromEntries(res.headers.entries()),
+    );
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to create test:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        // Clear invalid tokens
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("adminToken");
+          sessionStorage.removeItem("backendJwt");
+          localStorage.removeItem("adminToken");
+          localStorage.removeItem("backendJwt");
+        }
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(errorText || `HTTP ${res.status}: Failed to create test`);
     }
 
-    const errorMessage =
-      error.response?.data?.message || error.message || "Failed to create test";
-    throw new Error(errorMessage);
+    const result = await res.json();
+    console.log(" Test created successfully:", result);
+    return result;
+  } catch (error) {
+    console.error(" Create test error:", error);
+    throw error;
   }
 }
 
 export async function fetchTests(batchId: string, courseId: string) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Fetching tests for:", { batchId, courseId });
 
-    const response = await apiClient.get(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests`,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TESTS(batchId, courseId),
+      ),
+      {
+        method: "GET",
+        headers,
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to fetch tests:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(errorText || `HTTP ${res.status}: Failed to fetch tests`);
     }
 
-    const errorMessage =
-      error.response?.data?.message || error.message || "Failed to fetch tests";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Fetch tests error:", error);
+    throw error;
   }
 }
 
@@ -87,6 +183,8 @@ export async function addQuestionToTest(
   questionData: CreateQuestionRequest,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Adding question to test:", {
       batchId,
       courseId,
@@ -94,22 +192,44 @@ export async function addQuestionToTest(
       questionData,
     });
 
-    const response = await apiClient.post(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions`,
-      questionData,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_QUESTIONS(
+          batchId,
+          courseId,
+          testId,
+        ),
+      ),
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(questionData),
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to add question to test:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(
+        errorText || `HTTP ${res.status}: Failed to add question to test`,
+      );
     }
 
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to add question to test";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Add question error:", error);
+    throw error;
   }
 }
 
@@ -121,6 +241,8 @@ export async function updateQuestionInTest(
   questionData: Partial<CreateQuestionRequest>,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Updating question in test:", {
       batchId,
       courseId,
@@ -129,22 +251,45 @@ export async function updateQuestionInTest(
       questionData,
     });
 
-    const response = await apiClient.put(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
-      questionData,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_QUESTION_BY_ID(
+          batchId,
+          courseId,
+          testId,
+          questionId,
+        ),
+      ),
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(questionData),
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to update question in test:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(
+        errorText || `HTTP ${res.status}: Failed to update question in test`,
+      );
     }
 
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to update question in test";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Update question error:", error);
+    throw error;
   }
 }
 
@@ -155,6 +300,8 @@ export async function deleteQuestionFromTest(
   questionId: string,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Deleting question from test:", {
       batchId,
       courseId,
@@ -162,21 +309,44 @@ export async function deleteQuestionFromTest(
       questionId,
     });
 
-    const response = await apiClient.delete(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions/${questionId}`,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_QUESTION_BY_ID(
+          batchId,
+          courseId,
+          testId,
+          questionId,
+        ),
+      ),
+      {
+        method: "DELETE",
+        headers,
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to delete question from test:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(
+        errorText || `HTTP ${res.status}: Failed to delete question from test`,
+      );
     }
 
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to delete question from test";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Delete question error:", error);
+    throw error;
   }
 }
 
@@ -186,27 +356,51 @@ export async function getQuestions(
   testId: string,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Getting questions for test:", {
       batchId,
       courseId,
       testId,
     });
 
-    const response = await apiClient.get(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/questions`,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_QUESTIONS(
+          batchId,
+          courseId,
+          testId,
+        ),
+      ),
+      {
+        method: "GET",
+        headers,
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to fetch questions:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(
+        errorText || `HTTP ${res.status}: Failed to fetch questions`,
+      );
     }
 
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch questions";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Fetch questions error:", error);
+    throw error;
   }
 }
 
@@ -216,27 +410,51 @@ export async function publishTest(
   testId: string,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Publishing test:", {
       batchId,
       courseId,
       testId,
     });
 
-    const response = await apiClient.patch(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/publish`,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_PUBLISH(
+          batchId,
+          courseId,
+          testId,
+        ),
+      ),
+      {
+        method: "PATCH",
+        headers,
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to publish test:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(
+        errorText || `HTTP ${res.status}: Failed to publish test`,
+      );
     }
 
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to publish test";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Publish test error:", error);
+    throw error;
   }
 }
 export async function deleteTest(
@@ -245,25 +463,49 @@ export async function deleteTest(
   testId: string,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Deleting test:", {
       batchId,
       courseId,
       testId,
     });
 
-    const response = await apiClient.delete(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}`,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_BY_ID(
+          batchId,
+          courseId,
+          testId,
+        ),
+      ),
+      {
+        method: "DELETE",
+        headers,
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to delete test:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(errorText || `HTTP ${res.status}: Failed to delete test`);
     }
 
-    const errorMessage =
-      error.response?.data?.message || error.message || "Failed to delete test";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Delete test error:", error);
+    throw error;
   }
 }
 
@@ -274,6 +516,8 @@ export async function updateTest(
   testData: Partial<CreateTestRequest>,
 ) {
   try {
+    const headers = await getAuthHeaders();
+
     console.log(" Updating test:", {
       batchId,
       courseId,
@@ -281,31 +525,64 @@ export async function updateTest(
       testData,
     });
 
-    const response = await apiClient.put(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}`,
-      testData,
+    const res = await fetch(
+      buildApiUrl(
+        API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_BY_ID(
+          batchId,
+          courseId,
+          testId,
+        ),
+      ),
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(testData),
+      },
     );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Authentication failed. Please logout and login again.");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(" Failed to update test:", {
+        status: res.status,
+        statusText: res.statusText,
+        errorText,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          "Authentication failed. Please logout and login again.",
+        );
+      }
+
+      throw new Error(errorText || `HTTP ${res.status}: Failed to update test`);
     }
 
-    const errorMessage =
-      error.response?.data?.message || error.message || "Failed to update test";
-    throw new Error(errorMessage);
+    return res.json();
+  } catch (error) {
+    console.error(" Update test error:", error);
+    throw error;
   }
 }
 
 export async function checkAuthenticationStatus() {
   try {
-    const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
+    const headers = await getAuthHeaders();
 
-    console.log(" Authentication status:", response.data);
-    return response.data;
-  } catch (error: any) {
-    throw new Error("Authentication check failed");
+    const res = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.ME), {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      throw new Error("Authentication check failed");
+    }
+
+    const result = await res.json();
+    console.log(" Authentication status:", result);
+    return result;
+  } catch (error) {
+    console.error(" Authentication check failed:", error);
+    throw error;
   }
 }
 
@@ -323,22 +600,25 @@ export async function evaluateTest(
   batchId: string,
   courseId: string,
   testId: string,
-  data: EvaluateTestRequest,
+  data: any,
 ) {
-  try {
-    const response = await apiClient.post(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/evaluate`,
-      data,
-    );
-
-    return response.data;
-  } catch (error: any) {
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to evaluate test";
-    throw new Error(errorMessage);
-  }
+  const headers = await getAuthHeaders();
+  const res = await fetch(
+    buildApiUrl(
+      API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_EVALUATE(
+        batchId,
+        courseId,
+        testId,
+      ),
+    ),
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to evaluate test");
+  return res.json();
 }
 
 export async function getSubmissionCount(
@@ -346,17 +626,17 @@ export async function getSubmissionCount(
   courseId: string,
   testId: string,
 ) {
-  try {
-    const response = await apiClient.get(
-      `${API_ENDPOINTS.INSTRUCTOR.BATCHES}/${batchId}/courses/${courseId}/tests/${testId}/submission-count`,
-    );
-
-    return response.data;
-  } catch (error: any) {
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to get submission count";
-    throw new Error(errorMessage);
-  }
+  const headers = await getAuthHeaders();
+  const res = await fetch(
+    buildApiUrl(
+      API_ENDPOINTS.INSTRUCTOR.BATCH_COURSE_TEST_SUBMISSION_COUNT(
+        batchId,
+        courseId,
+        testId,
+      ),
+    ),
+    { method: "GET", headers },
+  );
+  if (!res.ok) throw new Error("Failed to get submission count");
+  return res.json();
 }

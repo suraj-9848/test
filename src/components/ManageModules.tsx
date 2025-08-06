@@ -22,6 +22,7 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
+import { BASE_URLS } from "../config/urls";
 
 // Custom styles for the editor
 const editorStyles = `
@@ -151,7 +152,6 @@ const ManageModules: React.FC = () => {
     new Set(),
   );
 
-  // Content Management States
   const [showContentModal, setShowContentModal] = useState(false);
   const [showMCQModal, setShowMCQModal] = useState(false);
   const [selectedModuleForContent, setSelectedModuleForContent] =
@@ -159,13 +159,11 @@ const ManageModules: React.FC = () => {
   const [selectedModuleForMCQ, setSelectedModuleForMCQ] =
     useState<Module | null>(null);
 
-  // Content Form State
   const [contentForm, setContentForm] = useState({
     dayNumber: 1,
     content: "",
   });
 
-  // MCQ Form State
   const [mcqForm, setMCQForm] = useState({
     question: "",
     options: ["", "", "", ""],
@@ -179,11 +177,10 @@ const ManageModules: React.FC = () => {
     isLocked: false,
   });
 
-  // Authentication setup
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+        const baseUrl = BASE_URLS.BACKEND;
         const googleIdToken = (session as { id_token: string })?.id_token;
         if (!googleIdToken) return;
 
@@ -205,14 +202,12 @@ const ManageModules: React.FC = () => {
     if (session) fetchProfile();
   }, [session]);
 
-  // Fetch batches when JWT is available
   useEffect(() => {
     if (backendJwt) {
       fetchBatches();
     }
   }, [backendJwt, fetchBatches]);
 
-  // Fetch courses when batch is selected
   useEffect(() => {
     if (selectedBatchId && backendJwt) {
       fetchAllCoursesInBatch(selectedBatchId, backendJwt);
@@ -220,7 +215,6 @@ const ManageModules: React.FC = () => {
     }
   }, [selectedBatchId, backendJwt, fetchAllCoursesInBatch]);
 
-  // Fetch modules when course is selected
   useEffect(() => {
     if (selectedBatchId && selectedCourseId && backendJwt) {
       fetchModules(selectedBatchId, selectedCourseId, backendJwt);
@@ -240,7 +234,6 @@ const ManageModules: React.FC = () => {
     setEditingModule(null);
   };
 
-  // Update the order when the create modal opens and modules array changes
   useEffect(() => {
     if (showCreateModal && !editingModule) {
       setModuleForm((prev) => ({
@@ -314,13 +307,12 @@ const ManageModules: React.FC = () => {
     }
   };
 
-  // Handle content submission
   const handleContentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedModuleForContent || !backendJwt) return;
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+      const baseUrl = BASE_URLS.BACKEND;
       await axios.post(
         `${baseUrl}/api/instructor/batches/${selectedBatchId}/courses/${selectedCourseId}/modules/${selectedModuleForContent.id}/day-content`,
         contentForm,
@@ -329,7 +321,6 @@ const ManageModules: React.FC = () => {
         },
       );
 
-      // Refresh modules to get updated content
       await fetchModules(selectedBatchId, selectedCourseId, backendJwt);
 
       resetContentForm();
@@ -340,13 +331,12 @@ const ManageModules: React.FC = () => {
     }
   };
 
-  // Handle MCQ submission
   const handleMCQSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedModuleForMCQ || !backendJwt) return;
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+      const baseUrl = BASE_URLS.BACKEND;
       await axios.post(
         `${baseUrl}/api/instructor/courses/${selectedCourseId}/modules/${selectedModuleForMCQ.id}/mcq`,
         mcqForm,
@@ -355,7 +345,6 @@ const ManageModules: React.FC = () => {
         },
       );
 
-      // Refresh modules to get updated MCQ
       await fetchModules(selectedBatchId, selectedCourseId, backendJwt);
 
       resetMCQForm();
@@ -393,19 +382,15 @@ const ManageModules: React.FC = () => {
     }
   };
 
-  // Handle adding content to module
   const handleAddContent = async (module: Module) => {
     setSelectedModuleForContent(module);
 
-    // Calculate next day number from existing module data
     let nextDayNumber = 1;
     if (module.days && module.days.length > 0) {
-      // Find the highest day number and add 1
       const maxDayNumber = Math.max(...module.days.map((day) => day.dayNumber));
       nextDayNumber = maxDayNumber + 1;
     }
 
-    // Set the form with the calculated next day number
     setContentForm({
       dayNumber: nextDayNumber,
       content: "",
@@ -414,7 +399,6 @@ const ManageModules: React.FC = () => {
     setShowContentModal(true);
   };
 
-  // Handle adding MCQ to module
   const handleAddMCQ = (module: Module) => {
     setSelectedModuleForMCQ(module);
     resetMCQForm();
@@ -730,7 +714,10 @@ const ManageModules: React.FC = () => {
                                   className="font-medium line-clamp-2"
                                   dangerouslySetInnerHTML={{
                                     __html:
-                                      module.mcq.questions[0]?.question || "",
+                                      typeof module.mcq?.questions[0]
+                                        ?.question === "string"
+                                        ? module.mcq.questions[0].question
+                                        : "",
                                   }}
                                 />
                                 <div className="text-slate-600 text-xs mt-1">
@@ -888,7 +875,10 @@ const ManageModules: React.FC = () => {
                 <RichTextEditor
                   content={contentForm.content}
                   onChange={(content: string) =>
-                    setContentForm((prev) => ({ ...prev, content }))
+                    setContentForm((prev) => ({
+                      ...prev,
+                      content,
+                    }))
                   }
                   placeholder="Enter day content..."
                 />
@@ -934,7 +924,10 @@ const ManageModules: React.FC = () => {
                 <RichTextEditor
                   content={mcqForm.question}
                   onChange={(question: string) =>
-                    setMCQForm((prev) => ({ ...prev, question }))
+                    setMCQForm((prev) => ({
+                      ...prev,
+                      question,
+                    }))
                   }
                   placeholder="Enter your question here..."
                 />
@@ -998,7 +991,10 @@ const ManageModules: React.FC = () => {
                 <RichTextEditor
                   content={mcqForm.explanation}
                   onChange={(explanation: string) =>
-                    setMCQForm((prev) => ({ ...prev, explanation }))
+                    setMCQForm((prev) => ({
+                      ...prev,
+                      explanation,
+                    }))
                   }
                   placeholder="Provide an explanation for the correct answer..."
                 />

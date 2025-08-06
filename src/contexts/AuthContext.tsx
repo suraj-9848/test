@@ -20,6 +20,8 @@ import {
   decodeJWT,
   getUserInfoFromJWT,
 } from "../utils/auth";
+import apiClient from "../utils/axiosInterceptor";
+import { API_ENDPOINTS } from "../config/urls";
 
 interface User {
   id: string;
@@ -88,15 +90,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     backendToken: null,
   });
 
-  // Backend API base URL
-  const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
-
   // Smart token validation - uses cached JWT if valid, otherwise fetches new one
   const validateAndRefreshToken = useCallback(async (): Promise<
     string | null
   > => {
     try {
-      // Try to get a valid JWT (this uses intelligent caching internally)
       const jwt = await getBackendJwt();
       return jwt;
     } catch (error) {
@@ -121,9 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (status === "unauthenticated" || !session?.id_token) {
         console.log(
           "🔍 [AUTH CONTEXT] No valid session found - setting unauthenticated state",
-        );
-        console.log(
-          "🔍 [AUTH CONTEXT] This is normal for users who haven't logged in yet",
         );
         setAuthState({
           user: null,
@@ -206,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         userInfo.userRole,
       );
 
-      // Handle role-based routing - simplified (no automatic redirects)
+      // Handle role-based routing
       const role = userInfo.userRole.toLowerCase();
       const currentPath = window.location.pathname;
 
@@ -245,9 +240,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (role === "instructor") {
           console.log("👨‍🏫 Routing instructor to instructor dashboard");
           targetPath = "/dashboard/instructor";
-        } else if (["admin", "recruiter"].includes(role)) {
-          console.log("👨‍💼 Routing admin/recruiter to admin dashboard");
+        } else if (role === "admin") {
+          console.log("‍💼 Routing admin to admin dashboard");
           targetPath = "/dashboard/admin";
+        } else if (role === "recruiter") {
+          console.log("👨‍💼 Routing recruiter to recruiter dashboard");
+          targetPath = "/dashboard/recruiter";
         } else {
           console.log("❓ Unknown role, no specific routing:", role);
         }
@@ -306,6 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     authState.backendToken,
     authState.user,
     validateAndRefreshToken,
+    hasRedirected,
   ]);
 
   // Regular login (email/password) - kept for backward compatibility
@@ -315,34 +314,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       password: string;
     }): Promise<boolean> => {
       try {
-        const response = await fetch(`${BACKEND_BASE_URL}/api/auth/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-          credentials: "include",
-        });
+        const loginRes = await apiClient.post(
+          API_ENDPOINTS.AUTH.LOGIN,
+          credentials,
+        );
+        const data = loginRes.data;
 
-        if (response.ok) {
-          const data = await response.json();
-          setAuthState({
-            user: data.user,
-            isLoading: false,
-            isAuthenticated: true,
-            error: null,
-            backendToken: data.token || data.accessToken,
-          });
-          return true;
-        }
-
-        const errorData = await response.json();
-        setAuthState((prev) => ({
-          ...prev,
-          error: errorData.error || "Login failed",
+        setAuthState({
+          user: data.user,
           isLoading: false,
-        }));
-        return false;
+          isAuthenticated: true,
+          error: null,
+          backendToken: data.token || data.accessToken,
+        });
+        return true;
       } catch (error) {
         console.error("Login error:", error);
         setAuthState((prev) => ({
@@ -353,7 +338,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
     },
-    [BACKEND_BASE_URL],
+    [],
   );
 
   // Logout
@@ -361,13 +346,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if (authState.backendToken) {
         // Call backend logout to clear any server-side cookies
-        await fetch(`${BACKEND_BASE_URL}/api/auth/logout`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${authState.backendToken}`,
-          },
-          credentials: "include",
-        });
+        await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
       }
 
       // Clear client-side cache
@@ -405,7 +384,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await signOut({ redirect: false });
       router.push("/");
     }
-  }, [authState.backendToken, BACKEND_BASE_URL, router]);
+  }, [authState.backendToken, router]);
 
   const refreshAuth = useCallback(async () => {
     await checkAuth();
@@ -441,7 +420,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     ); // Check every 10 minutes
 
     return () => clearInterval(interval);
-  }, [authState.isAuthenticated, authState.backendToken]); // Removed checkAuth from dependencies
+  }, [authState.isAuthenticated, authState.backendToken, checkAuth]);
 
   const contextValue: AuthContextType = {
     ...authState,

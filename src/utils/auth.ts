@@ -1,7 +1,8 @@
 import axios from "axios";
 import { getSession } from "next-auth/react";
+import { BASE_URLS } from "../config/urls";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+const baseUrl = BASE_URLS.BACKEND;
 
 // JWT utilities for client-side validation
 interface JWTPayload {
@@ -196,14 +197,17 @@ export const getBackendJwt = async (): Promise<string> => {
     }
 
     return cachedBackendJwt;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("🔍 [AUTH UTILS] Failed to authenticate with backend:", err);
-    if (err.response) {
+    if (typeof err === "object" && err !== null && "response" in err) {
       console.error(
         "🔍 [AUTH UTILS] Error response status:",
-        err.response.status,
+        (err as { response?: { status?: number } }).response?.status,
       );
-      console.error("🔍 [AUTH UTILS] Error response data:", err.response.data);
+      console.error(
+        "🔍 [AUTH UTILS] Error response data:",
+        (err as { response?: { data?: unknown } }).response?.data,
+      );
     }
     throw new Error("Failed to authenticate with backend");
   }
@@ -355,11 +359,18 @@ export const validateOAuthUser = async (googleToken: string) => {
       user: response.data.user,
       token: response.data.token,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("OAuth validation failed:", error);
     return {
       valid: false,
-      error: error.response?.data || error.message,
+      error:
+        typeof error === "object" && error !== null && "response" in error
+          ? (
+              error as {
+                response?: { data?: string; message?: string };
+              }
+            ).response?.data || (error as { message?: string }).message
+          : String(error),
     };
   }
 };

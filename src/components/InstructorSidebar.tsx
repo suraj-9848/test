@@ -55,20 +55,25 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
       label: "Manage Courses",
       icon: Settings,
     },
+    // {
+    //   key: "manage-modules",
+    //   label: "Manage Modules",
+    //   icon: ClipboardList,
+    // },
+    // {
+    //   key: "module-content",
+    //   label: "Module Content",
+    //   icon: Edit,
+    // },
+    // {
+    //   key: "mcq-management",
+    //   label: "MCQ Management",
+    //   icon: HelpCircle,
+    // },
     {
-      key: "manage-modules",
-      label: "Manage Modules",
-      icon: ClipboardList,
-    },
-    {
-      key: "module-content",
-      label: "Module Content",
-      icon: Edit,
-    },
-    {
-      key: "mcq-management",
-      label: "MCQ Management",
-      icon: HelpCircle,
+      key: "module-mcq-management",
+      label: "Module-MCQ",
+      icon: BookOpen,
     },
   ];
 
@@ -87,24 +92,14 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
 
   const analyticsMenuItems = [
     {
-      key: "student-analytics",
-      label: "Student Analytics",
-      icon: Users,
-    },
-    {
-      key: "progress-analytics",
-      label: "Progress Analytics",
-      icon: TrendingUp,
+      key: "course-analytics",
+      label: "Course Analytics",
+      icon: Eye,
     },
     {
       key: "test-analytics",
       label: "Test Analytics",
       icon: BarChart3,
-    },
-    {
-      key: "evaluation-statistics",
-      label: "Evaluation Statistics",
-      icon: Percent,
     },
   ];
 

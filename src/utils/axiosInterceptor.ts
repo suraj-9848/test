@@ -180,8 +180,8 @@ apiClient.interceptors.request.use(
     const requestId = Math.random().toString(36).substr(2, 9);
 
     // Add request tracking
-    (config as any)._requestId = requestId;
-    (config as any)._startTime = startTime;
+    (config as unknown as Record<string, unknown>)["_requestId"] = requestId;
+    (config as unknown as Record<string, unknown>)["_startTime"] = startTime;
 
     // Log all outgoing requests with detailed info
     const isAnalyticsCall =
@@ -289,9 +289,13 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Extract request tracking info
-    const requestId = (response.config as any)?._requestId;
-    const startTime = (response.config as any)?._startTime;
-    const duration = startTime ? Date.now() - startTime : 0;
+    const requestId = (response.config as unknown as Record<string, unknown>)[
+      "_requestId"
+    ];
+    const startTime = (response.config as unknown as Record<string, unknown>)[
+      "_startTime"
+    ];
+    const duration = typeof startTime === "number" ? Date.now() - startTime : 0;
 
     // Log response details
     const isAnalyticsCall =
@@ -331,9 +335,13 @@ apiClient.interceptors.response.use(
   },
   async (error: AxiosError) => {
     // Extract request tracking info
-    const requestId = (error.config as any)?._requestId;
-    const startTime = (error.config as any)?._startTime;
-    const duration = startTime ? Date.now() - startTime : 0;
+    const requestId = (error.config as unknown as Record<string, unknown>)[
+      "_requestId"
+    ];
+    const startTime = (error.config as unknown as Record<string, unknown>)[
+      "_startTime"
+    ];
+    const duration = typeof startTime === "number" ? Date.now() - startTime : 0;
 
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;

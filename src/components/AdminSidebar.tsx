@@ -10,6 +10,7 @@ import {
   FaGraduationCap,
   FaTachometerAlt,
   FaUserFriends,
+  FaCrown,
 } from "react-icons/fa";
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { key: "organizations", label: "Organizations", icon: FaBuilding },
     { key: "manage-hiring", label: "Manage Hiring", icon: FaUserTie },
     { key: "payments", label: "Payments", icon: FaRupeeSign },
+    { key: "pro-plans", label: "Pro Plans", icon: FaCrown },
   ];
 
   return (

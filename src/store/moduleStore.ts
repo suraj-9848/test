@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
+import { BASE_URLS } from "../config/urls";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+const baseUrl = BASE_URLS.BACKEND;
 
 // Types (same as before)
 export interface QuillDelta {

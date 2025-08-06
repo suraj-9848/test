@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import axios from "axios";
+import { BASE_URLS } from "../config/urls";
 import {
   FaSave,
   FaTimes,
@@ -85,8 +86,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showBatchManager, setShowBatchManager] = useState(false);
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
+  const API_BASE_URL = BASE_URLS.BACKEND;
 
   // Initialize authentication
   useEffect(() => {
@@ -96,7 +96,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
         if (!googleIdToken) return;
 
         const loginRes = await axios.post(
-          `${API_BASE_URL}/api/auth/admin-login`,
+          `${BASE_URLS.BACKEND}/api/auth/admin-login`,
           {},
           {
             headers: { Authorization: `Bearer ${googleIdToken}` },
@@ -123,14 +123,14 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
 
         // Fetch batches
         const batchesResponse = await axios.get(
-          `${API_BASE_URL}/api/instructor/batches`,
+          `${BASE_URLS.BACKEND}/api/instructor/batches`,
           { headers: { Authorization: `Bearer ${backendJwt}` } },
         );
         setBatches(batchesResponse.data.batches || []);
 
         // Fetch course details
         const courseResponse = await axios.get(
-          `${API_BASE_URL}/api/instructor/courses/${courseId}`,
+          `${BASE_URLS.BACKEND}/api/instructor/courses/${courseId}`,
           { headers: { Authorization: `Bearer ${backendJwt}` } },
         );
 
@@ -541,7 +541,10 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                     name="is_public"
                     checked={formData.is_public}
                     onChange={() =>
-                      setFormData((prev) => ({ ...prev, is_public: true }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        is_public: true,
+                      }))
                     }
                     className="text-blue-600 focus:ring-blue-500"
                   />
@@ -556,7 +559,10 @@ const EditCourse: React.FC<EditCourseProps> = ({ courseId }) => {
                     name="is_public"
                     checked={!formData.is_public}
                     onChange={() =>
-                      setFormData((prev) => ({ ...prev, is_public: false }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        is_public: false,
+                      }))
                     }
                     className="text-blue-600 focus:ring-blue-500"
                   />

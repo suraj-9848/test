@@ -11,6 +11,7 @@ import ComprehensiveUserManagement from "@/components/ComprehensiveUserManagemen
 import OrganizationManagement from "@/components/OrganizationManagement";
 import ManageHiring from "@/components/ManageHiring";
 import PaymentApproval from "@/components/PaymentApproval";
+import ProPlanManagement from "@/components/ProPlanManagement";
 
 const AdminPage: React.FC = () => {
   const { status } = useSession();
@@ -44,8 +45,11 @@ const AdminPage: React.FC = () => {
       case "manage-hiring":
         return <ManageHiring />;
       case "payments":
-      default:
         return <PaymentApproval />;
+      case "pro-plans":
+        return <ProPlanManagement />;
+      default:
+        return <AdminDashboard />;
     }
   };
 

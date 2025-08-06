@@ -1,6 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { FaBook, FaGraduationCap, FaChartLine, FaUsers } from "react-icons/fa";
@@ -11,28 +19,39 @@ import CreateCourse from "../../../components/CreateCourse";
 import ManageModules from "../../../components/ManageModules";
 import ModuleContent from "../../../components/ModuleContent";
 import MCQManagement from "../../../components/MCQManagement";
+import ModuleMcqManagement from "../../../components/ModuleMcqManagement";
 
 import UnifiedBatchManagement from "@/components/UnifiedBatchManagement";
 import CreateTest from "../../../components/CreateTest";
 import ManageTest from "../../../components/ManageTest";
 import TestAnalytics from "@/components/TestAnalytics";
+import CourseAnalytics from "@/components/CourseAnalytics";
 import CourseAssignment from "../../../components/CourseAssignment";
-import StudentAnalytics from "../../../components/StudentAnalytics";
-import ProgressAnalytics from "../../../components/ProgressAnalytics";
-import EvaluationStatistics from "../../../components/EvaluationStatistics";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
-import { instructorApi } from "@/api/instructorApi";
 import CourseBatchAssignment from "@/components/CourseBatchAssignment";
+import { API_ENDPOINTS, buildUrl } from "@/config/urls";
+import apiClient from "@/utils/axiosInterceptor";
+
+interface StudentsPerCourse {
+  courseId: string;
+  title: string;
+  studentCount: number;
+}
+
+interface StudentsPerBatch {
+  batchId: string;
+  name: string;
+  studentCount: number;
+}
 
 interface DashboardStats {
   totalCourses: number;
   totalBatches: number;
   totalStudents: number;
-  averageProgress: number;
-  recentActivity: number;
-  publicCourses: number;
-  privateCourses: number;
+  averageStudentsPerCourse: number;
+  studentsPerCourse: StudentsPerCourse[];
+  studentsPerBatch: StudentsPerBatch[];
 }
 
 const InstructorDashboard: React.FC = () => {
@@ -54,39 +73,21 @@ const InstructorDashboard: React.FC = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        // Mock dashboard stats - replace with actual API call when available
-        const mockStats = {
-          totalCourses: 8,
-          totalBatches: 4,
-          totalStudents: 125,
-          averageProgress: 78,
-          recentActivity: 12,
-          publicCourses: 3,
-          privateCourses: 5,
-        };
-        setStats(mockStats);
         setError("");
-      } catch (err: unknown) {
-        console.error("Error fetching dashboard stats:", err);
-        if (err instanceof Error) {
-          setError(err.message || "Failed to load dashboard statistics");
+        const url = buildUrl(API_ENDPOINTS.INSTRUCTOR.DASHBOARD.STATS);
+        const response = await apiClient.get(url);
+        if (response.data && response.data.stats) {
+          setStats(response.data.stats);
         } else {
-          setError("Failed to load dashboard statistics");
+          setError("No dashboard stats found");
         }
-        setStats({
-          totalCourses: 0,
-          totalBatches: 0,
-          totalStudents: 0,
-          averageProgress: 0,
-          recentActivity: 0,
-          publicCourses: 0,
-          privateCourses: 0,
-        });
+      } catch (err: any) {
+        setError(err?.message || "Failed to load dashboard statistics");
+        setStats(null);
       } finally {
         setLoading(false);
       }
     };
-
     if (status === "authenticated") {
       fetchStats();
     }
@@ -96,116 +97,164 @@ const InstructorDashboard: React.FC = () => {
     switch (activeSection) {
       case "dashboard":
         return (
-          <div className="p-6 space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Welcome to Instructor Dashboard
-              </h1>
-              <p className="text-gray-600">
-                Manage your courses, students, and track progress from here.
-              </p>
+          <div className="p-0 md:p-6 space-y-8 md:space-y-10">
+            {/* Header Section */}
+            <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl shadow-lg border border-gray-200 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2 drop-shadow-lg">
+                  Instructor Dashboard
+                </h1>
+                <p className="text-white/80 text-lg md:text-xl font-medium">
+                  Welcome! Manage your courses, students, and batches with
+                  powerful analytics.
+                </p>
+              </div>
+              <div className="flex gap-6">
+                <div className="flex flex-col items-center">
+                  <FaBook className="w-10 h-10 text-white/80 mb-1" />
+                  <span className="text-white font-bold text-xl">
+                    {loading ? "-" : stats?.totalCourses || 0}
+                  </span>
+                  <span className="text-white/70 text-sm">Courses</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <FaUsers className="w-10 h-10 text-white/80 mb-1" />
+                  <span className="text-white font-bold text-xl">
+                    {loading ? "-" : stats?.totalStudents || 0}
+                  </span>
+                  <span className="text-white/70 text-sm">Students</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <FaGraduationCap className="w-10 h-10 text-white/80 mb-1" />
+                  <span className="text-white font-bold text-xl">
+                    {loading ? "-" : stats?.totalBatches || 0}
+                  </span>
+                  <span className="text-white/70 text-sm">Batches</span>
+                </div>
+              </div>
             </div>
 
+            {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-md">
                 {error}
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100">Total Courses</p>
-                    <p className="text-2xl font-bold">
-                      {loading ? "-" : stats?.totalCourses || 0}
-                    </p>
-                  </div>
-                  <FaBook className="w-8 h-8 text-blue-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100">Active Students</p>
-                    <p className="text-2xl font-bold">
-                      {loading ? "-" : stats?.totalStudents || 0}
-                    </p>
-                  </div>
-                  <FaUsers className="w-8 h-8 text-green-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100">Batches</p>
-                    <p className="text-2xl font-bold">
-                      {loading ? "-" : stats?.totalBatches || 0}
-                    </p>
-                  </div>
-                  <FaGraduationCap className="w-8 h-8 text-purple-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-100">Avg. Progress</p>
-                    <p className="text-2xl font-bold">
-                      {loading ? "-" : stats?.averageProgress || 0}%
-                    </p>
-                  </div>
-                  <FaChartLine className="w-8 h-8 text-orange-200" />
-                </div>
-              </div>
-            </div>
-
+            {/* Analytics Section */}
             {stats && !loading && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Course Visibility
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Public Courses:</span>
-                      <span className="font-medium">{stats.publicCourses}</span>
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">
+                    Course & Batch Analytics
+                  </h2>
+                  <div className="flex flex-col md:flex-row gap-8">
+                    {/* Students Per Course Pie Chart */}
+                    <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex-1 min-w-[320px] flex flex-col items-center justify-center">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        Students Per Course
+                      </h3>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <PieChart>
+                          <Pie
+                            data={stats.studentsPerCourse}
+                            dataKey="studentCount"
+                            nameKey="title"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={90}
+                            innerRadius={50}
+                            label={({ title }) => title}
+                          >
+                            {stats.studentsPerCourse.map((entry, idx) => (
+                              <Cell
+                                key={`cell-course-${idx}`}
+                                fill={
+                                  [
+                                    "#6366f1",
+                                    "#818cf8",
+                                    "#a5b4fc",
+                                    "#f472b6",
+                                    "#fbbf24",
+                                    "#34d399",
+                                    "#60a5fa",
+                                  ][idx % 7]
+                                }
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend verticalAlign="bottom" height={36} />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Private Courses:</span>
-                      <span className="font-medium">
-                        {stats.privateCourses}
-                      </span>
+                    {/* Students Per Batch Pie Chart */}
+                    <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex-1 min-w-[320px] flex flex-col items-center justify-center">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        Students Per Batch
+                      </h3>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <PieChart>
+                          <Pie
+                            data={stats.studentsPerBatch}
+                            dataKey="studentCount"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={90}
+                            innerRadius={50}
+                            label={({ name }) => name}
+                          >
+                            {stats.studentsPerBatch.map((entry, idx) => (
+                              <Cell
+                                key={`cell-batch-${idx}`}
+                                fill={
+                                  [
+                                    "#ec4899",
+                                    "#f472b6",
+                                    "#fbbf24",
+                                    "#34d399",
+                                    "#60a5fa",
+                                    "#818cf8",
+                                    "#6366f1",
+                                  ][idx % 7]
+                                }
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend verticalAlign="bottom" height={36} />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Recent Activity
-                  </h3>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {stats.recentActivity}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Student interactions (30 days)
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Quick Actions
-                  </h3>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setActiveSection("create-course")}
-                      className="w-full text-left px-3 py-2 text-sm bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                    >
-                      Create New Course
-                    </button>
-                    <button
-                      onClick={() => setActiveSection("all-courses")}
-                      className="w-full text-left px-3 py-2 text-sm bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-                    >
-                      Manage Courses
-                    </button>
+
+                {/* Quick Actions Section */}
+                <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Quick Actions
+                    </h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setActiveSection("create-course")}
+                        className="w-full text-left px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-semibold shadow"
+                      >
+                        + Create New Course
+                      </button>
+                      <button
+                        onClick={() => setActiveSection("all-courses")}
+                        className="w-full text-left px-4 py-2 text-sm bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors font-semibold shadow"
+                      >
+                        Manage Courses
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 items-center">
+                    <span className="text-gray-700 text-sm">
+                      Tip: Scroll charts horizontally for more data
+                    </span>
                   </div>
                 </div>
               </div>
@@ -234,6 +283,8 @@ const InstructorDashboard: React.FC = () => {
         return <ModuleContent onClose={() => setActiveSection("dashboard")} />;
       case "mcq-management":
         return <MCQManagement />;
+      case "module-mcq-management":
+        return <ModuleMcqManagement />;
 
       // Test Management
       case "create-test":
@@ -249,14 +300,16 @@ const InstructorDashboard: React.FC = () => {
         return <CourseBatchAssignment />;
 
       // Analytics & Reports
-      case "student-analytics":
-        return <StudentAnalytics />;
-      case "progress-analytics":
-        return <ProgressAnalytics />;
+      // case "student-analytics":
+      //   return <StudentAnalytics />;
+      // case "progress-analytics":
+      //   return <ProgressAnalytics />;
+      // case "evaluation-statistics":
+      //   return <EvaluationStatistics />;
       case "test-analytics":
         return <TestAnalytics />;
-      case "evaluation-statistics":
-        return <EvaluationStatistics />;
+      case "course-analytics":
+        return <CourseAnalytics />;
 
       // Batch Management
       case "batch-management":

@@ -284,7 +284,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
         if (parts.length < 4) {
           errors.push(
-            `Line ${i + 1}: Invalid format. Expected: username,email,org_id,role`,
+            `Line ${
+              i + 1
+            }: Invalid format. Expected: username,email,org_id,role`,
           );
           continue;
         }
@@ -366,7 +368,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
       showToast(
         "success",
-        `${result.created} users created successfully${result.errors > 0 ? `. ${result.errors} errors occurred.` : "."}`,
+        `${result.created} users created successfully${
+          result.errors > 0 ? `. ${result.errors} errors occurred.` : "."
+        }`,
       );
 
       if (result.errorDetails && result.errorDetails.length > 0) {
@@ -417,7 +421,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
     ];
 
     const csvContent = sampleData.map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
@@ -544,7 +550,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
         // Make sure we have unique org names and filter out invalid values
         const uniqueOrgs = new Map();
-        response.orgs.forEach((org) => {
+        response.orgs.forEach((org: { id: string; name: string }) => {
           if (org.id && org.name && org.name.trim() !== "") {
             // Avoid using problematic keys like 'bruuh', 'CMRCET', 'NaN'
             if (
@@ -1058,7 +1064,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                 password:
                   userData.password === null ? undefined : userData.password,
               };
-              handleSubmitUser(safeUserData);
+              handleSubmitUser({
+                ...safeUserData,
+                userRole:
+                  safeUserData.userRole === ""
+                    ? undefined
+                    : safeUserData.userRole,
+              });
             }}
             onCancel={closeModals}
             isEdit

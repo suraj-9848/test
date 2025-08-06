@@ -3,6 +3,7 @@
  * This file is kept for compatibility but functionality has been moved to axiosInterceptor.ts
  */
 
+import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 
 // Simple stub class to prevent build errors
@@ -19,20 +20,20 @@ class ApiClient {
   }
 
   // Stub methods
-  get(): Promise<any> {
-    return Promise.resolve({});
+  get(url: string, config?: any) {
+    return axios.get(url, config);
   }
 
-  post(): Promise<any> {
-    return Promise.resolve({});
+  post(url: string, data?: any, config?: any) {
+    return axios.post(url, data, config);
   }
 
-  put(): Promise<any> {
-    return Promise.resolve({});
+  put(url: string, data?: any, config?: any) {
+    return axios.put(url, data, config);
   }
 
-  delete(): Promise<any> {
-    return Promise.resolve({});
+  delete(url: string, config?: any) {
+    return axios.delete(url, config);
   }
 }
 
@@ -48,10 +49,12 @@ export const useApiClient = () => {
   }
 
   return {
-    get: () => apiClient.get(),
-    post: () => apiClient.post(),
-    put: () => apiClient.put(),
-    delete: () => apiClient.delete(),
+    get: (url: string, config?: any) => apiClient.get(url, config),
+    post: (url: string, data?: any, config?: any) =>
+      apiClient.post(url, data, config),
+    put: (url: string, data?: any, config?: any) =>
+      apiClient.put(url, data, config),
+    delete: (url: string, config?: any) => apiClient.delete(url, config),
   };
 };
 

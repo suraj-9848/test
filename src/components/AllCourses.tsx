@@ -21,6 +21,7 @@ import {
   FaSquare,
   FaMinusSquare,
 } from "react-icons/fa";
+import { BASE_URLS } from "../config/urls";
 
 interface Course {
   id: string;
@@ -72,8 +73,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
   const [selectedCourseForBatchAssign, setSelectedCourseForBatchAssign] =
     useState<Course | null>(null);
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
+  const API_BASE_URL = BASE_URLS.BACKEND;
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -93,7 +93,7 @@ const AllCourses: React.FC<AllCoursesProps> = ({ onCreateCourse }) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "";
+        const baseUrl = BASE_URLS.BACKEND;
         const googleIdToken = (session as { id_token?: string })?.id_token;
         if (!googleIdToken) {
           console.error("No Google ID token found");

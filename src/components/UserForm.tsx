@@ -139,7 +139,7 @@ const UserForm: React.FC<UserFormProps> = ({
   const [organizations, setOrganizations] = useState<
     { id: string; name: string }[]
   >([]);
-  const batches = getBatches();
+  const [batches, setBatches] = useState<any[]>([]);
 
   // Fetch organizations on mount
   useEffect(() => {
@@ -147,7 +147,10 @@ const UserForm: React.FC<UserFormProps> = ({
       try {
         const response = await organizationApi.getAll();
         setOrganizations(
-          response.orgs.map((org) => ({ id: org.id, name: org.name })),
+          response.orgs.map((org: { id: string; name: string }) => ({
+            id: org.id,
+            name: org.name,
+          })),
         );
       } catch (error) {
         console.error("Error fetching organizations:", error);
@@ -155,6 +158,19 @@ const UserForm: React.FC<UserFormProps> = ({
     };
 
     fetchOrgs();
+  }, []);
+
+  useEffect(() => {
+    const fetchBatchesAsync = async () => {
+      try {
+        const batchList = await getBatches();
+        setBatches(batchList);
+      } catch (error) {
+        console.error("Error fetching batches:", error);
+        setBatches([]);
+      }
+    };
+    fetchBatchesAsync();
   }, []);
 
   // Simple role options with just the 4 main roles
@@ -302,8 +318,8 @@ const UserForm: React.FC<UserFormProps> = ({
             >
               <option value="">Select Batch</option>
               {batches.map((batch) => (
-                <option key={batch} value={batch}>
-                  {batch}
+                <option key={batch.id || batch} value={batch.id || batch}>
+                  {batch.name || batch}
                 </option>
               ))}
             </select>

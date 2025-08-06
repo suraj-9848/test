@@ -78,7 +78,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
   useEffect(() => {
     if (session?.user)
       fetchBatches().catch((err) =>
-        console.error("Failed to fetch batches:", err)
+        console.error("Failed to fetch batches:", err),
       );
   }, [session, fetchBatches]);
 
@@ -141,7 +141,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
@@ -150,15 +150,15 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
         type === "checkbox"
           ? (e.target as HTMLInputElement).checked
           : name === "price"
-          ? parseFloat(value) || 0
-          : value,
+            ? parseFloat(value) || 0
+            : value,
     }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: "logo" | "trainer_avatar"
+    field: "logo" | "trainer_avatar",
   ) => {
     const file = e.target.files?.[0] || null;
     if (field === "logo") {
@@ -182,7 +182,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
   };
 
   const handleArrayInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setInputFields((prev) => ({ ...prev, [name]: value }));
@@ -260,7 +260,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
       setFormData((prev) => ({
         ...prev,
         what_you_will_learn: (prev.what_you_will_learn ?? []).filter(
-          (_, i) => i !== index
+          (_, i) => i !== index,
         ),
       }));
     } else if (field === "feature") {
@@ -530,7 +530,7 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ onCancel, onSuccess }) => {
   };
 
   const filteredBatches = batches.filter((batch) =>
-    batch.name.toLowerCase().includes(batchSearch.toLowerCase())
+    batch.name.toLowerCase().includes(batchSearch.toLowerCase()),
   );
 
   return (

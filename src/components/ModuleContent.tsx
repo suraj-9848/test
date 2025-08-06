@@ -3,6 +3,7 @@ import { useSession } from "next-auth/react";
 import axios from "axios";
 import { useModuleStore } from "@/store/moduleStore";
 import { useCourseStore } from "@/store/courseStore";
+import { BASE_URLS } from "../config/urls";
 import type {
   CreateDayContentData,
   CreateMCQData,

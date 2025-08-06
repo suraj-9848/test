@@ -1,4 +1,5 @@
 import { CreateUserRequest } from "@/api/adminApi";
+import type { UserRole } from "@/store/adminStore";
 
 export interface CSVUserData {
   username: string;
@@ -84,6 +85,7 @@ export class CSVUtils {
       password: this.generateRandomPassword(),
       org_id: user.org_id,
       batch_id: user.batch_id || [],
+      userRole: user.role as UserRole, // Ensure userRole is present for CreateUserRequest
     }));
   }
 
@@ -114,7 +116,9 @@ export class CSVUtils {
   }
 
   static downloadCSV(csvContent: string, filename: string) {
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const link = document.createElement("a");
 
     if (link.download !== undefined) {
