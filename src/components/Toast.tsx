@@ -5,7 +5,7 @@ import { FaCheckCircle, FaExclamationCircle, FaTimes } from "react-icons/fa";
 
 export interface ToastProps {
   id: string;
-  type: "success" | "error";
+  type: "success" | "error" | "warning"; // added warning
   message: string;
   duration?: number;
   onClose: (id: string) => void;
@@ -40,6 +40,8 @@ const Toast: React.FC<ToastProps> = ({
         return <FaCheckCircle className="w-5 h-5 text-green-500" />;
       case "error":
         return <FaExclamationCircle className="w-5 h-5 text-red-500" />;
+      case "warning":
+        return <FaExclamationCircle className="w-5 h-5 text-amber-500" />;
       default:
         return null;
     }
@@ -51,6 +53,8 @@ const Toast: React.FC<ToastProps> = ({
         return "bg-green-50 border-green-200";
       case "error":
         return "bg-red-50 border-red-200";
+      case "warning":
+        return "bg-amber-50 border-amber-200";
       default:
         return "bg-gray-50 border-gray-200";
     }

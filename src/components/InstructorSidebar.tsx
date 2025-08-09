@@ -55,21 +55,11 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
       label: "Manage Courses",
       icon: Settings,
     },
-    // {
-    //   key: "manage-modules",
-    //   label: "Manage Modules",
-    //   icon: ClipboardList,
-    // },
-    // {
-    //   key: "module-content",
-    //   label: "Module Content",
-    //   icon: Edit,
-    // },
-    // {
-    //   key: "mcq-management",
-    //   label: "MCQ Management",
-    //   icon: HelpCircle,
-    // },
+    {
+      key: "meeting-management",
+      label: "Meetings",
+      icon: Link,
+    },
     {
       key: "module-mcq-management",
       label: "Module-MCQ",

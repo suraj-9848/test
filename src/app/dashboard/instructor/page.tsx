@@ -30,6 +30,7 @@ import CourseAssignment from "../../../components/CourseAssignment";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
 import CourseBatchAssignment from "@/components/CourseBatchAssignment";
+import MeetingManagement from "@/components/MeetingManagement";
 import { API_ENDPOINTS, buildUrl } from "@/config/urls";
 import apiClient from "@/utils/axiosInterceptor";
 
@@ -298,6 +299,8 @@ const InstructorDashboard: React.FC = () => {
         return <BatchAssign />;
       case "course-batch-assignment":
         return <CourseBatchAssignment />;
+      case "meeting-management":
+        return <MeetingManagement />;
 
       // Analytics & Reports
       // case "student-analytics":

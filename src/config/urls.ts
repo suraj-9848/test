@@ -165,6 +165,12 @@ export const API_ENDPOINTS = {
     // Students
     STUDENTS: "/api/instructor/students",
 
+    // Meetings
+    MEETINGS: (courseId: string) =>
+      `/api/instructor/courses/${courseId}/meetings`,
+    MEETING_BY_ID: (courseId: string, meetingId: string) =>
+      `/api/instructor/courses/${courseId}/meetings/${meetingId}`,
+
     // Analytics (updated to match actual backend routes)
     ANALYTICS: {
       // General analytics endpoints
@@ -226,6 +232,13 @@ export const API_ENDPOINTS = {
       STUDENT: (studentId: string) =>
         `/api/instructor/progress/students/${studentId}`,
     },
+  },
+
+  // Student Routes
+  STUDENT: {
+    // Course-specific meetings
+    COURSE_MEETINGS: (courseId: string) =>
+      `/api/student/courses/${courseId}/meetings`,
   },
 
   // Recruiter Routes

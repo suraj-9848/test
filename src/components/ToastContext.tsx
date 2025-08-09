@@ -5,7 +5,7 @@ import Toast, { ToastProps } from "./Toast";
 
 interface ToastContextType {
   showToast: (
-    type: "success" | "error",
+    type: "success" | "error" | "warning",
     message: string,
     duration?: number,
   ) => void;
@@ -29,7 +29,11 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
   const showToast = useCallback(
-    (type: "success" | "error", message: string, duration?: number) => {
+    (
+      type: "success" | "error" | "warning",
+      message: string,
+      duration?: number,
+    ) => {
       const id = Math.random().toString(36).substr(2, 9);
       const newToast: ToastProps = {
         id,
