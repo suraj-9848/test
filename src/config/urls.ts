@@ -232,6 +232,8 @@ export const API_ENDPOINTS = {
       STUDENT: (studentId: string) =>
         `/api/instructor/progress/students/${studentId}`,
     },
+    BLOGS: "/api/instructor/blogs",
+    BLOG_BY_ID: (id: string) => `/api/instructor/blogs/${id}`,
   },
 
   // Student Routes

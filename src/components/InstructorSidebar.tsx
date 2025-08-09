@@ -43,6 +43,7 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
   const [isAnalyticsExpanded, setIsAnalyticsExpanded] = useState(false);
   const [isBatchesExpanded, setIsBatchesExpanded] = useState(false);
   const [isAssigningExpanded, setIsAssigningExpanded] = useState(false);
+  const [isBlogExpanded, setIsBlogExpanded] = useState(false);
 
   const courseMenuItems = [
     {
@@ -121,6 +122,19 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
       key: "course-batch-assignment",
       label: "Assign Course to Batch",
       icon: Link,
+    },
+  ];
+
+  const blogMenuItems = [
+    {
+      key: "write-blog",
+      label: "Write Blog",
+      icon: Edit,
+    },
+    {
+      key: "manage-blogs",
+      label: "Manage Blogs",
+      icon: Settings,
     },
   ];
 
@@ -246,12 +260,9 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
         <div className="flex items-center space-x-3 overflow-hidden">
           {!collapsed && (
             <div className="min-w-0 transition-all duration-300">
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block truncate">
-                NIRUDHYOG
+              <span className="text-xl font-bold text-black block truncate">
+                MENU
               </span>
-              <p className="text-sm text-slate-500 truncate">
-                Instructor Portal
-              </p>
             </div>
           )}
         </div>
@@ -330,6 +341,16 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
             items={batchMenuItems}
             isExpanded={isBatchesExpanded}
             setIsExpanded={setIsBatchesExpanded}
+          />
+        </div>
+
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <CollapsibleSection
+            title="Blogs"
+            icon={FileText}
+            items={blogMenuItems}
+            isExpanded={isBlogExpanded}
+            setIsExpanded={setIsBlogExpanded}
           />
         </div>
       </nav>

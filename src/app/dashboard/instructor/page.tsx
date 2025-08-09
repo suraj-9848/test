@@ -30,6 +30,8 @@ import CourseAssignment from "../../../components/CourseAssignment";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
 import CourseBatchAssignment from "@/components/CourseBatchAssignment";
+import WriteBlog from "@/components/WriteBlog";
+import ManageBlog from "@/components/ManageBlog";
 import MeetingManagement from "@/components/MeetingManagement";
 import { API_ENDPOINTS, buildUrl } from "@/config/urls";
 import apiClient from "@/utils/axiosInterceptor";
@@ -321,6 +323,12 @@ const InstructorDashboard: React.FC = () => {
         return <UnifiedBatchManagement />;
       case "create-batch":
         return <CreateBatch />;
+
+      // Blog Management
+      case "write-blog":
+        return <WriteBlog />;
+      case "manage-blogs":
+        return <ManageBlog />;
 
       // NEW: Assigning Section
 
