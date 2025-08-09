@@ -308,6 +308,15 @@ export const API_ENDPOINTS = {
     APPLY: (jobId: string) => `/api/hiring/jobs/${jobId}/apply`,
   },
 
+  // CP Tracker
+  CP_TRACKER: {
+    ALL: "/api/cp-tracker/leaderboard",
+    USER_BY_ID: (userId: string) => `/api/cp-tracker/users/${userId}`,
+    UPDATE_USER: (userId: string) => `/api/cp-tracker/users/${userId}`,
+    REFRESH_USER: (userId: string) => `/api/cp-tracker/users/${userId}/refresh`,
+    ADMIN_REFRESH_ALL: "/api/cp-tracker/admin/update-all",
+  },
+
   // File Upload
   UPLOAD: {
     GENERAL: "/api/upload",

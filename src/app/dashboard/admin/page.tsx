@@ -1,4 +1,3 @@
-// src/app/dashboard/admin/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -12,6 +11,7 @@ import OrganizationManagement from "@/components/OrganizationManagement";
 import ManageHiring from "@/components/ManageHiring";
 import PaymentApproval from "@/components/PaymentApproval";
 import ProPlanManagement from "@/components/ProPlanManagement";
+import CPTrackerPage from "@/components/CPTrackerPage";
 
 const AdminPage: React.FC = () => {
   const { status } = useSession();
@@ -32,6 +32,8 @@ const AdminPage: React.FC = () => {
         return <AdminDashboard />;
       case "users":
         return <ComprehensiveUserManagement type="all" />;
+      case "cp-tracker":
+        return <CPTrackerPage />;
       case "admins":
         return <ComprehensiveUserManagement type="admins" />;
       case "recruiters":

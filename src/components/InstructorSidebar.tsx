@@ -1,3 +1,8 @@
+const cpTrackerMenuItem = {
+  key: "cp-tracker",
+  label: "CP-Tracker",
+  icon: TrendingUp,
+};
 import React, { useState } from "react";
 import {
   Menu,
@@ -289,6 +294,13 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
             }}
             isActive={activeSection === "dashboard"}
             onClick={() => setActiveSection("dashboard")}
+          />
+        </div>
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-slate-200/50 hover:shadow-md transition-all duration-200">
+          <MenuButton
+            item={cpTrackerMenuItem}
+            isActive={activeSection === "cp-tracker"}
+            onClick={() => setActiveSection("cp-tracker")}
           />
         </div>
 

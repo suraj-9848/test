@@ -20,7 +20,6 @@ import ManageModules from "../../../components/ManageModules";
 import ModuleContent from "../../../components/ModuleContent";
 import MCQManagement from "../../../components/MCQManagement";
 import ModuleMcqManagement from "../../../components/ModuleMcqManagement";
-
 import UnifiedBatchManagement from "@/components/UnifiedBatchManagement";
 import CreateTest from "../../../components/CreateTest";
 import ManageTest from "../../../components/ManageTest";
@@ -35,6 +34,7 @@ import ManageBlog from "@/components/ManageBlog";
 import MeetingManagement from "@/components/MeetingManagement";
 import { API_ENDPOINTS, buildUrl } from "@/config/urls";
 import apiClient from "@/utils/axiosInterceptor";
+import CPTrackerPage from "@/components/CPTrackerPage";
 
 interface StudentsPerCourse {
   courseId: string;
@@ -288,6 +288,8 @@ const InstructorDashboard: React.FC = () => {
         return <MCQManagement />;
       case "module-mcq-management":
         return <ModuleMcqManagement />;
+      case "cp-tracker":
+        return <CPTrackerPage />;
 
       // Test Management
       case "create-test":
