@@ -167,7 +167,9 @@ const InstructorDashboard: React.FC = () => {
                             cy="50%"
                             outerRadius={90}
                             innerRadius={50}
-                            label={({ title }) => title}
+                            label={(entry: StudentsPerCourse) =>
+                              entry.title || ""
+                            }
                           >
                             {stats.studentsPerCourse.map((entry, idx) => (
                               <Cell
@@ -206,7 +208,9 @@ const InstructorDashboard: React.FC = () => {
                             cy="50%"
                             outerRadius={90}
                             innerRadius={50}
-                            label={({ name }) => name}
+                            label={(entry: StudentsPerBatch) =>
+                              entry.name || ""
+                            }
                           >
                             {stats.studentsPerBatch.map((entry, idx) => (
                               <Cell

@@ -6,7 +6,7 @@ import {
   FaTachometerAlt,
   FaBriefcase,
   FaFileAlt,
-  FaCreditCard,
+  FaUsers,
 } from "react-icons/fa";
 
 interface SidebarProps {
@@ -24,7 +24,7 @@ const RecruiterSidebar: React.FC<SidebarProps> = ({
     { key: "dashboard", label: "Dashboard", icon: FaTachometerAlt },
     { key: "jobs", label: "Manage Jobs", icon: FaBriefcase },
     { key: "applications", label: "Applications", icon: FaFileAlt },
-    { key: "subscriptions", label: "Subscriptions", icon: FaCreditCard },
+    { key: "users", label: "Users", icon: FaUsers },
   ];
 
   return (

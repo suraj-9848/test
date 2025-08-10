@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import RolePicker from "./RolePicker";
 import { useViewAs } from "../contexts/ViewAsContext";
+import { useRecruiterPro } from "@/contexts/RecruiterProContext";
 
 const Navbar = () => {
   const router = useRouter();
@@ -14,6 +15,7 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { viewAsRole, setViewAsRole } = useViewAs();
+  const { isProUser, expiresAt, loading: proUnknown } = useRecruiterPro();
 
   const user = session?.user;
   const userInitial = user?.name?.charAt(0).toUpperCase() || "U";
@@ -75,8 +77,13 @@ const Navbar = () => {
                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
                     {user?.name || "User"}
+                    {!proUnknown && isProUser && (
+                      <span className="inline-flex items-center text-[10px] font-medium text-yellow-800 bg-yellow-100 border border-yellow-200 px-1.5 py-0.5 rounded-full">
+                        Pro
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-500">
                     {user?.email || "No email"}
@@ -109,6 +116,19 @@ const Navbar = () => {
                         <p className="text-xs break-all text-gray-500">
                           {user?.email}
                         </p>
+                        {!proUnknown && isProUser && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center text-xs text-yellow-800 bg-yellow-100 border border-yellow-200 px-2 py-0.5 rounded-full">
+                              Pro
+                              {expiresAt && (
+                                <span className="ml-1 opacity-80">
+                                  • Expires{" "}
+                                  {new Date(expiresAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

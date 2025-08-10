@@ -280,7 +280,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    console.error(" Request interceptor error:", error);
+    console.warn(" Request interceptor error:", error);
     return Promise.reject(error);
   },
 );
@@ -353,10 +353,11 @@ apiClient.interceptors.response.use(
       error.config?.url?.includes("tests");
     const logPrefix = isAnalyticsCall ? "📊 ANALYTICS API" : "🌐 API";
 
-    // Log detailed error information
-    console.error(`${logPrefix} ERROR [${requestId}]:`, {
+    // Log detailed error information (warn to avoid Next.js error overlay)
+    console.warn(`${logPrefix} ERROR [${requestId}]:`, {
       url: error.config?.url,
-      method: error.config?.method?.toUpperCase(),
+      method:
+        (error.config?.method || "").toUpperCase?.() || error.config?.method,
       status: error.response?.status,
       statusText: error.response?.statusText,
       duration: `${duration}ms`,
@@ -417,7 +418,7 @@ apiClient.interceptors.response.use(
             );
           }
         } catch (refreshError) {
-          console.error(
+          console.warn(
             `${logPrefix} [${requestId}]: Token refresh failed:`,
             refreshError,
           );

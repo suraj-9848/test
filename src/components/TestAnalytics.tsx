@@ -682,8 +682,8 @@ const TestAnalytics: React.FC<TestAnalyticsProps> = ({ onClose }) => {
                         cy="50%"
                         outerRadius={80}
                         dataKey="value"
-                        label={({ name, percent }) =>
-                          `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
+                        label={(entry: any) =>
+                          `${entry.name} (${((entry.percent ?? 0) * 100).toFixed(0)}%)`
                         }
                       >
                         <Cell fill="#4ade80" />

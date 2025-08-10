@@ -1,21 +1,41 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import RecruiterSidebar from "@/components/RecruiterSidebar";
 import RecruiterDashboard from "@/components/RecruiterDashboard";
 import RecruiterJobs from "@/components/RecruiterJobs";
 import RecruiterApplications from "@/components/RecruiterApplications";
-import RecruiterSubscriptions from "@/components/RecruiterSubscriptions";
+import RecruiterUsers from "@/components/RecruiterUsers";
 import { ToastProvider } from "@/components/ToastContext";
 
 const RecruiterPage: React.FC = () => {
   const { status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [activeSection, setActiveSection] = useState("dashboard");
+
+  // Keep state in sync with query param `tab`
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && tab !== activeSection) {
+      setActiveSection(tab);
+    }
+  }, [searchParams, activeSection]);
+
+  const navigateTo = useCallback(
+    (section: string) => {
+      setActiveSection(section);
+      const params = new URLSearchParams(Array.from(searchParams.entries()));
+      params.set("tab", section);
+      router.replace(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams],
+  );
 
   // Redirect if unauthenticated
   useEffect(() => {
@@ -32,8 +52,8 @@ const RecruiterPage: React.FC = () => {
         return <RecruiterJobs />;
       case "applications":
         return <RecruiterApplications />;
-      case "subscriptions":
-        return <RecruiterSubscriptions />;
+      case "users":
+        return <RecruiterUsers />;
       default:
         return <RecruiterDashboard />;
     }
@@ -54,7 +74,7 @@ const RecruiterPage: React.FC = () => {
       <div className="flex h-screen bg-white">
         <RecruiterSidebar
           activeSection={activeSection}
-          setActiveSection={setActiveSection}
+          setActiveSection={navigateTo}
         />
         <div className="flex-1 overflow-auto bg-white">{renderContent()}</div>
       </div>

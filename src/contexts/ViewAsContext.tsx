@@ -87,29 +87,23 @@ export const ViewAsProvider: React.FC<ViewAsProviderProps> = ({ children }) => {
 
     // Special handling for Student View - redirect to student dashboard
     if (role === "student") {
-      const studentDashboardUrl = getLMSUrl();
+      const studentDashboardUrl = getLMSUrl() || "http://localhost:3001";
+
+      // Store current admin session info before redirect
+      sessionStorage.setItem("admin_viewing_as_student", "true");
+      sessionStorage.setItem("admin_return_url", window.location.href);
 
       if (!studentDashboardUrl) {
         console.error("Unable to determine student dashboard URL");
-        // Fallback to localhost:3001 if URL mapping fails
-        const fallbackUrl = "http://localhost:3001";
-        console.log(`Using fallback student dashboard URL: ${fallbackUrl}`);
-
-        // Store current admin session info before redirect
-        sessionStorage.setItem("admin_viewing_as_student", "true");
-        sessionStorage.setItem("admin_return_url", window.location.href);
-
-        window.location.href = fallbackUrl;
+        alert(
+          "Student dashboard URL mapping not found. Please configure NEXT_PUBLIC_STUDENT_LMS_URL or domain mappings.",
+        );
         return;
       }
 
       console.log(
         `Redirecting admin to student dashboard: ${studentDashboardUrl}`,
       );
-
-      // Store current admin session info before redirect
-      sessionStorage.setItem("admin_viewing_as_student", "true");
-      sessionStorage.setItem("admin_return_url", window.location.href);
 
       // Redirect to student dashboard
       window.location.href = studentDashboardUrl;
