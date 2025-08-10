@@ -20,7 +20,6 @@ import ManageModules from "../../../components/ManageModules";
 import ModuleContent from "../../../components/ModuleContent";
 import MCQManagement from "../../../components/MCQManagement";
 import ModuleMcqManagement from "../../../components/ModuleMcqManagement";
-
 import UnifiedBatchManagement from "@/components/UnifiedBatchManagement";
 import CreateTest from "../../../components/CreateTest";
 import ManageTest from "../../../components/ManageTest";
@@ -30,8 +29,12 @@ import CourseAssignment from "../../../components/CourseAssignment";
 import CreateBatch from "@/components/CreateBatch";
 import BatchAssign from "@/components/BatchAssign";
 import CourseBatchAssignment from "@/components/CourseBatchAssignment";
+import WriteBlog from "@/components/WriteBlog";
+import ManageBlog from "@/components/ManageBlog";
+import MeetingManagement from "@/components/MeetingManagement";
 import { API_ENDPOINTS, buildUrl } from "@/config/urls";
 import apiClient from "@/utils/axiosInterceptor";
+import CPTrackerPage from "@/components/CPTrackerPage";
 
 interface StudentsPerCourse {
   courseId: string;
@@ -285,6 +288,8 @@ const InstructorDashboard: React.FC = () => {
         return <MCQManagement />;
       case "module-mcq-management":
         return <ModuleMcqManagement />;
+      case "cp-tracker":
+        return <CPTrackerPage />;
 
       // Test Management
       case "create-test":
@@ -298,6 +303,8 @@ const InstructorDashboard: React.FC = () => {
         return <BatchAssign />;
       case "course-batch-assignment":
         return <CourseBatchAssignment />;
+      case "meeting-management":
+        return <MeetingManagement />;
 
       // Analytics & Reports
       // case "student-analytics":
@@ -318,6 +325,12 @@ const InstructorDashboard: React.FC = () => {
         return <UnifiedBatchManagement />;
       case "create-batch":
         return <CreateBatch />;
+
+      // Blog Management
+      case "write-blog":
+        return <WriteBlog />;
+      case "manage-blogs":
+        return <ManageBlog />;
 
       // NEW: Assigning Section
 

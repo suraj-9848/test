@@ -165,6 +165,12 @@ export const API_ENDPOINTS = {
     // Students
     STUDENTS: "/api/instructor/students",
 
+    // Meetings
+    MEETINGS: (courseId: string) =>
+      `/api/instructor/courses/${courseId}/meetings`,
+    MEETING_BY_ID: (courseId: string, meetingId: string) =>
+      `/api/instructor/courses/${courseId}/meetings/${meetingId}`,
+
     // Analytics (updated to match actual backend routes)
     ANALYTICS: {
       // General analytics endpoints
@@ -226,6 +232,15 @@ export const API_ENDPOINTS = {
       STUDENT: (studentId: string) =>
         `/api/instructor/progress/students/${studentId}`,
     },
+    BLOGS: "/api/instructor/blogs",
+    BLOG_BY_ID: (id: string) => `/api/instructor/blogs/${id}`,
+  },
+
+  // Student Routes
+  STUDENT: {
+    // Course-specific meetings
+    COURSE_MEETINGS: (courseId: string) =>
+      `/api/student/courses/${courseId}/meetings`,
   },
 
   // Recruiter Routes
@@ -291,6 +306,15 @@ export const API_ENDPOINTS = {
     APPLICATIONS: "/api/hiring/applications",
     APPLICATION_BY_ID: (id: string) => `/api/hiring/applications/${id}`,
     APPLY: (jobId: string) => `/api/hiring/jobs/${jobId}/apply`,
+  },
+
+  // CP Tracker
+  CP_TRACKER: {
+    ALL: "/api/cp-tracker/leaderboard",
+    USER_BY_ID: (userId: string) => `/api/cp-tracker/users/${userId}`,
+    UPDATE_USER: (userId: string) => `/api/cp-tracker/users/${userId}`,
+    REFRESH_USER: (userId: string) => `/api/cp-tracker/users/${userId}/refresh`,
+    ADMIN_REFRESH_ALL: "/api/cp-tracker/admin/update-all",
   },
 
   // File Upload
