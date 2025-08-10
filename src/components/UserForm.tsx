@@ -38,7 +38,7 @@ interface FormData {
   name: string;
   email: string;
   password: string | null;
-  college: string;
+  org_id: string;
   batch_id: string[];
   userRole: UserRole | "";
   role: UserRole | "";
@@ -62,7 +62,7 @@ const UserForm: React.FC<UserFormProps> = ({
     name: "",
     email: "",
     password: null,
-    college: "",
+    org_id: "",
     batch_id: [],
     userRole: "",
     role: "",
@@ -77,7 +77,7 @@ const UserForm: React.FC<UserFormProps> = ({
         name: user.name,
         email: user.email,
         password: null,
-        college: user.college,
+        org_id: (user as any).org_id || "",
         batch_id: getUserBatchId(user),
         userRole: user.userRole || "",
         role: getUserRole(user),
@@ -94,7 +94,7 @@ const UserForm: React.FC<UserFormProps> = ({
       username: formData.name, // Backend expects 'username', not 'name'
       email: formData.email || undefined,
       password: formData.password || undefined, // Now optional for both create and edit
-      org_id: formData.college || undefined, // Backend expects 'org_id', not 'college'
+      org_id: formData.org_id || undefined, // Backend expects 'org_id', not 'college'
       batch_id: formData.userRole === "student" ? formData.batch_id : [],
       // Note: 'role' field will be added by the API function from the userRole parameter
       userRole: formData.userRole || undefined, // This tells the parent component what role to pass to API
@@ -243,8 +243,8 @@ const UserForm: React.FC<UserFormProps> = ({
             <span>Organization *</span>
           </label>
           <select
-            value={formData.college}
-            onChange={(e) => handleInputChange("college", e.target.value)}
+            value={formData.org_id}
+            onChange={(e) => handleInputChange("org_id", e.target.value)}
             className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-black"
             required
           >
