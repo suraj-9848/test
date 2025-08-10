@@ -14,15 +14,30 @@ import {
 import { useToast } from "./ToastContext";
 import { recruiterApi } from "../api/recruiterApi";
 
+interface ApplicationUser {
+  email?: string;
+  username?: string;
+  isProUser?: boolean;
+  proExpiresAt?: string | Date | null;
+  is_pro_user?: boolean;
+}
+
 interface Application {
   id: string;
   jobId: string;
   jobTitle: string;
   applicantName: string;
   applicantEmail: string;
-  applyDate: string;
-  resumeUrl: string;
+  applyDate?: string; // frontend legacy
+  appliedAt?: string; // backend field
+  resumeUrl?: string;
   status: "applied" | "under_review" | "shortlisted" | "rejected";
+  // Optional fields from backend to mark Pro users (support multiple shapes)
+  isProUser?: boolean;
+  applicantIsPro?: boolean;
+  pro?: boolean;
+  is_pro_user?: boolean;
+  user?: ApplicationUser;
 }
 
 const RecruiterApplications: React.FC = () => {
@@ -32,6 +47,36 @@ const RecruiterApplications: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
+  const [proOnly, setProOnly] = useState<boolean>(false);
+
+  // Helper: derive display fields from possibly different backend shapes
+  const getApplicantName = (app: Application): string =>
+    app.applicantName?.trim() || app.user?.username?.trim() || "Unknown";
+  const getApplicantEmail = (app: Application): string =>
+    app.applicantEmail?.trim() || app.user?.email?.trim() || "";
+
+  // Helper: derive Pro flag from various possible fields
+  const isProApplicant = (app: Application): boolean => {
+    const anyNested: any = app as any;
+    const userPro = !!app.user?.isProUser || !!(app.user as any)?.is_pro_user;
+    const userExpiryValid = app.user?.proExpiresAt
+      ? new Date(app.user.proExpiresAt) > new Date()
+      : false;
+    return (
+      !!app.isProUser ||
+      !!app.applicantIsPro ||
+      !!app.pro ||
+      !!(app.is_pro_user as any) ||
+      userPro ||
+      userExpiryValid ||
+      !!anyNested?.meta?.isProUser ||
+      !!anyNested?.candidate?.isProUser
+    );
+  };
+
+  const getAppliedAt = (app: Application): Date => {
+    return new Date(app.applyDate || app.appliedAt || 0);
+  };
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -58,18 +103,29 @@ const RecruiterApplications: React.FC = () => {
     fetchApplications();
   }, [showToast]);
 
+  const proCount = useMemo(
+    () => applications.filter((a) => isProApplicant(a)).length,
+    [applications],
+  );
+
   const filteredAndSortedApplications = useMemo(() => {
     // Filter applications based on search term and status
     const filtered = applications.filter((app) => {
-      const matchesSearch =
-        app.applicantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.applicantEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      const name = getApplicantName(app);
+      const email = getApplicantEmail(app);
+      const job = app.jobTitle || "";
+
+      const matchesSearch = [name, job, email]
+        .join("\n")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || app.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesPro = !proOnly || isProApplicant(app);
+
+      return matchesSearch && matchesStatus && matchesPro;
     });
 
     // Sort applications
@@ -77,26 +133,33 @@ const RecruiterApplications: React.FC = () => {
     switch (sortBy) {
       case "newest":
         sorted.sort(
-          (a, b) =>
-            new Date(b.applyDate).getTime() - new Date(a.applyDate).getTime(),
+          (a, b) => getAppliedAt(b).getTime() - getAppliedAt(a).getTime(),
         );
         break;
       case "oldest":
         sorted.sort(
-          (a, b) =>
-            new Date(a.applyDate).getTime() - new Date(b.applyDate).getTime(),
+          (a, b) => getAppliedAt(a).getTime() - getAppliedAt(b).getTime(),
         );
         break;
       case "name_asc":
-        sorted.sort((a, b) => a.applicantName.localeCompare(b.applicantName));
+        sorted.sort((a, b) =>
+          getApplicantName(a).localeCompare(getApplicantName(b)),
+        );
         break;
       case "name_desc":
-        sorted.sort((a, b) => b.applicantName.localeCompare(a.applicantName));
+        sorted.sort((a, b) =>
+          getApplicantName(b).localeCompare(getApplicantName(a)),
+        );
+        break;
+      case "pro_first":
+        sorted.sort(
+          (a, b) => Number(isProApplicant(b)) - Number(isProApplicant(a)),
+        );
         break;
     }
 
     return sorted;
-  }, [applications, searchTerm, statusFilter, sortBy]);
+  }, [applications, searchTerm, statusFilter, sortBy, proOnly]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -164,7 +227,7 @@ const RecruiterApplications: React.FC = () => {
 
       {/* Filter and Search */}
       <div className="bg-white p-6 rounded-xl shadow-md mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSearch className="h-5 w-5 text-gray-400" />
@@ -204,8 +267,23 @@ const RecruiterApplications: React.FC = () => {
               <option value="oldest">Oldest First</option>
               <option value="name_asc">Name (A-Z)</option>
               <option value="name_desc">Name (Z-A)</option>
+              <option value="pro_first">Pro First</option>
             </select>
           </div>
+
+          <label className="flex items-center space-x-2 text-sm text-gray-700 select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              checked={proOnly}
+              onChange={(e) => setProOnly(e.target.checked)}
+            />
+            <span>Show Pro candidates only</span>
+          </label>
+        </div>
+
+        <div className="mt-3 text-sm text-gray-600">
+          Pro applicants: <span className="font-semibold">{proCount}</span>
         </div>
       </div>
 
@@ -255,15 +333,22 @@ const RecruiterApplications: React.FC = () => {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
                           <span className="text-gray-700 font-medium">
-                            {application.applicantName.charAt(0)}
+                            {(
+                              getApplicantName(application).charAt(0) || "?"
+                            ).toUpperCase()}
                           </span>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {application.applicantName}
+                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            {getApplicantName(application)}
+                            {isProApplicant(application) && (
+                              <span className="inline-flex items-center text-[10px] font-medium text-yellow-800 bg-yellow-100 border border-yellow-200 px-1.5 py-0.5 rounded-full">
+                                Pro
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {application.applicantEmail}
+                            {getApplicantEmail(application)}
                           </div>
                         </div>
                       </div>
@@ -275,7 +360,12 @@ const RecruiterApplications: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {new Date(application.applyDate).toLocaleDateString()}
+                        {(() => {
+                          const d = getAppliedAt(application);
+                          return isNaN(d.getTime())
+                            ? "—"
+                            : d.toLocaleDateString();
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -294,6 +384,11 @@ const RecruiterApplications: React.FC = () => {
                             className="text-green-600 hover:text-green-900"
                             onClick={() =>
                               handleUpdateStatus(application.id, "shortlisted")
+                            }
+                            title={
+                              isProApplicant(application)
+                                ? "Pro candidate — consider shortlisting"
+                                : undefined
                             }
                           >
                             <FaCheck className="w-4 h-4" />
@@ -323,8 +418,8 @@ const RecruiterApplications: React.FC = () => {
               No applications found
             </h3>
             <p className="text-gray-500">
-              {searchTerm || statusFilter !== "all"
-                ? "Try adjusting your search or filter criteria"
+              {searchTerm || statusFilter !== "all" || proOnly
+                ? "Try adjusting your search, filters, or Pro toggle"
                 : "You have no job applications yet"}
             </p>
           </div>

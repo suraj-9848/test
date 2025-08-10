@@ -167,7 +167,8 @@ const EvaluationStatistics: React.FC = () => {
 
   // API Base URL
   const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000";
+    (process.env.NEXT_PUBLIC_BACKEND_BASE_URL as string) ||
+    "http://localhost:3000";
 
   // Initialize component mounting and cleanup
   useEffect(() => {

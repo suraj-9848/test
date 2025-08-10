@@ -1,5 +1,7 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
+import { useOrganizationStore } from "@/store/organizationStore";
+
 import {
   FaEdit,
   FaTrash,
@@ -34,8 +36,6 @@ import {
   userApi,
   organizationApi,
 } from "@/api/adminApi";
-
-// Union type for all user types
 type CombinedUser = AdminUser | InstructorUser | StudentUser | RecruiterUser;
 
 interface UserManagementProps {
@@ -43,6 +43,9 @@ interface UserManagementProps {
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
+  // Import organization store to trigger fetch and get loading state
+
+  const orgStore = useOrganizationStore();
   const {
     admins,
     instructors,
@@ -125,18 +128,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
   const userRole = roleMap[type];
 
-  // Fetch users on mount
+  // Fetch organizations first, then users
   useEffect(() => {
-    const getUsers = async () => {
+    const fetchOrgsAndUsers = async () => {
       try {
-        // Always fetch all users to ensure all sections have data
+        await orgStore.fetchOrganizations();
         await fetchUsers("All");
       } catch {
-        showToast("error", "Failed to fetch users");
+        showToast("error", "Failed to fetch organizations or users");
       }
     };
-    getUsers();
-  }, [fetchUsers, showToast]); // Removed userRole dependency to always fetch all users
+    fetchOrgsAndUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Show error toast when error state changes
   useEffect(() => {
@@ -172,13 +176,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
 
       // Filter by organization
       let matchesOrg = collegeFilter === "All Organizations";
-      if (!matchesOrg && user.college) {
+      if (
+        !matchesOrg &&
+        "org_id" in user &&
+        typeof (user as any).org_id === "string"
+      ) {
         // Check if the organization name matches or if it's one of the problematic values that should match "Unknown"
+        const orgId = (user as any).org_id;
         const invalidOrgs = ["bruuh", "CMRCET", "NaN", "undefined", "null"];
-        const isInvalidOrg = invalidOrgs.includes(user.college);
+        const isInvalidOrg = invalidOrgs.includes(orgId);
 
         matchesOrg =
-          user.college === collegeFilter ||
+          orgId === collegeFilter ||
           (collegeFilter === "Unknown Organization" && isInvalidOrg);
       }
 
@@ -501,18 +510,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
     );
   };
 
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    return status === "Active" ? (
-      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-        Active
-      </span>
-    ) : (
-      <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-        Inactive
-      </span>
-    );
-  };
+  // // Get status badge
+  // const getStatusBadge = (status: string) => {
+  //   return status === "Active" ? (
+  //     <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+  //       Active
+  //     </span>
+  //   ) : (
+  //     <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+  //       Inactive
+  //     </span>
+  //   );
+  // };
 
   // Get title based on type
   const getTitle = () => {
@@ -536,50 +545,47 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
     return <FaUsers className="w-6 h-6 text-white" />;
   };
 
-  // Get college options
+  // Get college options and orgId-to-name mapping
   const [collegeOptions, setCollegeOptions] = useState<string[]>([
     "All Organizations",
   ]);
+  const [orgIdToName, setOrgIdToName] = useState<Record<string, string>>({});
 
-  // Fetch organizations
+  // Fetch organizations and build orgId-to-name mapping
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
         const response = await organizationApi.getAll();
         console.log("Fetched organizations:", response.orgs);
 
-        // Make sure we have unique org names and filter out invalid values
-        const uniqueOrgs = new Map();
+        // Build orgId-to-name mapping and filter out invalid values
+        const orgIdNameMap: Record<string, string> = {};
+        const uniqueNames: string[] = [];
         response.orgs.forEach((org: { id: string; name: string }) => {
-          if (org.id && org.name && org.name.trim() !== "") {
-            // Avoid using problematic keys like 'bruuh', 'CMRCET', 'NaN'
-            if (
-              !["bruuh", "CMRCET", "NaN", "undefined", "null"].includes(
-                org.name,
-              )
-            ) {
-              uniqueOrgs.set(org.id, org.name);
-            } else {
-              console.warn(
-                `Skipping problematic organization name: ${org.name}`,
-              );
+          if (
+            org.id &&
+            org.name &&
+            org.name.trim() !== "" &&
+            !["bruuh", "CMRCET", "NaN", "undefined", "null"].includes(org.name)
+          ) {
+            orgIdNameMap[org.id] = org.name;
+            if (!uniqueNames.includes(org.name)) {
+              uniqueNames.push(org.name);
             }
+          } else {
+            console.warn(`Skipping problematic organization name: ${org.name}`);
           }
         });
 
         // Convert to array and add "All Organizations" at the beginning
-        const orgOptions = [
-          "All Organizations",
-          ...Array.from(uniqueOrgs.values()),
-        ];
-        console.log("Setting college options:", orgOptions);
+        const orgOptions = ["All Organizations", ...uniqueNames];
         setCollegeOptions(orgOptions);
+        setOrgIdToName(orgIdNameMap);
       } catch (error) {
         console.error("Error fetching organizations:", error);
         showToast("error", "Failed to fetch organizations");
       }
     };
-
     fetchOrganizations();
   }, [showToast]);
 
@@ -855,7 +861,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
           </div>
 
           {/* Status Filter */}
-          <div className="relative">
+          {/* <div className="relative">
             <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <select
               value={statusFilter}
@@ -868,7 +874,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-          </div>
+          </div> */}
 
           {/* Bulk Actions */}
           <div className="flex space-x-2">
@@ -920,9 +926,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Join Date
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
-                  </th>
+                  </th> */}
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -937,6 +943,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                       : `user-${user.name || "unknown"}-${
                           user.email || "noemail"
                         }`;
+
+                  // Debug org_id and user object
+                  console.log("User row:", user);
 
                   return (
                     <tr
@@ -974,14 +983,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ type = "all" }) => {
                         {getRoleBadge(user)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {user.college || "No organization"}
+                        {/* Show organization name using orgIdToName mapping, fallback to org_id or Unknown Organization */}
+                        {user.college || "Unknown Organization"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {user.joinDate}
                       </td>
-                      <td className="px-6 py-4">
+                      {/* <td className="px-6 py-4">
                         {getStatusBadge(user.status)}
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4 flex gap-2">
                         <button
                           className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors"

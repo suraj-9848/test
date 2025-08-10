@@ -2,11 +2,18 @@
 
 // Base URLs
 export const BASE_URLS = {
-  BACKEND: process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:3000",
-  FRONTEND: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3002",
-  STUDENT_LMS:
-    process.env.NEXT_PUBLIC_STUDENT_LMS_URL || "http://localhost:3001",
+  BACKEND: (process.env.NEXT_PUBLIC_BACKEND_BASE_URL as string) || "",
+  FRONTEND: (process.env.NEXT_PUBLIC_FRONTEND_URL as string) || "",
+  STUDENT_LMS: (process.env.NEXT_PUBLIC_STUDENT_LMS_URL as string) || "",
 } as const;
+
+if (typeof window !== "undefined" && process.env.NODE_ENV === "production") {
+  if (!BASE_URLS.BACKEND)
+    console.error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  if (!BASE_URLS.FRONTEND) console.error("NEXT_PUBLIC_FRONTEND_URL is not set");
+  if (!BASE_URLS.STUDENT_LMS)
+    console.error("NEXT_PUBLIC_STUDENT_LMS_URL is not set");
+}
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -247,11 +254,13 @@ export const API_ENDPOINTS = {
   RECRUITER: {
     // Recruiter-specific API endpoints
     DASHBOARD: "/api/recruiter/dashboard",
+    CANDIDATE_INSIGHTS: "/api/recruiter/candidate-insights",
     JOBS: "/api/recruiter/jobs",
     JOB_BY_ID: (id: string) => `/api/recruiter/jobs/${id}`,
     APPLICATIONS: "/api/recruiter/applications",
     SUBSCRIPTIONS: "/api/recruiter/subscriptions",
     SUBSCRIPTION_BY_ID: (id: string) => `/api/recruiter/subscriptions/${id}`,
+    USERS: "/api/recruiter/users",
   },
 
   // Course Management
