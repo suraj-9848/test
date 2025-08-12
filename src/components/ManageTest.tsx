@@ -14,6 +14,11 @@ import {
 } from "../api/testApi";
 import { instructorApi, Test, Batch, Course } from "../api/instructorApi";
 
+interface TestCase {
+  input: string;
+  expected_output: string;
+}
+
 interface Question {
   id: string;
   question_text: string;
@@ -21,6 +26,11 @@ interface Question {
   marks: number;
   expectedWordCount?: number;
   codeLanguage?: string;
+  constraints?: string;
+  visible_testcases?: TestCase[];
+  hidden_testcases?: TestCase[];
+  time_limit_ms?: number;
+  memory_limit_mb?: number;
   options?: QuestionOption[];
 }
 
@@ -37,6 +47,11 @@ interface CreateQuestionRequestLocal {
   options?: { text: string; correct: boolean }[];
   expectedWordCount?: number;
   codeLanguage?: string;
+  constraints?: string;
+  visible_testcases?: TestCase[];
+  hidden_testcases?: TestCase[];
+  time_limit_ms?: number;
+  memory_limit_mb?: number;
 }
 
 interface UpdateTestPayload {
@@ -59,7 +74,28 @@ interface QuestionFormData {
   options: { text: string; correct: boolean }[];
   expectedWordCount?: number;
   codeLanguage?: string;
+  constraints?: string;
+  visible_testcases: TestCase[];
+  hidden_testcases: TestCase[];
+  time_limit_ms?: number;
+  memory_limit_mb?: number;
 }
+
+const SUPPORTED_LANGUAGES = [
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'python', label: 'Python' },
+  { value: 'java', label: 'Java' },
+  { value: 'cpp', label: 'C++' },
+  { value: 'c', label: 'C' },
+  { value: 'csharp', label: 'C#' },
+  { value: 'php', label: 'PHP' },
+  { value: 'ruby', label: 'Ruby' },
+  { value: 'go', label: 'Go' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'kotlin', label: 'Kotlin' },
+  { value: 'swift', label: 'Swift' },
+  { value: 'typescript', label: 'TypeScript' },
+];
 
 const ManageTest: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -75,17 +111,19 @@ const ManageTest: React.FC = () => {
   const [editDuration, setEditDuration] = useState<number>(1);
   const [editStartDate, setEditStartDate] = useState<string>("");
   const [editEndDate, setEditEndDate] = useState<string>("");
-  const [editShuffleQuestions, setEditShuffleQuestions] =
-    useState<boolean>(false);
+  const [editShuffleQuestions, setEditShuffleQuestions] = useState<boolean>(false);
   const [editShowResults, setEditShowResults] = useState<boolean>(false);
-  const [editShowCorrectAnswers, setEditShowCorrectAnswers] =
-    useState<boolean>(false);
+  const [editShowCorrectAnswers, setEditShowCorrectAnswers] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showQuestionManager, setShowQuestionManager] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionEditTestId, setQuestionEditTestId] = useState<string>("");
+  const [uploadStatus, setUploadStatus] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   const [questionForm, setQuestionForm] = useState<QuestionFormData>({
     question_text: "",
@@ -93,12 +131,19 @@ const ManageTest: React.FC = () => {
     marks: 1,
     options: [{ text: "", correct: false }],
     expectedWordCount: undefined,
-    codeLanguage: undefined,
+    codeLanguage: 'javascript',
+    constraints: '',
+    visible_testcases: [{ input: '', expected_output: '' }],
+    hidden_testcases: [{ input: '', expected_output: '' }],
+    time_limit_ms: 5000,
+    memory_limit_mb: 256,
   });
 
   const [editingQuestionId, setEditingQuestionId] = useState<string>("");
   const editorRef = useRef<RichTextEditorHandle>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ... (keeping all your existing useEffect hooks and utility functions)
   useEffect(() => {
     instructorApi
       .getBatches()
@@ -202,6 +247,140 @@ const ManageTest: React.FC = () => {
     return localDate.toISOString();
   }
 
+  const downloadDemoFile = (format: 'txt' | 'json') => {
+    const demoContent = format === 'json' 
+      ? JSON.stringify({
+          visible_testcases: [
+            { input: "5 3", expected_output: "8" },
+            { input: "10 20", expected_output: "30" }
+          ],
+          hidden_testcases: [
+            { input: "100 200", expected_output: "300" },
+            { input: "-5 10", expected_output: "5" }
+          ]
+        }, null, 2)
+      : `VISIBLE
+INPUT:
+5 3
+OUTPUT:
+8
+INPUT:
+10 20
+OUTPUT:
+30
+HIDDEN
+INPUT:
+100 200
+OUTPUT:
+300
+INPUT:
+-5 10
+OUTPUT:
+5`;
+
+    const blob = new Blob([demoContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `demo_testcases.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadStatus({ type: 'info', message: 'Processing file...' });
+      
+      const content = await file.text();
+      
+      // Parse the file content
+      let parsedData;
+      if (file.name.endsWith('.json')) {
+        parsedData = JSON.parse(content);
+      } else {
+        // Parse custom format
+        parsedData = parseCustomFormat(content);
+      }
+
+      // Update form data
+      setQuestionForm(prev => ({
+        ...prev,
+        visible_testcases: parsedData.visible_testcases || [],
+        hidden_testcases: parsedData.hidden_testcases || [],
+      }));
+
+      setUploadStatus({ type: 'success', message: 'Test cases loaded successfully!' });
+    } catch (error) {
+      setUploadStatus({ type: 'error', message: 'Failed to parse file. Please check the format.' });
+    }
+  };
+
+  const parseCustomFormat = (content: string) => {
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    const visible_testcases: TestCase[] = [];
+    const hidden_testcases: TestCase[] = [];
+    
+    let currentSection: 'VISIBLE' | 'HIDDEN' | null = null;
+    let currentInput = '';
+    let currentOutput = '';
+    let parsingMode: 'INPUT' | 'OUTPUT' | null = null;
+    
+    for (const line of lines) {
+      if (line === 'VISIBLE') {
+        currentSection = 'VISIBLE';
+        continue;
+      }
+      
+      if (line === 'HIDDEN') {
+        currentSection = 'HIDDEN';
+        continue;
+      }
+      
+      if (line === 'INPUT:') {
+        if (currentInput && currentOutput && currentSection) {
+          const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
+          if (currentSection === 'VISIBLE') {
+            visible_testcases.push(testCase);
+          } else {
+            hidden_testcases.push(testCase);
+          }
+        }
+        currentInput = '';
+        currentOutput = '';
+        parsingMode = 'INPUT';
+        continue;
+      }
+      
+      if (line === 'OUTPUT:') {
+        parsingMode = 'OUTPUT';
+        continue;
+      }
+      
+      if (parsingMode === 'INPUT') {
+        currentInput += (currentInput ? '\n' : '') + line;
+      } else if (parsingMode === 'OUTPUT') {
+        currentOutput += (currentOutput ? '\n' : '') + line;
+      }
+    }
+    
+    // Save last test case
+    if (currentInput && currentOutput && currentSection) {
+      const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
+      if (currentSection === 'VISIBLE') {
+        visible_testcases.push(testCase);
+      } else {
+        hidden_testcases.push(testCase);
+      }
+    }
+    
+    return { visible_testcases, hidden_testcases };
+  };
+
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -216,6 +395,28 @@ const ManageTest: React.FC = () => {
       return;
     }
 
+    // Validation for coding questions
+    if (questionForm.type === "CODE") {
+      if (!questionForm.codeLanguage) {
+        setLoading(false);
+        setError("Programming language is required for coding questions.");
+        return;
+      }
+
+      const hasEmptyVisibleTestCase = questionForm.visible_testcases.some(
+        tc => !tc.input.trim() || !tc.expected_output.trim()
+      );
+      const hasEmptyHiddenTestCase = questionForm.hidden_testcases.some(
+        tc => !tc.input.trim() || !tc.expected_output.trim()
+      );
+
+      if (hasEmptyVisibleTestCase || hasEmptyHiddenTestCase) {
+        setLoading(false);
+        setError("All test cases must have input and expected output.");
+        return;
+      }
+    }
+
     try {
       const payload: CreateQuestionRequestLocal = {
         question_text: html,
@@ -228,28 +429,30 @@ const ManageTest: React.FC = () => {
         payload.options = questionForm.options;
       }
 
-      if (
-        questionForm.type === "DESCRIPTIVE" &&
-        questionForm.expectedWordCount
-      ) {
+      if (questionForm.type === "DESCRIPTIVE" && questionForm.expectedWordCount) {
         payload.expectedWordCount = questionForm.expectedWordCount;
       }
 
       if (questionForm.type === "CODE") {
+        payload.codeLanguage = questionForm.codeLanguage;
+        payload.constraints = questionForm.constraints;
+        payload.visible_testcases = questionForm.visible_testcases;
+        payload.hidden_testcases = questionForm.hidden_testcases;
+        payload.time_limit_ms = questionForm.time_limit_ms;
+        payload.memory_limit_mb = questionForm.memory_limit_mb;
+        
         if (questionForm.expectedWordCount) {
           payload.expectedWordCount = questionForm.expectedWordCount;
         }
-        if (questionForm.codeLanguage) {
-          payload.codeLanguage = questionForm.codeLanguage;
-        }
       }
+
       if (editingQuestionId) {
         await updateQuestionInTest(
           selectedBatch,
           selectedCourse,
           questionEditTestId,
           editingQuestionId,
-          payload as any, // Type assertion to handle API compatibility
+          payload as any,
         );
         setSuccess("Question updated successfully!");
       } else {
@@ -257,7 +460,7 @@ const ManageTest: React.FC = () => {
           selectedBatch,
           selectedCourse,
           questionEditTestId,
-          payload as any, // Type assertion to handle API compatibility
+          payload as any,
         );
         setSuccess("Question added successfully!");
       }
@@ -272,16 +475,7 @@ const ManageTest: React.FC = () => {
       );
 
       // Reset form
-      setQuestionForm({
-        question_text: "",
-        type: "MCQ",
-        marks: 1,
-        options: [{ text: "", correct: false }],
-        expectedWordCount: undefined,
-        codeLanguage: undefined,
-      });
-      setEditingQuestionId("");
-      editorRef.current?.setContent("");
+      clearQuestionForm();
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -300,10 +494,16 @@ const ManageTest: React.FC = () => {
       marks: 1,
       options: [{ text: "", correct: false }],
       expectedWordCount: undefined,
-      codeLanguage: undefined,
+      codeLanguage: 'javascript',
+      constraints: '',
+      visible_testcases: [{ input: '', expected_output: '' }],
+      hidden_testcases: [{ input: '', expected_output: '' }],
+      time_limit_ms: 5000,
+      memory_limit_mb: 256,
     });
     setEditingQuestionId("");
     editorRef.current?.setContent("");
+    setUploadStatus(null);
   };
 
   const handleEditQuestion = (q: Question) => {
@@ -315,12 +515,51 @@ const ManageTest: React.FC = () => {
         ? q.options.map((o) => ({ text: o.text, correct: o.correct }))
         : [{ text: "", correct: false }],
       expectedWordCount: q.expectedWordCount,
-      codeLanguage: q.codeLanguage,
+      codeLanguage: q.codeLanguage || 'javascript',
+      constraints: q.constraints || '',
+      visible_testcases: q.visible_testcases || [{ input: '', expected_output: '' }],
+      hidden_testcases: q.hidden_testcases || [{ input: '', expected_output: '' }],
+      time_limit_ms: q.time_limit_ms || 5000,
+      memory_limit_mb: q.memory_limit_mb || 256,
     });
     setEditingQuestionId(q.id);
     editorRef.current?.setContent(q.question_text || "");
   };
 
+  // Test case management functions
+  const addTestCase = (type: 'visible_testcases' | 'hidden_testcases') => {
+    setQuestionForm(prev => ({
+      ...prev,
+      [type]: [...prev[type], { input: '', expected_output: '' }]
+    }));
+  };
+
+  const removeTestCase = (type: 'visible_testcases' | 'hidden_testcases', index: number) => {
+    const testCases = questionForm[type];
+    if (testCases.length > 1) {
+      setQuestionForm(prev => ({
+        ...prev,
+        [type]: testCases.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const updateTestCase = (
+    type: 'visible_testcases' | 'hidden_testcases',
+    index: number,
+    field: 'input' | 'expected_output',
+    value: string
+  ) => {
+    const testCases = questionForm[type];
+    setQuestionForm(prev => ({
+      ...prev,
+      [type]: testCases.map((tc, i) => 
+        i === index ? { ...tc, [field]: value } : tc
+      )
+    }));
+  };
+
+  // ... (keeping all your existing handler functions)
   const handleSelectTest = (testId: string) => {
     const test = tests.find((t) => t.id === testId);
     setSelectedTestId(testId);
@@ -614,7 +853,7 @@ const ManageTest: React.FC = () => {
         </div>
       )}
 
-      {/* Test editing form */}
+      {/* ... keeping your existing test editing form ... */}
       {selectedTestId &&
         (() => {
           const selectedTest = tests.find((t) => t.id === selectedTestId);
@@ -872,35 +1111,67 @@ const ManageTest: React.FC = () => {
               questions.map((q) => (
                 <li
                   key={q.id}
-                  className="flex justify-between items-center p-4 bg-gray-50 rounded-lg"
+                  className="flex justify-between items-start p-4 bg-gray-50 rounded-lg"
                 >
                   <div className="content-display flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        q.type === 'MCQ' ? 'bg-green-100 text-green-800' :
+                        q.type === 'DESCRIPTIVE' ? 'bg-blue-100 text-blue-800' :
+                        'bg-purple-100 text-purple-800'
+                      }`}>
+                        {q.type}
+                      </span>
+                      {q.type === 'CODE' && q.codeLanguage && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
+                          {q.codeLanguage.toUpperCase()}
+                        </span>
+                      )}
+                      <span className="text-sm text-gray-600">Marks: {q.marks}</span>
+                    </div>
                     <div
                       dangerouslySetInnerHTML={{ __html: q.question_text }}
-                      className="font-medium prose prose-sm max-w-none"
+                      className="font-medium prose prose-sm max-w-none mb-2"
                     />
-                    <div className="text-sm text-gray-600 mt-2">
-                      Type: {q.type} | Marks: {q.marks}
-                      {q.options && q.options.length > 0 && (
-                        <div className="mt-1">
-                          Options:{" "}
+                    
+                    {/* MCQ Options */}
+                    {q.options && q.options.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-sm text-gray-600 mb-1">Options:</div>
+                        <div className="space-y-1">
                           {q.options.map((opt, idx) => (
-                            <span
-                              key={idx}
-                              className={
-                                opt.correct
-                                  ? "font-semibold text-green-600"
-                                  : ""
-                              }
-                            >
+                            <div key={idx} className={`text-sm ${opt.correct ? 'font-semibold text-green-600' : 'text-gray-600'}`}>
                               {String.fromCharCode(65 + idx)}. {opt.text}
-                              {opt.correct && " ✓"}
-                              {idx < q.options!.length - 1 && ", "}
-                            </span>
+                              {opt.correct && ' ✓'}
+                            </div>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Coding Question Details */}
+                    {q.type === 'CODE' && (
+                      <div className="mt-2 space-y-2 text-sm text-gray-600">
+                        {q.constraints && (
+                          <div>
+                            <span className="font-medium">Constraints:</span> {q.constraints.substring(0, 100)}...
+                          </div>
+                        )}
+                        <div className="flex space-x-4">
+                          <span>Visible Test Cases: {q.visible_testcases?.length || 0}</span>
+                          <span>Hidden Test Cases: {q.hidden_testcases?.length || 0}</span>
+                          <span>Time Limit: {q.time_limit_ms}ms</span>
+                          <span>Memory: {q.memory_limit_mb}MB</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Descriptive Question Details */}
+                    {q.type === 'DESCRIPTIVE' && q.expectedWordCount && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        Expected Word Count: {q.expectedWordCount}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3 ml-4">
                     <button
@@ -921,14 +1192,44 @@ const ManageTest: React.FC = () => {
             )}
           </ul>
 
-          {/* Question form */}
-          <form
-            onSubmit={handleSaveQuestion}
-            className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm"
-          >
+          {/* Enhanced Question form with coding support */}
+          <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
             <h4 className="text-lg font-semibold mb-4 border-b pb-2">
               {editingQuestionId ? "Edit" : "Add"} Question
             </h4>
+
+            {/* Question Type Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Question Type
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                {(['MCQ', 'DESCRIPTIVE', 'CODE'] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setQuestionForm(prev => ({ ...prev, type }))}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      questionForm.type === type
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg mb-1">
+                        {type === 'MCQ' ? '☑️' : type === 'DESCRIPTIVE' ? '📝' : '💻'}
+                      </div>
+                      <div className="text-sm font-medium">
+                        {type === 'MCQ' ? 'Multiple Choice' : 
+                         type === 'DESCRIPTIVE' ? 'Descriptive' : 'Coding'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Question Text */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Question Text
@@ -944,31 +1245,8 @@ const ManageTest: React.FC = () => {
                 minHeight="150px"
               />
             </div>
-            <input
-              type="hidden"
-              value={questionForm.question_text}
-              required
-              readOnly
-            />
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Question Type
-              </label>
-              <select
-                value={questionForm.type}
-                onChange={(e) =>
-                  setQuestionForm((prev) => ({
-                    ...prev,
-                    type: e.target.value as "MCQ" | "DESCRIPTIVE" | "CODE",
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="MCQ">Multiple Choice</option>
-                <option value="DESCRIPTIVE">Descriptive</option>
-                <option value="CODE">Code</option>
-              </select>
-            </div>
+
+            {/* Marks */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Marks
@@ -989,8 +1267,7 @@ const ManageTest: React.FC = () => {
             </div>
 
             {/* Conditional fields for different question types */}
-            {(questionForm.type === "DESCRIPTIVE" ||
-              questionForm.type === "CODE") && (
+            {(questionForm.type === "DESCRIPTIVE" || questionForm.type === "CODE") && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Expected Word Count (Optional)
@@ -1013,35 +1290,226 @@ const ManageTest: React.FC = () => {
               </div>
             )}
 
+            {/* Coding Question Specific Fields */}
             {questionForm.type === "CODE" && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Programming Language (Optional)
-                </label>
-                <select
-                  value={questionForm.codeLanguage || ""}
-                  onChange={(e) =>
-                    setQuestionForm((prev) => ({
-                      ...prev,
-                      codeLanguage: e.target.value || undefined,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Language</option>
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
-                  <option value="c">C</option>
-                  <option value="html">HTML</option>
-                  <option value="css">CSS</option>
-                  <option value="sql">SQL</option>
-                  <option value="other">Other</option>
-                </select>
+              <div className="space-y-4 mb-4 border-t pt-4">
+                <h5 className="font-medium text-gray-900">Coding Question Settings</h5>
+                
+                {/* Programming Language and Limits */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Programming Language
+                    </label>
+                    <select
+                      value={questionForm.codeLanguage}
+                      onChange={(e) => setQuestionForm(prev => ({ ...prev, codeLanguage: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    >
+                      {SUPPORTED_LANGUAGES.map(lang => (
+                        <option key={lang.value} value={lang.value}>
+                          {lang.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time Limit (ms)
+                    </label>
+                    <input
+                      type="number"
+                      min="1000"
+                      max="30000"
+                      value={questionForm.time_limit_ms}
+                      onChange={(e) => setQuestionForm(prev => ({ 
+                        ...prev, 
+                        time_limit_ms: parseInt(e.target.value) || 5000 
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Memory Limit (MB)
+                    </label>
+                    <input
+                      type="number"
+                      min="128"
+                      max="1024"
+                      value={questionForm.memory_limit_mb}
+                      onChange={(e) => setQuestionForm(prev => ({ 
+                        ...prev, 
+                        memory_limit_mb: parseInt(e.target.value) || 256 
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Constraints */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Constraints
+                  </label>
+                  <textarea
+                    value={questionForm.constraints}
+                    onChange={(e) => setQuestionForm(prev => ({ ...prev, constraints: e.target.value }))}
+                    placeholder="e.g., 1 ≤ n ≤ 10^5, 1 ≤ arr[i] ≤ 10^9"
+                    className="w-full h-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Test Cases Upload Option */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h6 className="font-medium text-gray-900">Test Cases</h6>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200"
+                      >
+                        Upload File
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadDemoFile('txt')}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Demo (.txt)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadDemoFile('json')}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Demo (.json)
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.json"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  
+                  {uploadStatus && (
+                    <div className={`mb-4 p-2 rounded text-sm ${
+                      uploadStatus.type === 'success' ? 'bg-green-100 text-green-700' :
+                      uploadStatus.type === 'error' ? 'bg-red-100 text-red-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {uploadStatus.message}
+                    </div>
+                  )}
+
+                  {/* Test Cases Input */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Visible Test Cases */}
+                    <div>
+                      <h6 className="font-medium text-gray-800 mb-2">Visible Test Cases</h6>
+                      {questionForm.visible_testcases.map((testCase, index) => (
+                        <div key={index} className="mb-3 p-3 bg-gray-50 rounded">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-gray-600">Input</label>
+                              <textarea
+                                value={testCase.input}
+                                onChange={(e) => updateTestCase('visible_testcases', index, 'input', e.target.value)}
+                                className="w-full h-16 p-2 text-sm border rounded"
+                                placeholder="Input"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-600">Expected Output</label>
+                              <div className="flex">
+                                <textarea
+                                  value={testCase.expected_output}
+                                  onChange={(e) => updateTestCase('visible_testcases', index, 'expected_output', e.target.value)}
+                                  className="flex-1 h-16 p-2 text-sm border rounded"
+                                  placeholder="Output"
+                                />
+                                {questionForm.visible_testcases.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeTestCase('visible_testcases', index)}
+                                    className="ml-2 text-red-500 hover:text-red-700"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addTestCase('visible_testcases')}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        + Add Visible Test Case
+                      </button>
+                    </div>
+
+                    {/* Hidden Test Cases */}
+                    <div>
+                      <h6 className="font-medium text-gray-800 mb-2">Hidden Test Cases</h6>
+                      {questionForm.hidden_testcases.map((testCase, index) => (
+                        <div key={index} className="mb-3 p-3 bg-gray-50 rounded">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-gray-600">Input</label>
+                              <textarea
+                                value={testCase.input}
+                                onChange={(e) => updateTestCase('hidden_testcases', index, 'input', e.target.value)}
+                                className="w-full h-16 p-2 text-sm border rounded"
+                                placeholder="Input"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-600">Expected Output</label>
+                              <div className="flex">
+                                <textarea
+                                  value={testCase.expected_output}
+                                  onChange={(e) => updateTestCase('hidden_testcases', index, 'expected_output', e.target.value)}
+                                  className="flex-1 h-16 p-2 text-sm border rounded"
+                                  placeholder="Output"
+                                />
+                                {questionForm.hidden_testcases.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeTestCase('hidden_testcases', index)}
+                                    className="ml-2 text-red-500 hover:text-red-700"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addTestCase('hidden_testcases')}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        + Add Hidden Test Case
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
+            {/* MCQ Options */}
             {questionForm.type === "MCQ" && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1088,9 +1556,12 @@ const ManageTest: React.FC = () => {
                 </button>
               </div>
             )}
+
+            {/* Form Actions */}
             <div className="flex gap-3">
               <button
-                type="submit"
+                type="button"
+                onClick={handleSaveQuestion}
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
               >
@@ -1114,7 +1585,7 @@ const ManageTest: React.FC = () => {
                 Clear
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
