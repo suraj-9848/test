@@ -91,6 +91,7 @@ export interface CPTrackerLeaderboard {
   atcoder_problems_solved: number;
   platforms_connected: number;
   last_updated: string;
+  total_solved_count: number;
 }
 
 export interface CPTrackerStats {

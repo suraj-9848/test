@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   FaCreditCard,
   FaRegClock,
@@ -14,12 +14,52 @@ import { recruiterApi } from "../api/recruiterApi";
 interface Subscription {
   id: string;
   user_id: string;
-  plan: "free" | "pro";
-  status: "active" | "canceled" | "expired";
+  plan: "free" | "pro" | string; // tolerate unexpected casing
+  status: "active" | "canceled" | "expired" | string; // tolerate unexpected casing
   amount: number;
-  expiresAt: string;
+  expiresAt: any; // backend may send number/string
   features: string[];
 }
+
+// Helpers to normalize and format dates/fields
+const normalizeDateString = (v: any): string => {
+  if (v === null || v === undefined || v === "") return "";
+  try {
+    let d: Date | null = null;
+    if (typeof v === "number") {
+      const ms = v < 1e12 ? v * 1000 : v; // seconds vs ms
+      d = new Date(ms);
+    } else if (typeof v === "string") {
+      const num = Number(v);
+      if (!Number.isNaN(num) && v.trim() !== "") {
+        const ms = num < 1e12 ? num * 1000 : num;
+        d = new Date(ms);
+      } else {
+        d = new Date(v);
+      }
+    } else if (v instanceof Date) {
+      d = v;
+    }
+    if (!d || isNaN(d.getTime())) return "";
+    return d.toISOString();
+  } catch {
+    return "";
+  }
+};
+
+const formatExpiry = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString();
+};
+
+const normalizeSub = (s: Subscription): Subscription => ({
+  ...s,
+  plan: (s.plan as any)?.toString?.().toLowerCase?.() || s.plan,
+  status: (s.status as any)?.toString?.().toLowerCase?.() || s.status,
+  expiresAt: normalizeDateString(s.expiresAt),
+});
 
 const RecruiterSubscriptions: React.FC = () => {
   const { showToast } = useToast();
@@ -28,51 +68,183 @@ const RecruiterSubscriptions: React.FC = () => {
     useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [proUnknown, setProUnknown] = useState<boolean>(true);
+
+  // Derived state: is user Pro & expiry
+  const isProActive = subscriptions.some(
+    (s) => s.plan === "pro" && s.status === "active",
+  );
+  const proActiveSub =
+    subscriptions.find((s) => s.plan === "pro" && s.status === "active") ||
+    null;
+
+  const emitProChanged = () => {
+    try {
+      window.dispatchEvent(new Event("recruiter-pro-changed"));
+    } catch {}
+  };
+
+  const refreshSubs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Don't assume non-pro on error; keep unknown until success
+      setProUnknown(true);
+      const response = await recruiterApi.getSubscriptions();
+      if (response.success && response.subscriptions) {
+        const raw: Subscription[] = response.subscriptions;
+        const subs = raw.map(normalizeSub);
+        setSubscriptions(subs);
+        const activePro = subs.find(
+          (s) => s.status === "active" && s.plan === "pro",
+        );
+        const activeAny = subs.find((s) => s.status === "active");
+        const latest = [...subs].sort(
+          (a, b) =>
+            new Date(b.expiresAt || 0).getTime() -
+            new Date(a.expiresAt || 0).getTime(),
+        )[0];
+        const curr = activePro || activeAny || latest || null;
+        setCurrentSubscription(curr);
+        // Cache for quick UX (optional)
+        try {
+          if (activePro) {
+            localStorage.setItem("recruiterIsPro", "1");
+            if (activePro.expiresAt) {
+              localStorage.setItem(
+                "recruiterProExpiresAt",
+                (activePro.expiresAt as string) || "",
+              );
+            } else {
+              localStorage.removeItem("recruiterProExpiresAt");
+            }
+          } else {
+            localStorage.setItem("recruiterIsPro", "0");
+            localStorage.removeItem("recruiterProExpiresAt");
+          }
+          emitProChanged();
+        } catch {}
+        // Only clear unknown after a successful fetch
+        setProUnknown(false);
+      } else {
+        throw new Error(response.message || "Failed to load subscriptions");
+      }
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "Failed to load subscriptions");
+      showToast("error", "Failed to load subscription information");
+      // Keep proUnknown = true here so UI doesn't prompt upgrade incorrectly
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
 
   useEffect(() => {
-    const fetchSubscriptions = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await recruiterApi.getSubscriptions();
-        if (response.success && response.subscriptions) {
-          setSubscriptions(response.subscriptions);
-          if (response.subscriptions.length > 0) {
-            setCurrentSubscription(response.subscriptions[0]);
-          }
-        } else {
-          throw new Error(response.message || "Failed to load subscriptions");
-        }
-      } catch (err) {
-        const error = err as Error;
-        setError(error.message || "Failed to load subscriptions");
-        showToast("error", "Failed to load subscription information");
-      } finally {
-        setLoading(false);
+    // Bootstrap from cache to avoid flicker and wrong prompts on refresh
+    try {
+      const cachedPro = localStorage.getItem("recruiterIsPro") === "1";
+      const cachedExp = localStorage.getItem("recruiterProExpiresAt") || "";
+      if (cachedPro) {
+        const cachedSub = normalizeSub({
+          id: "cached",
+          user_id: "current_user",
+          plan: "pro",
+          status: "active",
+          amount: 0,
+          expiresAt: cachedExp || new Date().toISOString(),
+          features: [],
+        } as Subscription);
+        setSubscriptions([cachedSub]);
+        setCurrentSubscription(cachedSub);
+        setProUnknown(false);
+      }
+    } catch {}
+    refreshSubs();
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        refreshSubs();
       }
     };
-
-    fetchSubscriptions();
-  }, [showToast]);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [refreshSubs]);
 
   const handleUpgrade = async () => {
     try {
+      // If unknown, re-check first
+      if (proUnknown) {
+        await refreshSubs();
+      }
+      if (isProActive) {
+        showToast(
+          "success",
+          proActiveSub?.expiresAt
+            ? `You're already Pro (expires on ${formatExpiry(
+                proActiveSub.expiresAt as string,
+              )})`
+            : "You're already Pro",
+        );
+        return;
+      }
       setLoading(true);
       const subscriptionData = {
-        user_id: currentSubscription?.user_id || "current_user", // In a real app, you would get the actual user ID
+        user_id: currentSubscription?.user_id || "current_user",
         plan: "pro",
       };
 
       const response = await recruiterApi.createSubscription(subscriptionData);
 
       if (response.success) {
-        setSubscriptions([...subscriptions, response.subscription]);
-        setCurrentSubscription(response.subscription);
+        // Always re-fetch to sync status and dates from backend
+        await refreshSubs();
         showToast("success", "Successfully upgraded to Pro plan");
       } else {
         throw new Error(response.message || "Failed to upgrade subscription");
       }
-    } catch (error) {
+    } catch (error: any) {
+      const msg = (error?.message || "").toLowerCase();
+      if (msg.includes("already") && msg.includes("active subscription")) {
+        // Try to sync from backend
+        await refreshSubs();
+        // If still not reflected due to API issues, fall back to local Pro state
+        if (!isProActive) {
+          try {
+            const cachedExp =
+              localStorage.getItem("recruiterProExpiresAt") || "";
+            const fallbackSub = normalizeSub({
+              id: "local-pro",
+              user_id: currentSubscription?.user_id || "current_user",
+              plan: "pro",
+              status: "active",
+              amount: currentSubscription?.amount || 0,
+              expiresAt: cachedExp || new Date().toISOString(),
+              features: currentSubscription?.features || [],
+            } as Subscription);
+            setSubscriptions((prev) => {
+              const others = prev.filter(
+                (p) => !(p.plan === "pro" && p.status === "active"),
+              );
+              return [fallbackSub, ...others];
+            });
+            setCurrentSubscription(fallbackSub);
+            setProUnknown(false);
+            localStorage.setItem("recruiterIsPro", "1");
+            if (fallbackSub.expiresAt) {
+              localStorage.setItem(
+                "recruiterProExpiresAt",
+                (fallbackSub.expiresAt as string) || "",
+              );
+            }
+            emitProChanged();
+          } catch {}
+        }
+        const exp = proActiveSub?.expiresAt
+          ? formatExpiry(proActiveSub.expiresAt as string)
+          : "current period";
+        showToast("success", `You're already Pro (expires on ${exp})`);
+        return;
+      }
       console.error("Error upgrading subscription:", error);
       showToast("error", "Failed to upgrade subscription");
     } finally {
@@ -88,16 +260,8 @@ const RecruiterSubscriptions: React.FC = () => {
       });
 
       if (response.success) {
-        setSubscriptions(
-          subscriptions.map((sub) =>
-            sub.id === id ? response.subscription : sub,
-          ),
-        );
-
-        if (currentSubscription && currentSubscription.id === id) {
-          setCurrentSubscription(response.subscription);
-        }
-
+        // Re-fetch to ensure consistency
+        await refreshSubs();
         showToast("success", "Subscription canceled successfully");
       } else {
         throw new Error(response.message || "Failed to cancel subscription");
@@ -189,20 +353,24 @@ const RecruiterSubscriptions: React.FC = () => {
 
             <div className="mt-8">
               <button
-                className="w-full bg-gray-800 border border-transparent rounded-md py-3 px-5 font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                className="w-full bg-gray-800 border border-transparent rounded-md py-3 px-5 font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-60"
                 onClick={() =>
                   showToast("success", "You are currently on the free plan")
                 }
-                disabled={
-                  currentSubscription
-                    ? currentSubscription.plan === "pro" &&
-                      currentSubscription.status === "active"
-                    : false
+                disabled={isProActive || proUnknown}
+                title={
+                  proUnknown
+                    ? "Checking your Pro status..."
+                    : isProActive
+                      ? "You're already on Pro"
+                      : undefined
                 }
               >
-                {!currentSubscription || currentSubscription.plan !== "pro"
-                  ? "Current Plan"
-                  : "Downgrade to Free"}
+                {proUnknown
+                  ? "Checking..."
+                  : isProActive
+                    ? "You're on Pro"
+                    : "Current Plan"}
               </button>
             </div>
           </div>
@@ -268,24 +436,41 @@ const RecruiterSubscriptions: React.FC = () => {
             </div>
 
             <div className="mt-8">
-              {currentSubscription && currentSubscription.plan === "pro" ? (
+              {isProActive ? (
+                <button
+                  className="w-full bg-gray-100 text-gray-700 border border-gray-300 rounded-md py-3 px-5 font-medium cursor-not-allowed"
+                  disabled
+                  title={
+                    proActiveSub?.expiresAt
+                      ? `You're already Pro (expires on ${formatExpiry(proActiveSub.expiresAt as string)})`
+                      : "You're already Pro"
+                  }
+                >
+                  {proActiveSub?.expiresAt
+                    ? `You're already Pro (expires on ${formatExpiry(proActiveSub.expiresAt as string)})`
+                    : "You're already Pro"}
+                </button>
+              ) : currentSubscription &&
+                (currentSubscription.plan as string) === "pro" ? (
                 <button
                   className="w-full bg-red-500 border border-transparent rounded-md py-3 px-5 font-medium text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   onClick={() =>
                     handleCancelSubscription(currentSubscription.id)
                   }
-                  disabled={currentSubscription.status !== "active"}
+                  disabled={(currentSubscription.status as string) !== "active"}
                 >
-                  {currentSubscription.status === "active"
+                  {(currentSubscription.status as string) === "active"
                     ? "Cancel Subscription"
                     : "Subscription Canceled"}
                 </button>
               ) : (
                 <button
-                  className="w-full bg-blue-600 border border-transparent rounded-md py-3 px-5 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="w-full bg-blue-600 border border-transparent rounded-md py-3 px-5 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60"
                   onClick={handleUpgrade}
+                  disabled={proUnknown}
+                  title={proUnknown ? "Checking your Pro status..." : undefined}
                 >
-                  Upgrade to Pro
+                  {proUnknown ? "Checking..." : "Upgrade to Pro"}
                 </button>
               )}
             </div>
@@ -308,11 +493,13 @@ const RecruiterSubscriptions: React.FC = () => {
               You&apos;re currently on the Free plan with limited features.
             </p>
             <button
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60"
               onClick={handleUpgrade}
+              disabled={proUnknown}
+              title={proUnknown ? "Checking your Pro status..." : undefined}
             >
               <FaRocket className="mr-2 h-4 w-4" />
-              Upgrade Now
+              {proUnknown ? "Checking..." : "Upgrade Now"}
             </button>
           </div>
         </div>
@@ -354,9 +541,8 @@ const RecruiterSubscriptions: React.FC = () => {
                 <div className="flex items-center">
                   <FaRegClock className="mr-1 text-gray-400" />
                   <p className="text-lg font-semibold text-gray-900">
-                    {new Date(
-                      currentSubscription.expiresAt,
-                    ).toLocaleDateString()}
+                    {formatExpiry(currentSubscription.expiresAt as string) ||
+                      "—"}
                   </p>
                 </div>
               </div>
@@ -421,12 +607,37 @@ const RecruiterSubscriptions: React.FC = () => {
         <p className="text-gray-600 mt-1">
           Manage your subscription plan and billing
         </p>
+        {isProActive && (
+          <div className="mt-3 inline-flex items-center text-sm text-blue-800 bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-full">
+            <span className="font-medium mr-1">Pro Active</span>
+            {proActiveSub?.expiresAt && (
+              <span>
+                · Expires on {formatExpiry(proActiveSub.expiresAt as string)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {renderCurrentSubscription()}
 
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Available Plans</h2>
-      {renderPricingPlans()}
+      {/* Only show available plans when status is known and user is not Pro */}
+      {!proUnknown && !isProActive && (
+        <>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Available Plans
+          </h2>
+          {renderPricingPlans()}
+        </>
+      )}
+
+      {/* Optional placeholder while checking status */}
+      {proUnknown && (
+        <div className="mt-6 flex items-center text-gray-600">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2"></div>
+          Checking your subscription status...
+        </div>
+      )}
     </div>
   );
 };

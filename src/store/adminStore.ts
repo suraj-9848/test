@@ -225,7 +225,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
       // Validate the ID before making the API call
       if (!id || id === "NaN" || id === "undefined" || id === "null") {
         const errorMsg = `Invalid user ID: ${id}`;
-        console.error(errorMsg);
+        console.warn(errorMsg);
         set({ error: errorMsg, loading: false });
         throw new Error(errorMsg);
       }
@@ -323,7 +323,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
       console.log("API response:", response);
 
       if (!response.users || !Array.isArray(response.users)) {
-        console.error("Invalid response format:", response);
+        console.warn("Invalid response format:", response);
         set({ loading: false, error: "Invalid response from server" });
         return;
       }
@@ -394,7 +394,8 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
         error: `Failed to fetch users: ${errorMessage}`,
         loading: false,
       });
-      throw error;
+      // Avoid throwing to prevent global overlay; propagate via store instead
+      return;
     }
   },
 }));

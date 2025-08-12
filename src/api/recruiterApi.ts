@@ -19,6 +19,24 @@ export const recruiterApi = {
     }
   },
 
+  getCandidateInsights: async () => {
+    try {
+      const response = await apiClient.get(
+        API_ENDPOINTS.RECRUITER.CANDIDATE_INSIGHTS,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        throw new Error(
+          error.response.data?.message ||
+            "Access denied. Recruiter role required.",
+        );
+      }
+      console.error("Error fetching candidate insights:", error);
+      throw error;
+    }
+  },
+
   // Jobs
   getJobs: async (query = {}) => {
     try {
@@ -198,6 +216,27 @@ export const recruiterApi = {
         );
       }
       console.error("Error deleting subscription:", error);
+      throw error;
+    }
+  },
+
+  // Recruiter Users
+  getRecruiterUsers: async (proOnly = false) => {
+    try {
+      const response = await apiClient.get(
+        proOnly
+          ? `${API_ENDPOINTS.RECRUITER.USERS}?pro=1`
+          : API_ENDPOINTS.RECRUITER.USERS,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        throw new Error(
+          error.response.data?.message ||
+            "Access denied. Recruiter role required.",
+        );
+      }
+      console.error("Error fetching recruiter users:", error);
       throw error;
     }
   },
