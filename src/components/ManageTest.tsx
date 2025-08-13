@@ -143,7 +143,6 @@ const ManageTest: React.FC = () => {
   const editorRef = useRef<RichTextEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ... (keeping all your existing useEffect hooks and utility functions)
   useEffect(() => {
     instructorApi
       .getBatches()
@@ -247,38 +246,66 @@ const ManageTest: React.FC = () => {
     return localDate.toISOString();
   }
 
-  const downloadDemoFile = (format: 'txt' | 'json') => {
-    const demoContent = format === 'json'
-      ? JSON.stringify({
-        visible_testcases: [
-          { input: "5 3", expected_output: "8" },
-          { input: "10 20", expected_output: "30" }
-        ],
-        hidden_testcases: [
-          { input: "100 200", expected_output: "300" },
-          { input: "-5 10", expected_output: "5" }
-        ]
-      }, null, 2)
-      : `VISIBLE
+  // ENHANCED DEMO FILE CREATION
+  const createDemoFiles = () => {
+    // Demo TXT content
+    const demoTxtContent = `VISIBLE
 INPUT:
 5 3
 OUTPUT:
 8
+
 INPUT:
 10 20
 OUTPUT:
 30
+
+INPUT:
+1 1
+OUTPUT:
+2
+
 HIDDEN
 INPUT:
 100 200
 OUTPUT:
 300
+
 INPUT:
 -5 10
 OUTPUT:
-5`;
+5
 
-    const blob = new Blob([demoContent], { type: 'text/plain' });
+INPUT:
+0 0
+OUTPUT:
+0`;
+
+    // Demo JSON content
+    const demoJsonContent = {
+      visible_testcases: [
+        { input: "5 3", expected_output: "8" },
+        { input: "10 20", expected_output: "30" },
+        { input: "1 1", expected_output: "2" }
+      ],
+      hidden_testcases: [
+        { input: "100 200", expected_output: "300" },
+        { input: "-5 10", expected_output: "5" },
+        { input: "0 0", expected_output: "0" }
+      ]
+    };
+
+    return { demoTxtContent, demoJsonContent };
+  };
+
+  const downloadDemoFile = (format: 'txt' | 'json') => {
+    const { demoTxtContent, demoJsonContent } = createDemoFiles();
+    
+    const content = format === 'json' 
+      ? JSON.stringify(demoJsonContent, null, 2)
+      : demoTxtContent;
+
+    const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -287,101 +314,170 @@ OUTPUT:
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    setUploadStatus({ 
+      type: 'success', 
+      message: `Demo ${format.toUpperCase()} file downloaded successfully!` 
+    });
   };
 
+  // ENHANCED FILE PARSING
+  const parseCustomFormat = (content: string) => {
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    const visible_testcases: TestCase[] = [];
+    const hidden_testcases: TestCase[] = [];
+    
+    let currentSection: 'VISIBLE' | 'HIDDEN' | null = null;
+    let currentInput = '';
+    let currentOutput = '';
+    let parsingMode: 'INPUT' | 'OUTPUT' | null = null;
+    
+    for (const line of lines) {
+      if (line === 'VISIBLE') {
+        // Save previous test case if exists
+        if (currentInput && currentOutput && currentSection) {
+          const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
+          if (currentSection === 'VISIBLE') {
+            visible_testcases.push(testCase);
+          } else {
+            hidden_testcases.push(testCase);
+          }
+        }
+        currentSection = 'VISIBLE';
+        currentInput = '';
+        currentOutput = '';
+        parsingMode = null;
+        continue;
+      }
+      
+      if (line === 'HIDDEN') {
+        // Save previous test case if exists
+        if (currentInput && currentOutput && currentSection) {
+          const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
+          if (currentSection === 'VISIBLE') {
+            visible_testcases.push(testCase);
+          } else {
+            hidden_testcases.push(testCase);
+          }
+        }
+        currentSection = 'HIDDEN';
+        currentInput = '';
+        currentOutput = '';
+        parsingMode = null;
+        continue;
+      }
+      
+      if (line === 'INPUT:') {
+        // Save previous test case if exists
+        if (currentInput && currentOutput && currentSection) {
+          const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
+          if (currentSection === 'VISIBLE') {
+            visible_testcases.push(testCase);
+          } else {
+            hidden_testcases.push(testCase);
+          }
+        }
+        currentInput = '';
+        currentOutput = '';
+        parsingMode = 'INPUT';
+        continue;
+      }
+      
+      if (line === 'OUTPUT:') {
+        parsingMode = 'OUTPUT';
+        continue;
+      }
+      
+      if (parsingMode === 'INPUT') {
+        currentInput += (currentInput ? '\n' : '') + line;
+      } else if (parsingMode === 'OUTPUT') {
+        currentOutput += (currentOutput ? '\n' : '') + line;
+      }
+    }
+    
+    // Save last test case
+    if (currentInput && currentOutput && currentSection) {
+      const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
+      if (currentSection === 'VISIBLE') {
+        visible_testcases.push(testCase);
+      } else {
+        hidden_testcases.push(testCase);
+      }
+    }
+    
+    console.log('🔍 PARSED TEST CASES:', { visible_testcases, hidden_testcases });
+    return { visible_testcases, hidden_testcases };
+  };
+
+  // ENHANCED FILE UPLOAD HANDLER
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    console.log('🔍 FILE UPLOAD STARTED:', file.name, file.type, file.size);
 
     try {
       setUploadStatus({ type: 'info', message: 'Processing file...' });
 
       const content = await file.text();
+      console.log('🔍 FILE CONTENT:', content.substring(0, 200) + '...');
 
-      // Parse the file content
       let parsedData;
       if (file.name.endsWith('.json')) {
+        console.log('🔍 PARSING JSON FILE');
         parsedData = JSON.parse(content);
+        console.log('🔍 JSON PARSED:', parsedData);
       } else {
-        // Parse custom format
+        console.log('🔍 PARSING CUSTOM FORMAT FILE');
         parsedData = parseCustomFormat(content);
+        console.log('🔍 CUSTOM FORMAT PARSED:', parsedData);
       }
+
+      // Validate parsed data
+      if (!parsedData.visible_testcases || !parsedData.hidden_testcases) {
+        throw new Error('Invalid file format. Missing visible_testcases or hidden_testcases.');
+      }
+
+      if (!Array.isArray(parsedData.visible_testcases) || !Array.isArray(parsedData.hidden_testcases)) {
+        throw new Error('Test cases must be arrays.');
+      }
+
+      // Ensure we have at least one test case in each section
+      const visibleTestCases = parsedData.visible_testcases.length > 0 
+        ? parsedData.visible_testcases 
+        : [{ input: '', expected_output: '' }];
+      
+      const hiddenTestCases = parsedData.hidden_testcases.length > 0 
+        ? parsedData.hidden_testcases 
+        : [{ input: '', expected_output: '' }];
+
+      console.log('🔍 FINAL TEST CASES TO SET:', { visibleTestCases, hiddenTestCases });
 
       // Update form data
       setQuestionForm(prev => ({
         ...prev,
-        visible_testcases: parsedData.visible_testcases || [],
-        hidden_testcases: parsedData.hidden_testcases || [],
+        visible_testcases: visibleTestCases,
+        hidden_testcases: hiddenTestCases,
       }));
 
-      setUploadStatus({ type: 'success', message: 'Test cases loaded successfully!' });
+      setUploadStatus({ 
+        type: 'success', 
+        message: `Successfully loaded ${visibleTestCases.length} visible and ${hiddenTestCases.length} hidden test cases!` 
+      });
+
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
     } catch (error) {
-      setUploadStatus({ type: 'error', message: 'Failed to parse file. Please check the format.' });
+      console.error('🚨 FILE UPLOAD ERROR:', error);
+      setUploadStatus({ 
+        type: 'error', 
+        message: `Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      });
     }
   };
-
-// Add this function to ManageTest.tsx if it doesn't exist
-const parseCustomFormat = (content: string) => {
-  const lines = content.split('\n').map(line => line.trim()).filter(line => line);
-  const visible_testcases: TestCase[] = [];
-  const hidden_testcases: TestCase[] = [];
-  
-  let currentSection: 'VISIBLE' | 'HIDDEN' | null = null;
-  let currentInput = '';
-  let currentOutput = '';
-  let parsingMode: 'INPUT' | 'OUTPUT' | null = null;
-  
-  for (const line of lines) {
-    if (line === 'VISIBLE') {
-      currentSection = 'VISIBLE';
-      continue;
-    }
-    
-    if (line === 'HIDDEN') {
-      currentSection = 'HIDDEN';
-      continue;
-    }
-    
-    if (line === 'INPUT:') {
-      // Save previous test case if exists
-      if (currentInput && currentOutput && currentSection) {
-        const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
-        if (currentSection === 'VISIBLE') {
-          visible_testcases.push(testCase);
-        } else {
-          hidden_testcases.push(testCase);
-        }
-      }
-      currentInput = '';
-      currentOutput = '';
-      parsingMode = 'INPUT';
-      continue;
-    }
-    
-    if (line === 'OUTPUT:') {
-      parsingMode = 'OUTPUT';
-      continue;
-    }
-    
-    if (parsingMode === 'INPUT') {
-      currentInput += (currentInput ? '\n' : '') + line;
-    } else if (parsingMode === 'OUTPUT') {
-      currentOutput += (currentOutput ? '\n' : '') + line;
-    }
-  }
-  
-  // Save last test case
-  if (currentInput && currentOutput && currentSection) {
-    const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
-    if (currentSection === 'VISIBLE') {
-      visible_testcases.push(testCase);
-    } else {
-      hidden_testcases.push(testCase);
-    }
-  }
-  
-  return { visible_testcases, hidden_testcases };
-};
 
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -419,6 +515,8 @@ const parseCustomFormat = (content: string) => {
       }
     }
 
+    console.log('🔍 SAVING QUESTION WITH DATA:', questionForm);
+
     try {
       const payload: CreateQuestionRequestLocal = {
         question_text: html,
@@ -448,6 +546,8 @@ const parseCustomFormat = (content: string) => {
         }
       }
 
+      console.log('🔍 FINAL PAYLOAD TO SEND:', payload);
+
       if (editingQuestionId) {
         await updateQuestionInTest(
           selectedBatch,
@@ -467,6 +567,7 @@ const parseCustomFormat = (content: string) => {
         setSuccess("Question added successfully!");
       }
 
+      // Refresh questions list
       const res = await getQuestions(
         selectedBatch,
         selectedCourse,
@@ -479,6 +580,7 @@ const parseCustomFormat = (content: string) => {
       // Reset form
       clearQuestionForm();
     } catch (err: unknown) {
+      console.error('🚨 SAVE QUESTION ERROR:', err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -506,214 +608,78 @@ const parseCustomFormat = (content: string) => {
     setEditingQuestionId("");
     editorRef.current?.setContent("");
     setUploadStatus(null);
+    
+    // Clear file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-// Add this improved handleEditQuestion function to ManageTest.tsx
-// Replace the existing handleEditQuestion function with this enhanced version
-
-const handleEditQuestion = (q: Question) => {
-  console.log('Editing question:', q);
-  
-  // Enhanced parsing for test cases
-  const parseTestCasesForEdit = (testCases: any): TestCase[] => {
-    if (!testCases) return [{ input: '', expected_output: '' }];
+  // ENHANCED EDIT QUESTION HANDLER
+  const handleEditQuestion = (q: Question) => {
+    console.log('🔍 EDITING QUESTION:', q);
     
-    if (Array.isArray(testCases)) {
-      return testCases.length > 0 ? testCases : [{ input: '', expected_output: '' }];
-    }
-    
-    if (typeof testCases === 'string') {
-      try {
-        const parsed = JSON.parse(testCases);
-        return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ input: '', expected_output: '' }];
-      } catch {
+    // Enhanced parsing for test cases
+    const parseTestCasesForEdit = (testCases: any, fieldName: string): TestCase[] => {
+      console.log(`🔍 PARSING ${fieldName}:`, testCases);
+      
+      if (!testCases) {
+        console.log(`❌ ${fieldName}: No data, using default`);
         return [{ input: '', expected_output: '' }];
       }
-    }
-    
-    return [{ input: '', expected_output: '' }];
-  };
-
-  // Parse test cases with enhanced error handling
-  const visibleTestCases = parseTestCasesForEdit(q.visible_testcases);
-  const hiddenTestCases = parseTestCasesForEdit(q.hidden_testcases);
-
-  console.log('Parsed test cases for editing:', {
-    visible: visibleTestCases,
-    hidden: hiddenTestCases,
-    originalVisible: q.visible_testcases,
-    originalHidden: q.hidden_testcases
-  });
-
-  setQuestionForm({
-    question_text: q.question_text,
-    type: q.type,
-    marks: q.marks,
-    options: q.options
-      ? q.options.map((o) => ({ text: o.text, correct: o.correct }))
-      : [{ text: "", correct: false }],
-    expectedWordCount: q.expectedWordCount,
-    codeLanguage: q.codeLanguage || 'javascript',
-    constraints: q.constraints || '',
-    visible_testcases: visibleTestCases,
-    hidden_testcases: hiddenTestCases,
-    time_limit_ms: q.time_limit_ms || 5000,
-    memory_limit_mb: q.memory_limit_mb || 256,
-  });
-  
-  setEditingQuestionId(q.id);
-  editorRef.current?.setContent(q.question_text || "");
-};
-
-// Also update the question display section to show correct counts
-// Replace the existing question list rendering section with this enhanced version:
-
-const renderQuestionListWithEnhancedDetails = () => {
-  if (questions.length === 0) {
-    return (
-      <li className="text-gray-500 text-center">No questions yet.</li>
-    );
-  }
-
-  return questions.map((q) => {
-    // Enhanced parsing for display
-    const parseTestCasesForDisplay = (testCases: any): TestCase[] => {
-      if (!testCases) return [];
-      if (Array.isArray(testCases)) return testCases;
+      
+      if (Array.isArray(testCases)) {
+        console.log(`✅ ${fieldName}: Already array, length:`, testCases.length);
+        return testCases.length > 0 ? testCases : [{ input: '', expected_output: '' }];
+      }
+      
       if (typeof testCases === 'string') {
+        console.log(`🔄 ${fieldName}: Parsing JSON string:`, testCases);
         try {
           const parsed = JSON.parse(testCases);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
+          console.log(`✅ ${fieldName}: Parsed successfully:`, parsed);
+          if (Array.isArray(parsed)) {
+            return parsed.length > 0 ? parsed : [{ input: '', expected_output: '' }];
+          }
+        } catch (error) {
+          console.error(`❌ ${fieldName}: JSON parse failed:`, error);
         }
       }
-      return [];
+      
+      console.log(`❌ ${fieldName}: Using default due to unknown format`);
+      return [{ input: '', expected_output: '' }];
     };
 
-    const visibleTestCases = parseTestCasesForDisplay(q.visible_testcases);
-    const hiddenTestCases = parseTestCasesForDisplay(q.hidden_testcases);
+    // Parse test cases with enhanced error handling
+    const visibleTestCases = parseTestCasesForEdit(q.visible_testcases, 'VISIBLE_TESTCASES');
+    const hiddenTestCases = parseTestCasesForEdit(q.hidden_testcases, 'HIDDEN_TESTCASES');
 
-    return (
-      <li
-        key={q.id}
-        className="flex justify-between items-start p-4 bg-gray-50 rounded-lg"
-      >
-        <div className="content-display flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-              q.type === 'MCQ' ? 'bg-green-100 text-green-800' :
-              q.type === 'DESCRIPTIVE' ? 'bg-blue-100 text-blue-800' :
-              'bg-purple-100 text-purple-800'
-            }`}>
-              {q.type}
-            </span>
-            {q.type === 'CODE' && q.codeLanguage && (
-              <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
-                {q.codeLanguage.toUpperCase()}
-              </span>
-            )}
-            <span className="text-sm text-gray-600">Marks: {q.marks}</span>
-          </div>
-          
-          <div
-            dangerouslySetInnerHTML={{ __html: q.question_text }}
-            className="font-medium prose prose-sm max-w-none mb-2"
-          />
+    console.log('🔍 PARSED TEST CASES FOR EDITING:', {
+      visible: visibleTestCases,
+      hidden: hiddenTestCases,
+      originalVisible: q.visible_testcases,
+      originalHidden: q.hidden_testcases
+    });
 
-          {/* MCQ Options */}
-          {q.options && q.options.length > 0 && (
-            <div className="mt-2">
-              <div className="text-sm text-gray-600 mb-1">Options:</div>
-              <div className="space-y-1">
-                {q.options.map((opt, idx) => (
-                  <div key={idx} className={`text-sm ${
-                    opt.correct ? 'font-semibold text-green-600' : 'text-gray-600'
-                  }`}>
-                    {String.fromCharCode(65 + idx)}. {opt.text}
-                    {opt.correct && ' ✓'}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Coding Question Details - Enhanced */}
-          {q.type === 'CODE' && (
-            <div className="mt-2 space-y-2 text-sm text-gray-600">
-              {q.constraints && (
-                <div>
-                  <span className="font-medium">Constraints:</span> 
-                  <span className="ml-1">
-                    {q.constraints.length > 100 ? 
-                      `${q.constraints.substring(0, 100)}...` : 
-                      q.constraints
-                    }
-                  </span>
-                </div>
-              )}
-              
-              <div className="flex flex-wrap gap-4">
-                <span className={`${visibleTestCases.length === 0 ? 'text-red-600 font-medium' : ''}`}>
-                  Visible Test Cases: {visibleTestCases.length}
-                  {visibleTestCases.length === 0 && ' ⚠️'}
-                </span>
-                <span className={`${hiddenTestCases.length === 0 ? 'text-red-600 font-medium' : ''}`}>
-                  Hidden Test Cases: {hiddenTestCases.length}
-                  {hiddenTestCases.length === 0 && ' ⚠️'}
-                </span>
-                <span>Time Limit: {q.time_limit_ms || 5000}ms</span>
-                <span>Memory: {q.memory_limit_mb || 256}MB</span>
-              </div>
-
-              {/* Show warning if no test cases */}
-              {visibleTestCases.length === 0 && hiddenTestCases.length === 0 && (
-                <div className="bg-red-50 border border-red-200 rounded p-2 text-red-800 text-xs">
-                  ⚠️ Warning: This coding question has no test cases defined!
-                </div>
-              )}
-
-              {/* Show test case previews for debugging */}
-              {process.env.NODE_ENV === 'development' && (
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-gray-500">Debug: Show test case data</summary>
-                  <div className="mt-2 bg-gray-100 p-2 rounded">
-                    <div>Raw visible_testcases: {JSON.stringify(q.visible_testcases)}</div>
-                    <div>Raw hidden_testcases: {JSON.stringify(q.hidden_testcases)}</div>
-                    <div>Parsed visible count: {visibleTestCases.length}</div>
-                    <div>Parsed hidden count: {hiddenTestCases.length}</div>
-                  </div>
-                </details>
-              )}
-            </div>
-          )}
-
-          {/* Descriptive Question Details */}
-          {q.type === 'DESCRIPTIVE' && q.expectedWordCount && (
-            <div className="mt-2 text-sm text-gray-600">
-              Expected Word Count: {q.expectedWordCount}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex gap-3 ml-4">
-          <button
-            className="text-blue-600 hover:underline"
-            onClick={() => handleEditQuestion(q)}
-          >
-            Edit
-          </button>
-          <button
-            className="text-red-600 hover:underline"
-            onClick={() => handleDeleteQuestion(q.id)}
-          >
-            Delete
-          </button>
-        </div>
-      </li>
-    );
-  });
-};
+    setQuestionForm({
+      question_text: q.question_text,
+      type: q.type,
+      marks: q.marks,
+      options: q.options
+        ? q.options.map((o) => ({ text: o.text, correct: o.correct }))
+        : [{ text: "", correct: false }],
+      expectedWordCount: q.expectedWordCount,
+      codeLanguage: q.codeLanguage || 'javascript',
+      constraints: q.constraints || '',
+      visible_testcases: visibleTestCases,
+      hidden_testcases: hiddenTestCases,
+      time_limit_ms: q.time_limit_ms || 5000,
+      memory_limit_mb: q.memory_limit_mb || 256,
+    });
+    
+    setEditingQuestionId(q.id);
+    editorRef.current?.setContent(q.question_text || "");
+  };
 
   // Test case management functions
   const addTestCase = (type: 'visible_testcases' | 'hidden_testcases') => {
@@ -748,7 +714,167 @@ const renderQuestionListWithEnhancedDetails = () => {
     }));
   };
 
-  // ... (keeping all your existing handler functions)
+  // ENHANCED QUESTION LIST RENDERING
+  const renderQuestionList = () => {
+    if (questions.length === 0) {
+      return (
+        <li className="text-gray-500 text-center py-8">
+          No questions yet. Add some questions to get started.
+        </li>
+      );
+    }
+
+    return questions.map((q) => {
+      console.log(`🔍 RENDERING QUESTION ${q.id} IN LIST:`, q);
+      
+      // Enhanced parsing for display with logging
+      const parseTestCasesForDisplay = (testCases: any, fieldName: string): TestCase[] => {
+        if (!testCases) return [];
+        if (Array.isArray(testCases)) return testCases;
+        if (typeof testCases === 'string') {
+          try {
+            const parsed = JSON.parse(testCases);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            console.error(`Failed to parse ${fieldName} for display:`, testCases);
+            return [];
+          }
+        }
+        return [];
+      };
+
+      const visibleTestCases = parseTestCasesForDisplay(q.visible_testcases, 'visible');
+      const hiddenTestCases = parseTestCasesForDisplay(q.hidden_testcases, 'hidden');
+
+      return (
+        <li
+          key={q.id}
+          className="flex justify-between items-start p-4 bg-gray-50 rounded-lg"
+        >
+          <div className="content-display flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                q.type === 'MCQ' ? 'bg-green-100 text-green-800' :
+                q.type === 'DESCRIPTIVE' ? 'bg-blue-100 text-blue-800' :
+                'bg-purple-100 text-purple-800'
+              }`}>
+                {q.type}
+              </span>
+              {q.type === 'CODE' && q.codeLanguage && (
+                <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
+                  {q.codeLanguage.toUpperCase()}
+                </span>
+              )}
+              <span className="text-sm text-gray-600">Marks: {q.marks}</span>
+            </div>
+            
+            <div
+              dangerouslySetInnerHTML={{ __html: q.question_text }}
+              className="font-medium prose prose-sm max-w-none mb-2"
+            />
+
+            {/* MCQ Options */}
+            {q.options && q.options.length > 0 && (
+              <div className="mt-2">
+                <div className="text-sm text-gray-600 mb-1">Options:</div>
+                <div className="space-y-1">
+                  {q.options.map((opt, idx) => (
+                    <div key={idx} className={`text-sm ${
+                      opt.correct ? 'font-semibold text-green-600' : 'text-gray-600'
+                    }`}>
+                      {String.fromCharCode(65 + idx)}. {opt.text}
+                      {opt.correct && ' ✓'}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Coding Question Details - ENHANCED with critical data alerts */}
+            {q.type === 'CODE' && (
+              <div className="mt-2 space-y-2 text-sm">
+                {/* Constraints */}
+                <div className={q.constraints ? 'text-gray-600' : 'text-red-600'}>
+                  <span className="font-medium">Constraints:</span> 
+                  {q.constraints ? (
+                    <span className="ml-1">
+                      {q.constraints.length > 100 ? 
+                        `${q.constraints.substring(0, 100)}...` : 
+                        q.constraints
+                      }
+                    </span>
+                  ) : (
+                    <span className="ml-1 font-bold"> ⚠️ NO CONSTRAINTS DEFINED</span>
+                  )}
+                </div>
+                
+                {/* Test Cases with Alert Colors */}
+                <div className="flex flex-wrap gap-4">
+                  <span className={`${visibleTestCases.length === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                    Visible Test Cases: {visibleTestCases.length}
+                    {visibleTestCases.length === 0 && ' 🚨'}
+                  </span>
+                  <span className={`${hiddenTestCases.length === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                    Hidden Test Cases: {hiddenTestCases.length}
+                    {hiddenTestCases.length === 0 && ' 🚨'}
+                  </span>
+                  <span className="text-gray-600">Time Limit: {q.time_limit_ms || 5000}ms</span>
+                  <span className="text-gray-600">Memory: {q.memory_limit_mb || 256}MB</span>
+                </div>
+
+                {/* Critical Alert */}
+                {(visibleTestCases.length === 0 && hiddenTestCases.length === 0) && (
+                  <div className="bg-red-50 border border-red-200 rounded p-2 text-red-800 text-xs font-medium">
+                    🚨 CRITICAL: This coding question has NO test cases defined!
+                  </div>
+                )}
+
+                {/* Debug Section - Show raw data */}
+                {process.env.NODE_ENV === 'development' && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                      🔍 Debug: Show raw database data
+                    </summary>
+                    <div className="mt-2 bg-gray-100 p-2 rounded text-xs">
+                      <div><strong>Raw visible_testcases:</strong> {JSON.stringify(q.visible_testcases)}</div>
+                      <div><strong>Raw hidden_testcases:</strong> {JSON.stringify(q.hidden_testcases)}</div>
+                      <div><strong>Raw constraints:</strong> {JSON.stringify(q.constraints)}</div>
+                      <div><strong>Parsed visible count:</strong> {visibleTestCases.length}</div>
+                      <div><strong>Parsed hidden count:</strong> {hiddenTestCases.length}</div>
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+
+            {/* Descriptive Question Details */}
+            {q.type === 'DESCRIPTIVE' && q.expectedWordCount && (
+              <div className="mt-2 text-sm text-gray-600">
+                Expected Word Count: {q.expectedWordCount}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-3 ml-4">
+            <button
+              className="text-blue-600 hover:underline"
+              onClick={() => handleEditQuestion(q)}
+            >
+              Edit
+            </button>
+            <button
+              className="text-red-600 hover:underline"
+              onClick={() => handleDeleteQuestion(q.id)}
+            >
+              Delete
+            </button>
+          </div>
+        </li>
+      );
+    });
+  };
+
+  // All other existing handler functions remain the same...
   const handleSelectTest = (testId: string) => {
     const test = tests.find((t) => t.id === testId);
     setSelectedTestId(testId);
@@ -872,14 +998,22 @@ const renderQuestionListWithEnhancedDetails = () => {
     setError("");
     setSuccess("");
     try {
+      console.log('🔍 FETCHING QUESTIONS FOR TEST:', testId);
+      
       const res = await getQuestions(selectedBatch, selectedCourse, testId);
+      console.log('🔍 RAW QUESTIONS RESPONSE:', res);
+      
       const questionsArr = Array.isArray(res.data?.questions)
         ? res.data.questions
         : [];
+      
+      console.log('🔍 PROCESSED QUESTIONS ARRAY:', questionsArr);
+      
       setQuestions(questionsArr);
       setQuestionEditTestId(testId);
       setShowQuestionManager(true);
     } catch (err: unknown) {
+      console.error('🚨 ERROR FETCHING QUESTIONS:', err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -993,7 +1127,7 @@ const renderQuestionListWithEnhancedDetails = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen max-w-full overflow-x-hidden">
       <h2 className="text-3xl font-bold text-gray-800 mb-8">Test Management</h2>
 
       {/* Batch and Course Selectors */}
@@ -1042,7 +1176,7 @@ const renderQuestionListWithEnhancedDetails = () => {
         </div>
       )}
 
-      {/* ... keeping your existing test editing form ... */}
+      {/* Test editing form - keeping existing code */}
       {selectedTestId &&
         (() => {
           const selectedTest = tests.find((t) => t.id === selectedTestId);
@@ -1282,7 +1416,7 @@ const renderQuestionListWithEnhancedDetails = () => {
           )}
         </div>
       ) : (
-        <div className="p-6 bg-white rounded-lg shadow-sm">
+        <div className="p-6 bg-white rounded-lg shadow-sm max-w-full">
           <button
             className="mb-6 text-blue-600 hover:underline"
             onClick={() => setShowQuestionManager(false)}
@@ -1292,453 +1426,302 @@ const renderQuestionListWithEnhancedDetails = () => {
           <h3 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">
             Questions for Test
           </h3>
-          <ul className="mb-8 space-y-4">
-            {questions.length === 0 ? (
-              <li className="text-gray-500 text-center">No questions yet.</li>
-            ) : (
-              questions.map((q) => (
-                <li
-                  key={q.id}
-                  className="flex justify-between items-start p-4 bg-gray-50 rounded-lg"
-                >
-                  <div className="content-display flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${q.type === 'MCQ' ? 'bg-green-100 text-green-800' :
-                        q.type === 'DESCRIPTIVE' ? 'bg-blue-100 text-blue-800' :
-                          'bg-purple-100 text-purple-800'
-                        }`}>
-                        {q.type}
-                      </span>
-                      {q.type === 'CODE' && q.codeLanguage && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
-                          {q.codeLanguage.toUpperCase()}
-                        </span>
-                      )}
-                      <span className="text-sm text-gray-600">Marks: {q.marks}</span>
-                    </div>
-                    <div
-                      dangerouslySetInnerHTML={{ __html: q.question_text }}
-                      className="font-medium prose prose-sm max-w-none mb-2"
-                    />
-
-                    {/* MCQ Options */}
-                    {q.options && q.options.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-sm text-gray-600 mb-1">Options:</div>
-                        <div className="space-y-1">
-                          {q.options.map((opt, idx) => (
-                            <div key={idx} className={`text-sm ${opt.correct ? 'font-semibold text-green-600' : 'text-gray-600'}`}>
-                              {String.fromCharCode(65 + idx)}. {opt.text}
-                              {opt.correct && ' ✓'}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Coding Question Details */}
-                    {q.type === 'CODE' && (
-                      <div className="mt-2 space-y-2 text-sm text-gray-600">
-                        {q.constraints && (
-                          <div>
-                            <span className="font-medium">Constraints:</span> {q.constraints.substring(0, 100)}...
-                          </div>
-                        )}
-                        <div className="flex space-x-4">
-                          <span>Visible Test Cases: {q.visible_testcases?.length || 0}</span>
-                          <span>Hidden Test Cases: {q.hidden_testcases?.length || 0}</span>
-                          <span>Time Limit: {q.time_limit_ms}ms</span>
-                          <span>Memory: {q.memory_limit_mb}MB</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Descriptive Question Details */}
-                    {q.type === 'DESCRIPTIVE' && q.expectedWordCount && (
-                      <div className="mt-2 text-sm text-gray-600">
-                        Expected Word Count: {q.expectedWordCount}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-3 ml-4">
-                    <button
-                      className="text-blue-600 hover:underline"
-                      onClick={() => handleEditQuestion(q)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="text-red-600 hover:underline"
-                      onClick={() => handleDeleteQuestion(q.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))
-            )}
-          </ul>
-<div className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-  <h4 className="text-lg font-semibold mb-4 border-b pb-2">
-    {editingQuestionId ? "Edit Question" : "Add New Question"}
-  </h4>
-
-  {/* Question Type Selection */}
-  <div className="mb-6">
-    <label className="block text-sm font-medium text-gray-700 mb-3">
-      Question Type *
-    </label>
-    <div className="grid grid-cols-2 gap-4">
-      {/* MCQ Option */}
-      <div
-        onClick={() => setQuestionForm(prev => ({ ...prev, type: 'MCQ' }))}
-        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-          questionForm.type === 'MCQ'
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-200 hover:border-gray-300'
-        }`}
-      >
-        <div className="flex items-center mb-2">
-          <div className={`w-3 h-3 rounded-full mr-2 ${
-            questionForm.type === 'MCQ' ? 'bg-blue-500' : 'bg-gray-300'
-          }`} />
-          <span className="font-medium">Multiple Choice</span>
-        </div>
-        <p className="text-sm text-gray-600">Questions with predefined options</p>
-      </div>
-
-      {/* CODE Option */}
-      <div
-        onClick={() => setQuestionForm(prev => ({ ...prev, type: 'CODE' }))}
-        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-          questionForm.type === 'CODE'
-            ? 'border-purple-500 bg-purple-50'
-            : 'border-gray-200 hover:border-gray-300'
-        }`}
-      >
-        <div className="flex items-center mb-2">
-          <div className={`w-3 h-3 rounded-full mr-2 ${
-            questionForm.type === 'CODE' ? 'bg-purple-500' : 'bg-gray-300'
-          }`} />
-          <span className="font-medium">Coding Question</span>
-        </div>
-        <p className="text-sm text-gray-600">Programming challenges with Judge0</p>
-      </div>
-    </div>
-  </div>
-
-  {/* Question Text */}
-  <div className="mb-6">
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Question Text *
-    </label>
-    <RichTextEditor
-      ref={editorRef}
-      value={questionForm.question_text}
-      onChange={(content) => setQuestionForm(prev => ({ ...prev, question_text: content }))}
-      placeholder="Enter your question here..."
-      height="200px"
-    />
-  </div>
-
-  {/* Basic Question Settings */}
-  <div className="grid grid-cols-2 gap-4 mb-6">
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Marks *
-      </label>
-      <input
-        type="number"
-        min="1"
-        value={questionForm.marks}
-        onChange={(e) => setQuestionForm(prev => ({ ...prev, marks: parseInt(e.target.value) || 1 }))}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      />
-    </div>
-    {questionForm.type === 'DESCRIPTIVE' && (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Expected Word Count
-        </label>
-        <input
-          type="number"
-          min="1"
-          value={questionForm.expectedWordCount || ''}
-          onChange={(e) => setQuestionForm(prev => ({ ...prev, expectedWordCount: parseInt(e.target.value) || undefined }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="e.g., 100"
-        />
-      </div>
-    )}
-  </div>
-
-  {/* MCQ Options */}
-  {questionForm.type === 'MCQ' && (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <label className="block text-sm font-medium text-gray-700">
-          Answer Options *
-        </label>
-        <button
-          type="button"
-          onClick={() => setQuestionForm(prev => ({
-            ...prev,
-            options: [...prev.options, { text: '', correct: false }]
-          }))}
-          className="text-blue-600 hover:text-blue-800 text-sm"
-        >
-          + Add Option
-        </button>
-      </div>
-      <div className="space-y-3">
-        {questionForm.options.map((option, index) => (
-          <div key={index} className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              checked={option.correct}
-              onChange={(e) => {
-                const newOptions = [...questionForm.options];
-                newOptions[index] = { ...option, correct: e.target.checked };
-                setQuestionForm(prev => ({ ...prev, options: newOptions }));
-              }}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              value={option.text}
-              onChange={(e) => {
-                const newOptions = [...questionForm.options];
-                newOptions[index] = { ...option, text: e.target.value };
-                setQuestionForm(prev => ({ ...prev, options: newOptions }));
-              }}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder={`Option ${String.fromCharCode(65 + index)}`}
-            />
-            {questionForm.options.length > 2 && (
-              <button
-                type="button"
-                onClick={() => {
-                  const newOptions = questionForm.options.filter((_, i) => i !== index);
-                  setQuestionForm(prev => ({ ...prev, options: newOptions }));
-                }}
-                className="text-red-600 hover:text-red-800"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )}
-
-  {/* CODE Question Settings */}
-  {questionForm.type === 'CODE' && (
-    <div className="space-y-6">
-      {/* Constraints */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Constraints
-        </label>
-        <textarea
-          value={questionForm.constraints || ''}
-          onChange={(e) => setQuestionForm(prev => ({ ...prev, constraints: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          rows={3}
-          placeholder="e.g., 1 ≤ n ≤ 10^5, 1 ≤ arr[i] ≤ 10^9"
-        />
-      </div>
-
-      {/* Time and Memory Limits */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Time Limit (ms)
-          </label>
-          <input
-            type="number"
-            min="1000"
-            max="30000"
-            value={questionForm.time_limit_ms || 5000}
-            onChange={(e) => setQuestionForm(prev => ({ ...prev, time_limit_ms: parseInt(e.target.value) || 5000 }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Memory Limit (MB)
-          </label>
-          <input
-            type="number"
-            min="64"
-            max="1024"
-            value={questionForm.memory_limit_mb || 256}
-            onChange={(e) => setQuestionForm(prev => ({ ...prev, memory_limit_mb: parseInt(e.target.value) || 256 }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-      </div>
-
-      {/* Test Cases Upload */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Test Cases
-          </label>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">Visible: {questionForm.visible_testcases.length}</span>
-            <span className="text-sm text-gray-500">Hidden: {questionForm.hidden_testcases.length}</span>
-          </div>
-        </div>
-
-        {/* File Upload Section */}
-        <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-          <div className="text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div className="mt-4">
-              <label htmlFor="testcase-upload" className="cursor-pointer">
-                <span className="mt-2 block text-sm font-medium text-gray-900">
-                  Upload test cases file (.txt)
-                </span>
-                <span className="mt-1 block text-sm text-gray-500">
-                  Or drag and drop
-                </span>
-                <input
-                  id="testcase-upload"
-                  type="file"
-                  className="sr-only"
-                  accept=".txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        const content = event.target?.result as string;
-                        try {
-                          // Parse the custom format
-                          const lines = content.split('\n').map(line => line.trim()).filter(line => line);
-                          const visible_testcases: TestCase[] = [];
-                          const hidden_testcases: TestCase[] = [];
-                          
-                          let currentSection: 'VISIBLE' | 'HIDDEN' | null = null;
-                          let currentInput = '';
-                          let currentOutput = '';
-                          let parsingMode: 'INPUT' | 'OUTPUT' | null = null;
-                          
-                          for (const line of lines) {
-                            if (line === 'VISIBLE') {
-                              // Save previous test case if exists
-                              if (currentInput && currentOutput && currentSection) {
-                                const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
-                                if (currentSection === 'VISIBLE') {
-                                  visible_testcases.push(testCase);
-                                } else {
-                                  hidden_testcases.push(testCase);
-                                }
-                              }
-                              currentSection = 'VISIBLE';
-                              currentInput = '';
-                              currentOutput = '';
-                              parsingMode = null;
-                              continue;
-                            }
-                            
-                            if (line === 'HIDDEN') {
-                              // Save previous test case if exists
-                              if (currentInput && currentOutput && currentSection) {
-                                const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
-                                if (currentSection === 'VISIBLE') {
-                                  visible_testcases.push(testCase);
-                                } else {
-                                  hidden_testcases.push(testCase);
-                                }
-                              }
-                              currentSection = 'HIDDEN';
-                              currentInput = '';
-                              currentOutput = '';
-                              parsingMode = null;
-                              continue;
-                            }
-                            
-                            if (line === 'INPUT:') {
-                              // Save previous test case if exists
-                              if (currentInput && currentOutput && currentSection) {
-                                const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
-                                if (currentSection === 'VISIBLE') {
-                                  visible_testcases.push(testCase);
-                                } else {
-                                  hidden_testcases.push(testCase);
-                                }
-                              }
-                              currentInput = '';
-                              currentOutput = '';
-                              parsingMode = 'INPUT';
-                              continue;
-                            }
-                            
-                            if (line === 'OUTPUT:') {
-                              parsingMode = 'OUTPUT';
-                              continue;
-                            }
-                            
-                            if (parsingMode === 'INPUT') {
-                              currentInput += (currentInput ? '\n' : '') + line;
-                            } else if (parsingMode === 'OUTPUT') {
-                              currentOutput += (currentOutput ? '\n' : '') + line;
-                            }
-                          }
-                          
-                          // Save last test case
-                          if (currentInput && currentOutput && currentSection) {
-                            const testCase = { input: currentInput.trim(), expected_output: currentOutput.trim() };
-                            if (currentSection === 'VISIBLE') {
-                              visible_testcases.push(testCase);
-                            } else {
-                              hidden_testcases.push(testCase);
-                            }
-                          }
-                          
-                          // Update the form state
-                          setQuestionForm(prev => ({
-                            ...prev,
-                            visible_testcases: visible_testcases.length > 0 ? visible_testcases : prev.visible_testcases,
-                            hidden_testcases: hidden_testcases.length > 0 ? hidden_testcases : prev.hidden_testcases
-                          }));
-                          
-                          setUploadStatus({ 
-                            type: 'success', 
-                            message: `Successfully loaded ${visible_testcases.length} visible and ${hidden_testcases.length} hidden test cases` 
-                          });
-                        } catch (error) {
-                          setUploadStatus({ type: 'error', message: 'Failed to parse file. Please check the format.' });
-                        }
-                      };
-                      reader.readAsText(file);
-                    }
-                  }}
-                />
-              </label>
-            </div>
-          </div>
           
-          {uploadStatus && (
-            <div className={`mt-2 text-sm ${uploadStatus.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-              {uploadStatus.message}
-            </div>
-          )}
-        </div>
+          <ul className="mb-8 space-y-4 max-h-96 overflow-y-auto">
+            {renderQuestionList()}
+          </ul>
 
-        {/* Demo Format */}
-        <div className="mb-4 p-3 bg-gray-100 rounded-lg">
-          <div className="text-sm font-medium text-gray-700 mb-2">Expected File Format:</div>
-          <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+          {/* ENHANCED QUESTION FORM */}
+          <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm max-w-full">
+            <h4 className="text-lg font-semibold mb-4 border-b pb-2">
+              {editingQuestionId ? "Edit Question" : "Add New Question"}
+            </h4>
+
+            {/* Question Type Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Question Type *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* MCQ Option */}
+                <div
+                  onClick={() => setQuestionForm(prev => ({ ...prev, type: 'MCQ' }))}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    questionForm.type === 'MCQ'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center mb-2">
+                    <div className={`w-3 h-3 rounded-full mr-2 ${
+                      questionForm.type === 'MCQ' ? 'bg-blue-500' : 'bg-gray-300'
+                    }`} />
+                    <span className="font-medium">Multiple Choice</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Questions with predefined options</p>
+                </div>
+
+                {/* CODE Option */}
+                <div
+                  onClick={() => setQuestionForm(prev => ({ ...prev, type: 'CODE' }))}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    questionForm.type === 'CODE'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center mb-2">
+                    <div className={`w-3 h-3 rounded-full mr-2 ${
+                      questionForm.type === 'CODE' ? 'bg-purple-500' : 'bg-gray-300'
+                    }`} />
+                    <span className="font-medium">Coding Question</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Programming challenges with test cases</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Question Text */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Question Text *
+              </label>
+              <RichTextEditor
+                ref={editorRef}
+                value={questionForm.question_text}
+                onChange={(content) => setQuestionForm(prev => ({ ...prev, question_text: content }))}
+                placeholder="Enter your question here..."
+                height="200px"
+              />
+            </div>
+
+            {/* Basic Question Settings */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Marks *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={questionForm.marks}
+                  onChange={(e) => setQuestionForm(prev => ({ ...prev, marks: parseInt(e.target.value) || 1 }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              {questionForm.type === 'DESCRIPTIVE' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Expected Word Count
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={questionForm.expectedWordCount || ''}
+                    onChange={(e) => setQuestionForm(prev => ({ ...prev, expectedWordCount: parseInt(e.target.value) || undefined }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 100"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* MCQ Options */}
+            {questionForm.type === 'MCQ' && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Answer Options *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddOption}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Option
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {questionForm.options.map((option, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={option.correct}
+                        onChange={(e) => handleOptionChange(index, 'correct', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        value={option.text}
+                        onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                      />
+                      {questionForm.options.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CODE Question Settings */}
+            {questionForm.type === 'CODE' && (
+              <div className="space-y-6">
+                {/* Programming Language */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Programming Language *
+                  </label>
+                  <select
+                    value={questionForm.codeLanguage || 'javascript'}
+                    onChange={(e) => setQuestionForm(prev => ({ ...prev, codeLanguage: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <option key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Constraints */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Constraints
+                  </label>
+                  <textarea
+                    value={questionForm.constraints || ''}
+                    onChange={(e) => setQuestionForm(prev => ({ ...prev, constraints: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    placeholder="e.g., 1 ≤ n ≤ 10^5, 1 ≤ arr[i] ≤ 10^9"
+                  />
+                </div>
+
+                {/* Time and Memory Limits */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time Limit (ms)
+                    </label>
+                    <input
+                      type="number"
+                      min="1000"
+                      max="30000"
+                      value={questionForm.time_limit_ms || 5000}
+                      onChange={(e) => setQuestionForm(prev => ({ ...prev, time_limit_ms: parseInt(e.target.value) || 5000 }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Memory Limit (MB)
+                    </label>
+                    <input
+                      type="number"
+                      min="64"
+                      max="1024"
+                      value={questionForm.memory_limit_mb || 256}
+                      onChange={(e) => setQuestionForm(prev => ({ ...prev, memory_limit_mb: parseInt(e.target.value) || 256 }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Test Cases Upload */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Test Cases
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">Visible: {questionForm.visible_testcases.length}</span>
+                      <span className="text-sm text-gray-500">Hidden: {questionForm.hidden_testcases.length}</span>
+                    </div>
+                  </div>
+
+                  {/* Status Message */}
+                  {uploadStatus && (
+                    <div className={`mb-4 p-3 rounded-lg text-sm ${
+                      uploadStatus.type === 'success' ? 'bg-green-100 text-green-800' :
+                      uploadStatus.type === 'error' ? 'bg-red-100 text-red-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {uploadStatus.message}
+                    </div>
+                  )}
+
+                  {/* File Upload Section */}
+                  <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
+                    <div className="text-center">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div className="mt-4">
+                        <label htmlFor="testcase-upload" className="cursor-pointer">
+                          <span className="mt-2 block text-sm font-medium text-gray-900">
+                            Upload test cases file (.txt or .json)
+                          </span>
+                          <span className="mt-1 block text-sm text-gray-500">
+                            Or drag and drop
+                          </span>
+                          <input
+                            ref={fileInputRef}
+                            id="testcase-upload"
+                            type="file"
+                            className="sr-only"
+                            accept=".txt,.json"
+                            onChange={handleFileUpload}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Demo Files Download */}
+                  <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700 mb-2">Demo Files:</div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => downloadDemoFile('txt')}
+                        className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                      >
+                        Download Demo TXT
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadDemoFile('json')}
+                        className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                      >
+                        Download Demo JSON
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Format Example */}
+                  <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+                    <details>
+                      <summary className="text-sm font-medium text-gray-700 mb-2 cursor-pointer">
+                        Show Expected File Format
+                      </summary>
+                      <div className="mt-2">
+                        <div className="text-xs font-medium text-gray-600 mb-1">TXT Format:</div>
+                        <pre className="text-xs text-gray-600 whitespace-pre-wrap bg-white p-2 rounded border overflow-x-auto">
 {`VISIBLE
 INPUT:
-2 3
+5 3
 OUTPUT:
-5
+8
 
 INPUT:
 10 20
@@ -1747,187 +1730,165 @@ OUTPUT:
 
 HIDDEN
 INPUT:
-1 1
-OUTPUT:
-2
-
-INPUT:
 100 200
 OUTPUT:
-300`}
-          </pre>
-          <div className="mt-2">
-            <button
-              type="button"
-              className="text-blue-600 hover:text-blue-800 text-sm"
-              onClick={() => {
-                const element = document.createElement('a');
-                const file = new Blob([`VISIBLE
-INPUT:
-2 3
-OUTPUT:
-5
+300
 
 INPUT:
-10 20
+-5 10
 OUTPUT:
-30
-
-HIDDEN
-INPUT:
-1 1
-OUTPUT:
-2
-
-INPUT:
-100 200
-OUTPUT:
-300`], {type: 'text/plain'});
-                element.href = URL.createObjectURL(file);
-                element.download = 'demo-testcases.txt';
-                document.body.appendChild(element);
-                element.click();
-                document.body.removeChild(element);
-              }}
-            >
-              Download Demo File
-            </button>
-          </div>
-        </div>
-
-        {/* Manual Test Case Entry */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Visible Test Cases */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium text-gray-700">Visible Test Cases</h4>
-              <button
-                type="button"
-                onClick={() => addTestCase('visible_testcases')}
-                className="text-green-600 hover:text-green-800 text-sm"
-              >
-                + Add
-              </button>
-            </div>
-            <div className="space-y-3 max-h-40 overflow-y-auto">
-              {questionForm.visible_testcases.map((testCase, index) => (
-                <div key={index} className="p-3 border border-gray-200 rounded bg-green-50">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-medium text-gray-600">Test Case {index + 1}</span>
-                    {questionForm.visible_testcases.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeTestCase('visible_testcases', index)}
-                        className="text-red-600 hover:text-red-800 text-xs"
-                      >
-                        Remove
-                      </button>
-                    )}
+5`}
+                        </pre>
+                        <div className="text-xs font-medium text-gray-600 mb-1 mt-3">JSON Format:</div>
+                        <pre className="text-xs text-gray-600 whitespace-pre-wrap bg-white p-2 rounded border overflow-x-auto">
+{`{
+  "visible_testcases": [
+    { "input": "5 3", "expected_output": "8" },
+    { "input": "10 20", "expected_output": "30" }
+  ],
+  "hidden_testcases": [
+    { "input": "100 200", "expected_output": "300" },
+    { "input": "-5 10", "expected_output": "5" }
+  ]
+}`}
+                        </pre>
+                      </div>
+                    </details>
                   </div>
-                  <div className="space-y-2">
+
+                  {/* Manual Test Case Entry */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Visible Test Cases */}
                     <div>
-                      <label className="text-xs text-gray-600">Input</label>
-                      <textarea
-                        value={testCase.input}
-                        onChange={(e) => updateTestCase('visible_testcases', index, 'input', e.target.value)}
-                        className="w-full text-xs p-2 border border-gray-300 rounded"
-                        rows={2}
-                        placeholder="Input data..."
-                      />
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-700">Visible Test Cases</h4>
+                        <button
+                          type="button"
+                          onClick={() => addTestCase('visible_testcases')}
+                          className="text-green-600 hover:text-green-800 text-sm"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {questionForm.visible_testcases.map((testCase, index) => (
+                          <div key={index} className="p-3 border border-gray-200 rounded bg-green-50">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-xs font-medium text-gray-600">Test Case {index + 1}</span>
+                              {questionForm.visible_testcases.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeTestCase('visible_testcases', index)}
+                                  className="text-red-600 hover:text-red-800 text-xs"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <label className="text-xs text-gray-600">Input</label>
+                                <textarea
+                                  value={testCase.input}
+                                  onChange={(e) => updateTestCase('visible_testcases', index, 'input', e.target.value)}
+                                  className="w-full text-xs p-2 border border-gray-300 rounded"
+                                  rows={2}
+                                  placeholder="Input data..."
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600">Expected Output</label>
+                                <textarea
+                                  value={testCase.expected_output}
+                                  onChange={(e) => updateTestCase('visible_testcases', index, 'expected_output', e.target.value)}
+                                  className="w-full text-xs p-2 border border-gray-300 rounded"
+                                  rows={2}
+                                  placeholder="Expected output..."
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+
+                    {/* Hidden Test Cases */}
                     <div>
-                      <label className="text-xs text-gray-600">Expected Output</label>
-                      <textarea
-                        value={testCase.expected_output}
-                        onChange={(e) => updateTestCase('visible_testcases', index, 'expected_output', e.target.value)}
-                        className="w-full text-xs p-2 border border-gray-300 rounded"
-                        rows={2}
-                        placeholder="Expected output..."
-                      />
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-700">Hidden Test Cases</h4>
+                        <button
+                          type="button"
+                          onClick={() => addTestCase('hidden_testcases')}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {questionForm.hidden_testcases.map((testCase, index) => (
+                          <div key={index} className="p-3 border border-gray-200 rounded bg-blue-50">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-xs font-medium text-gray-600">Test Case {index + 1}</span>
+                              {questionForm.hidden_testcases.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeTestCase('hidden_testcases', index)}
+                                  className="text-red-600 hover:text-red-800 text-xs"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <label className="text-xs text-gray-600">Input</label>
+                                <textarea
+                                  value={testCase.input}
+                                  onChange={(e) => updateTestCase('hidden_testcases', index, 'input', e.target.value)}
+                                  className="w-full text-xs p-2 border border-gray-300 rounded"
+                                  rows={2}
+                                  placeholder="Input data..."
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600">Expected Output</label>
+                                <textarea
+                                  value={testCase.expected_output}
+                                  onChange={(e) => updateTestCase('hidden_testcases', index, 'expected_output', e.target.value)}
+                                  className="w-full text-xs p-2 border border-gray-300 rounded"
+                                  rows={2}
+                                  placeholder="Expected output..."
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Hidden Test Cases */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium text-gray-700">Hidden Test Cases</h4>
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-4 pt-6 border-t">
               <button
                 type="button"
-                onClick={() => addTestCase('hidden_testcases')}
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                onClick={clearQuestionForm}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                + Add
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveQuestion}
+                disabled={loading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : editingQuestionId ? 'Update Question' : 'Add Question'}
               </button>
             </div>
-            <div className="space-y-3 max-h-40 overflow-y-auto">
-              {questionForm.hidden_testcases.map((testCase, index) => (
-                <div key={index} className="p-3 border border-gray-200 rounded bg-blue-50">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-medium text-gray-600">Test Case {index + 1}</span>
-                    {questionForm.hidden_testcases.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeTestCase('hidden_testcases', index)}
-                        className="text-red-600 hover:text-red-800 text-xs"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <label className="text-xs text-gray-600">Input</label>
-                      <textarea
-                        value={testCase.input}
-                        onChange={(e) => updateTestCase('hidden_testcases', index, 'input', e.target.value)}
-                        className="w-full text-xs p-2 border border-gray-300 rounded"
-                        rows={2}
-                        placeholder="Input data..."
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600">Expected Output</label>
-                      <textarea
-                        value={testCase.expected_output}
-                        onChange={(e) => updateTestCase('hidden_testcases', index, 'expected_output', e.target.value)}
-                        className="w-full text-xs p-2 border border-gray-300 rounded"
-                        rows={2}
-                        placeholder="Expected output..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-        </div>
-      </div>
-    </div>
-  )}
-
-  {/* Form Actions */}
-  <div className="flex justify-end space-x-4 pt-6 border-t">
-    <button
-      type="button"
-      onClick={clearQuestionForm}
-      className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-    >
-      Cancel
-    </button>
-    <button
-      type="button"
-      onClick={handleSaveQuestion}
-      disabled={loading}
-      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-    >
-      {loading ? 'Saving...' : editingQuestionId ? 'Update Question' : 'Add Question'}
-    </button>
-  </div>
-</div>
         </div>
       )}
 

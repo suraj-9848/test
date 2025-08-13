@@ -136,6 +136,12 @@ export interface CreateCourseData {
   modules?: any[];
 }
 
+// Enhanced interfaces for test cases
+export interface TestCase {
+  input: string;
+  expected_output: string;
+}
+
 export interface Question {
   id: string;
   question_text: string;
@@ -143,6 +149,11 @@ export interface Question {
   marks: number;
   expectedWordCount?: number;
   codeLanguage?: string;
+  constraints?: string;
+  visible_testcases?: TestCase[];
+  hidden_testcases?: TestCase[];
+  time_limit_ms?: number;
+  memory_limit_mb?: number;
   options?: QuestionOption[];
 }
 
@@ -165,12 +176,18 @@ export interface CreateTestRequest {
   showCorrectAnswers?: boolean;
 }
 
+// ENHANCED CreateQuestionRequest with all coding fields
 export interface CreateQuestionRequest {
   question_text: string;
   type: "MCQ" | "DESCRIPTIVE" | "CODE";
   marks: number;
   expectedWordCount?: number;
   codeLanguage?: string;
+  constraints?: string;
+  visible_testcases?: TestCase[];
+  hidden_testcases?: TestCase[];
+  time_limit_ms?: number;
+  memory_limit_mb?: number;
   options?: Array<{
     text: string;
     correct: boolean;
@@ -639,12 +656,14 @@ export const instructorApi = {
     }
   },
 
-  // Question Management
+  // ENHANCED Question Management with coding support
   addQuestionToTest: async (
     testId: string,
     questionData: CreateQuestionRequest,
   ): Promise<Question> => {
     try {
+      console.log('🔍 API: Adding question with data:', questionData);
+      
       const response = await apiClient.post(
         `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(testId)}/questions`,
         questionData,
@@ -664,6 +683,8 @@ export const instructorApi = {
     questionData: Partial<CreateQuestionRequest>,
   ): Promise<Question> => {
     try {
+      console.log('🔍 API: Updating question with data:', questionData);
+      
       const response = await apiClient.put(
         `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(
           testId,
