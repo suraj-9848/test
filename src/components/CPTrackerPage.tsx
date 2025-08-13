@@ -4,12 +4,7 @@ import { CPTrackerProfile } from "@/types/cptracker";
 import { CPTrackerAPI } from "@/utils/cpTrackerAPI";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-hot-toast";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  RefreshCw,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, RefreshCw } from "lucide-react";
 import CPTrackerConnectionForm from "./CPTrackerConnectionForm";
 
 interface PaginationMetadata {

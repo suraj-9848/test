@@ -662,8 +662,8 @@ export const instructorApi = {
     questionData: CreateQuestionRequest,
   ): Promise<Question> => {
     try {
-      console.log('🔍 API: Adding question with data:', questionData);
-      
+      console.log("🔍 API: Adding question with data:", questionData);
+
       const response = await apiClient.post(
         `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(testId)}/questions`,
         questionData,
@@ -683,8 +683,8 @@ export const instructorApi = {
     questionData: Partial<CreateQuestionRequest>,
   ): Promise<Question> => {
     try {
-      console.log('🔍 API: Updating question with data:', questionData);
-      
+      console.log("🔍 API: Updating question with data:", questionData);
+
       const response = await apiClient.put(
         `${API_ENDPOINTS.INSTRUCTOR.TEST_BY_ID(
           testId,

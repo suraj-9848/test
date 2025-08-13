@@ -120,7 +120,7 @@ export class CPTrackerAPI {
 
   static async updateCPTrackerByUserId(
     userId: string,
-    data: CPTrackerConnection
+    data: CPTrackerConnection,
   ): Promise<CPTrackerProfile> {
     const url = buildApiUrl(API_ENDPOINTS.CP_TRACKER.UPDATE_USER(userId));
     const res = await apiClient.put(url, data);
@@ -128,7 +128,7 @@ export class CPTrackerAPI {
   }
 
   static async refreshCPTrackerByUserId(
-    userId: string
+    userId: string,
   ): Promise<CPTrackerApiResponse> {
     const url = buildApiUrl(API_ENDPOINTS.CP_TRACKER.REFRESH_USER(userId));
     const res = await apiClient.post(url);
