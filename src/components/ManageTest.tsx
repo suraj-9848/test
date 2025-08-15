@@ -24,7 +24,6 @@ import {
 import { createDemoFiles } from "@/types/createDemoFiles";
 import "../styles/ManageTest.css";
 
-
 const ManageTest: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -32,7 +31,7 @@ const ManageTest: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [tests, setTests] = useState<Test[]>([]);
   const [selectedTestId, setSelectedTestId] = useState<string>("");
-  
+
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editMaxMarks, setEditMaxMarks] = useState<number>(1);
@@ -40,17 +39,20 @@ const ManageTest: React.FC = () => {
   const [editDuration, setEditDuration] = useState<number>(1);
   const [editStartDate, setEditStartDate] = useState<string>("");
   const [editEndDate, setEditEndDate] = useState<string>("");
-  const [editShuffleQuestions, setEditShuffleQuestions] = useState<boolean>(false);
+  const [editShuffleQuestions, setEditShuffleQuestions] =
+    useState<boolean>(false);
   const [editShowResults, setEditShowResults] = useState<boolean>(false);
-  const [editShowCorrectAnswers, setEditShowCorrectAnswers] = useState<boolean>(false);
-  
+  const [editShowCorrectAnswers, setEditShowCorrectAnswers] =
+    useState<boolean>(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState<"tests" | "questions">("tests");
   const [showQuestionForm, setShowQuestionForm] = useState(false);
-  const [selectedTestForQuestions, setSelectedTestForQuestions] = useState<string>("");
-  
+  const [selectedTestForQuestions, setSelectedTestForQuestions] =
+    useState<string>("");
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionEditTestId, setQuestionEditTestId] = useState<string>("");
   const [uploadStatus, setUploadStatus] = useState<{
@@ -1050,14 +1052,18 @@ const ManageTest: React.FC = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <h1 className="text-2xl font-bold text-gray-900">Test Management</h1>
-        <p className="text-gray-600 mt-1">Create, manage, and publish tests for your courses</p>
+        <p className="text-gray-600 mt-1">
+          Create, manage, and publish tests for your courses
+        </p>
       </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Batch and Course Selectors */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Course</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Select Course
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1135,156 +1141,193 @@ const ManageTest: React.FC = () => {
               {activeTab === "tests" && (
                 <div className="space-y-6">
                   {/* Test Edit Form - MOVED TO TOP */}
-                  {selectedTestId && (() => {
-                    const selectedTest = tests.find((t) => t.id === selectedTestId);
-                    if (!selectedTest) return null;
-                    const isPublished = selectedTest.status === "PUBLISHED";
-                    
-                    return (
-                      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            Edit Test: {selectedTest.title}
-                          </h3>
-                          <button
-                            onClick={() => setSelectedTestId("")}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
+                  {selectedTestId &&
+                    (() => {
+                      const selectedTest = tests.find(
+                        (t) => t.id === selectedTestId,
+                      );
+                      if (!selectedTest) return null;
+                      const isPublished = selectedTest.status === "PUBLISHED";
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Title
-                            </label>
-                            <input
-                              type="text"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              disabled={isPublished}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                            />
+                      return (
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                          <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              Edit Test: {selectedTest.title}
+                            </h3>
+                            <button
+                              onClick={() => setSelectedTestId("")}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <svg
+                                className="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Description
-                            </label>
-                            <input
-                              type="text"
-                              value={editDescription}
-                              onChange={(e) => setEditDescription(e.target.value)}
-                              disabled={isPublished}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                            />
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Title
+                              </label>
+                              <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                disabled={isPublished}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Description
+                              </label>
+                              <input
+                                type="text"
+                                value={editDescription}
+                                onChange={(e) =>
+                                  setEditDescription(e.target.value)
+                                }
+                                disabled={isPublished}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Max Marks
+                              </label>
+                              <input
+                                type="number"
+                                value={editMaxMarks}
+                                onChange={(e) =>
+                                  setEditMaxMarks(parseInt(e.target.value) || 1)
+                                }
+                                disabled={isPublished}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Passing Marks
+                              </label>
+                              <input
+                                type="number"
+                                value={editPassingMarks}
+                                onChange={(e) =>
+                                  setEditPassingMarks(
+                                    parseInt(e.target.value) || 0,
+                                  )
+                                }
+                                disabled={isPublished}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Duration (minutes)
+                              </label>
+                              <input
+                                type="number"
+                                value={editDuration}
+                                onChange={(e) =>
+                                  setEditDuration(parseInt(e.target.value) || 1)
+                                }
+                                disabled={isPublished}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Start Date & Time
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={editStartDate}
+                                onChange={(e) =>
+                                  setEditStartDate(e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                End Date & Time
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={editEndDate}
+                                onChange={(e) => setEditEndDate(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Max Marks
-                            </label>
-                            <input
-                              type="number"
-                              value={editMaxMarks}
-                              onChange={(e) => setEditMaxMarks(parseInt(e.target.value) || 1)}
-                              disabled={isPublished}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Passing Marks
-                            </label>
-                            <input
-                              type="number"
-                              value={editPassingMarks}
-                              onChange={(e) => setEditPassingMarks(parseInt(e.target.value) || 0)}
-                              disabled={isPublished}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Duration (minutes)
-                            </label>
-                            <input
-                              type="number"
-                              value={editDuration}
-                              onChange={(e) => setEditDuration(parseInt(e.target.value) || 1)}
-                              disabled={isPublished}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Start Date & Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              value={editStartDate}
-                              onChange={(e) => setEditStartDate(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              End Date & Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              value={editEndDate}
-                              onChange={(e) => setEditEndDate(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
+
+                          {!isPublished && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={editShuffleQuestions}
+                                  onChange={(e) =>
+                                    setEditShuffleQuestions(e.target.checked)
+                                  }
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  Shuffle Questions
+                                </span>
+                              </label>
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={editShowResults}
+                                  onChange={(e) =>
+                                    setEditShowResults(e.target.checked)
+                                  }
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  Show Results
+                                </span>
+                              </label>
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={editShowCorrectAnswers}
+                                  onChange={(e) =>
+                                    setEditShowCorrectAnswers(e.target.checked)
+                                  }
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  Show Correct Answers
+                                </span>
+                              </label>
+                            </div>
+                          )}
+
+                          <div className="flex justify-end">
+                            <button
+                              onClick={handleUpdateTest}
+                              disabled={loading}
+                              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {loading ? "Updating..." : "Update Test"}
+                            </button>
                           </div>
                         </div>
-
-                        {!isPublished && (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <label className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={editShuffleQuestions}
-                                onChange={(e) => setEditShuffleQuestions(e.target.checked)}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="ml-2 text-sm text-gray-700">Shuffle Questions</span>
-                            </label>
-                            <label className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={editShowResults}
-                                onChange={(e) => setEditShowResults(e.target.checked)}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="ml-2 text-sm text-gray-700">Show Results</span>
-                            </label>
-                            <label className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={editShowCorrectAnswers}
-                                onChange={(e) => setEditShowCorrectAnswers(e.target.checked)}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="ml-2 text-sm text-gray-700">Show Correct Answers</span>
-                            </label>
-                          </div>
-                        )}
-
-                        <div className="flex justify-end">
-                          <button
-                            onClick={handleUpdateTest}
-                            disabled={loading}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            {loading ? "Updating..." : "Update Test"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })()}
 
                   {loading && (
                     <div className="text-center py-8">
@@ -1296,8 +1339,12 @@ const ManageTest: React.FC = () => {
                   {!loading && tests.length === 0 && (
                     <div className="text-center py-12">
                       <div className="text-gray-400 text-6xl mb-4">📋</div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No tests found</h3>
-                      <p className="text-gray-500">Create your first test to get started</p>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        No tests found
+                      </h3>
+                      <p className="text-gray-500">
+                        Create your first test to get started
+                      </p>
                     </div>
                   )}
 
@@ -1319,7 +1366,9 @@ const ManageTest: React.FC = () => {
                               >
                                 {test.status}
                               </span>
-                              <h3 className="text-lg font-semibold text-gray-900">{test.title}</h3>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {test.title}
+                              </h3>
                             </div>
                             <div className="flex gap-2">
                               <button
@@ -1357,23 +1406,39 @@ const ManageTest: React.FC = () => {
                             </div>
                           </div>
 
-                          <p className="text-gray-600 mb-3">{test.description}</p>
-                          
+                          <p className="text-gray-600 mb-3">
+                            {test.description}
+                          </p>
+
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="font-medium text-gray-900">Max Marks:</span>
-                              <span className="ml-1 text-gray-600">{test.maxMarks}</span>
+                              <span className="font-medium text-gray-900">
+                                Max Marks:
+                              </span>
+                              <span className="ml-1 text-gray-600">
+                                {test.maxMarks}
+                              </span>
                             </div>
                             <div>
-                              <span className="font-medium text-gray-900">Passing:</span>
-                              <span className="ml-1 text-gray-600">{test.passingMarks}</span>
+                              <span className="font-medium text-gray-900">
+                                Passing:
+                              </span>
+                              <span className="ml-1 text-gray-600">
+                                {test.passingMarks}
+                              </span>
                             </div>
                             <div>
-                              <span className="font-medium text-gray-900">Duration:</span>
-                              <span className="ml-1 text-gray-600">{test.durationInMinutes} min</span>
+                              <span className="font-medium text-gray-900">
+                                Duration:
+                              </span>
+                              <span className="ml-1 text-gray-600">
+                                {test.durationInMinutes} min
+                              </span>
                             </div>
                             <div>
-                              <span className="font-medium text-gray-900">Questions:</span>
+                              <span className="font-medium text-gray-900">
+                                Questions:
+                              </span>
                               <span className="ml-1 text-gray-600">-</span>
                             </div>
                           </div>
@@ -1381,10 +1446,15 @@ const ManageTest: React.FC = () => {
                           {(test.startDate || test.endDate) && (
                             <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
                               {test.startDate && (
-                                <div>Start: {new Date(test.startDate).toLocaleString()}</div>
+                                <div>
+                                  Start:{" "}
+                                  {new Date(test.startDate).toLocaleString()}
+                                </div>
                               )}
                               {test.endDate && (
-                                <div>End: {new Date(test.endDate).toLocaleString()}</div>
+                                <div>
+                                  End: {new Date(test.endDate).toLocaleString()}
+                                </div>
                               )}
                             </div>
                           )}
@@ -1398,14 +1468,26 @@ const ManageTest: React.FC = () => {
               {activeTab === "questions" && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">Questions</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Questions
+                    </h3>
                     {!showQuestionForm && (
                       <button
                         onClick={() => setShowQuestionForm(true)}
                         className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                       >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
                         </svg>
                         Add Question
                       </button>
@@ -1413,9 +1495,7 @@ const ManageTest: React.FC = () => {
                   </div>
 
                   {!showQuestionForm && (
-                    <div className="space-y-4">
-                      {renderQuestionList()}
-                    </div>
+                    <div className="space-y-4">{renderQuestionList()}</div>
                   )}
 
                   {/* Question Form */}
@@ -1423,7 +1503,9 @@ const ManageTest: React.FC = () => {
                     <div className="bg-white border border-gray-200 rounded-lg p-6 mb-12">
                       <div className="flex items-center justify-between mb-6">
                         <h4 className="text-lg font-semibold text-gray-900">
-                          {editingQuestionId ? "Edit Question" : "Add New Question"}
+                          {editingQuestionId
+                            ? "Edit Question"
+                            : "Add New Question"}
                         </h4>
                         <button
                           onClick={() => {
@@ -1432,8 +1514,18 @@ const ManageTest: React.FC = () => {
                           }}
                           className="text-gray-400 hover:text-gray-600"
                         >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -1449,7 +1541,10 @@ const ManageTest: React.FC = () => {
                               <div
                                 key={type}
                                 onClick={() =>
-                                  setQuestionForm((prev) => ({ ...prev, type: type as any }))
+                                  setQuestionForm((prev) => ({
+                                    ...prev,
+                                    type: type as any,
+                                  }))
                                 }
                                 className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
                                   questionForm.type === type
@@ -1468,8 +1563,10 @@ const ManageTest: React.FC = () => {
                                   <span className="font-medium">{type}</span>
                                 </div>
                                 <p className="text-sm text-gray-600">
-                                  {type === "MCQ" && "Multiple choice questions"}
-                                  {type === "DESCRIPTIVE" && "Text-based answers"}
+                                  {type === "MCQ" &&
+                                    "Multiple choice questions"}
+                                  {type === "DESCRIPTIVE" &&
+                                    "Text-based answers"}
                                   {type === "CODE" && "Programming challenges"}
                                 </p>
                               </div>
@@ -1527,7 +1624,8 @@ const ManageTest: React.FC = () => {
                                 onChange={(e) =>
                                   setQuestionForm((prev) => ({
                                     ...prev,
-                                    expectedWordCount: parseInt(e.target.value) || undefined,
+                                    expectedWordCount:
+                                      parseInt(e.target.value) || undefined,
                                   }))
                                 }
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1554,12 +1652,19 @@ const ManageTest: React.FC = () => {
                             </div>
                             <div className="space-y-3">
                               {questionForm.options.map((option, index) => (
-                                <div key={index} className="flex items-center space-x-3">
+                                <div
+                                  key={index}
+                                  className="flex items-center space-x-3"
+                                >
                                   <input
                                     type="checkbox"
                                     checked={option.correct}
                                     onChange={(e) =>
-                                      handleOptionChange(index, "correct", e.target.checked)
+                                      handleOptionChange(
+                                        index,
+                                        "correct",
+                                        e.target.checked,
+                                      )
                                     }
                                     className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                                   />
@@ -1568,7 +1673,11 @@ const ManageTest: React.FC = () => {
                                       type="text"
                                       value={option.text}
                                       onChange={(e) =>
-                                        handleOptionChange(index, "text", e.target.value)
+                                        handleOptionChange(
+                                          index,
+                                          "text",
+                                          e.target.value,
+                                        )
                                       }
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                       placeholder={`Option ${String.fromCharCode(65 + index)}`}
@@ -1580,8 +1689,18 @@ const ManageTest: React.FC = () => {
                                       onClick={() => handleRemoveOption(index)}
                                       className="text-red-600 hover:text-red-800 p-1"
                                     >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        />
                                       </svg>
                                     </button>
                                   )}
@@ -1600,7 +1719,9 @@ const ManageTest: React.FC = () => {
                                 Programming Language *
                               </label>
                               <select
-                                value={questionForm.codeLanguage || "javascript"}
+                                value={
+                                  questionForm.codeLanguage || "javascript"
+                                }
                                 onChange={(e) =>
                                   setQuestionForm((prev) => ({
                                     ...prev,
@@ -1650,7 +1771,8 @@ const ManageTest: React.FC = () => {
                                   onChange={(e) =>
                                     setQuestionForm((prev) => ({
                                       ...prev,
-                                      time_limit_ms: parseInt(e.target.value) || 5000,
+                                      time_limit_ms:
+                                        parseInt(e.target.value) || 5000,
                                     }))
                                   }
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1668,7 +1790,8 @@ const ManageTest: React.FC = () => {
                                   onChange={(e) =>
                                     setQuestionForm((prev) => ({
                                       ...prev,
-                                      memory_limit_mb: parseInt(e.target.value) || 256,
+                                      memory_limit_mb:
+                                        parseInt(e.target.value) || 256,
                                     }))
                                   }
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1683,8 +1806,14 @@ const ManageTest: React.FC = () => {
                                   Test Cases
                                 </label>
                                 <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                  <span>Visible: {questionForm.visible_testcases.length}</span>
-                                  <span>Hidden: {questionForm.hidden_testcases.length}</span>
+                                  <span>
+                                    Visible:{" "}
+                                    {questionForm.visible_testcases.length}
+                                  </span>
+                                  <span>
+                                    Hidden:{" "}
+                                    {questionForm.hidden_testcases.length}
+                                  </span>
                                 </div>
                               </div>
 
@@ -1706,15 +1835,31 @@ const ManageTest: React.FC = () => {
                               {/* File Upload */}
                               <div className="mb-4">
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  <svg
+                                    className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                                    stroke="currentColor"
+                                    fill="none"
+                                    viewBox="0 0 48 48"
+                                  >
+                                    <path
+                                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
                                   </svg>
                                   <div>
-                                    <label htmlFor="testcase-upload" className="cursor-pointer">
+                                    <label
+                                      htmlFor="testcase-upload"
+                                      className="cursor-pointer"
+                                    >
                                       <span className="font-medium text-blue-600 hover:text-blue-500">
                                         Upload test cases file
                                       </span>
-                                      <span className="text-gray-500"> or drag and drop</span>
+                                      <span className="text-gray-500">
+                                        {" "}
+                                        or drag and drop
+                                      </span>
                                       <input
                                         ref={fileInputRef}
                                         id="testcase-upload"
@@ -1724,7 +1869,9 @@ const ManageTest: React.FC = () => {
                                         onChange={handleFileUpload}
                                       />
                                     </label>
-                                    <p className="text-xs text-gray-500 mt-1">TXT or JSON format</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      TXT or JSON format
+                                    </p>
                                   </div>
                                 </div>
                               </div>
@@ -1757,7 +1904,9 @@ const ManageTest: React.FC = () => {
                                     </h4>
                                     <button
                                       type="button"
-                                      onClick={() => addTestCase("visible_testcases")}
+                                      onClick={() =>
+                                        addTestCase("visible_testcases")
+                                      }
                                       className="text-green-600 hover:text-green-800 text-sm"
                                     >
                                       + Add
@@ -1765,60 +1914,75 @@ const ManageTest: React.FC = () => {
                                   </div>
                                   {/* REMOVED: max-h-48 overflow-y-auto */}
                                   <div className="space-y-3">
-                                    {questionForm.visible_testcases.map((testCase, index) => (
-                                      <div key={index} className="p-3 bg-green-50 rounded-lg">
-                                        <div className="flex justify-between items-center mb-2">
-                                          <span className="text-xs font-medium text-gray-600">
-                                            Test Case {index + 1}
-                                          </span>
-                                          {questionForm.visible_testcases.length > 1 && (
-                                            <button
-                                              type="button"
-                                              onClick={() => removeTestCase("visible_testcases", index)}
-                                              className="text-red-600 hover:text-red-800 text-xs"
-                                            >
-                                              Remove
-                                            </button>
-                                          )}
-                                        </div>
-                                        <div className="space-y-2">
-                                          <div>
-                                            <label className="text-xs text-gray-600">Input</label>
-                                            <textarea
-                                              value={testCase.input}
-                                              onChange={(e) =>
-                                                updateTestCase(
-                                                  "visible_testcases",
-                                                  index,
-                                                  "input",
-                                                  e.target.value,
-                                                )
-                                              }
-                                              className="w-full text-xs p-2 border border-gray-300 rounded"
-                                              rows={2}
-                                              placeholder="Input data..."
-                                            />
+                                    {questionForm.visible_testcases.map(
+                                      (testCase, index) => (
+                                        <div
+                                          key={index}
+                                          className="p-3 bg-green-50 rounded-lg"
+                                        >
+                                          <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-medium text-gray-600">
+                                              Test Case {index + 1}
+                                            </span>
+                                            {questionForm.visible_testcases
+                                              .length > 1 && (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  removeTestCase(
+                                                    "visible_testcases",
+                                                    index,
+                                                  )
+                                                }
+                                                className="text-red-600 hover:text-red-800 text-xs"
+                                              >
+                                                Remove
+                                              </button>
+                                            )}
                                           </div>
-                                          <div>
-                                            <label className="text-xs text-gray-600">Expected Output</label>
-                                            <textarea
-                                              value={testCase.expected_output}
-                                              onChange={(e) =>
-                                                updateTestCase(
-                                                  "visible_testcases",
-                                                  index,
-                                                  "expected_output",
-                                                  e.target.value,
-                                                )
-                                              }
-                                              className="w-full text-xs p-2 border border-gray-300 rounded"
-                                              rows={2}
-                                              placeholder="Expected output..."
-                                            />
+                                          <div className="space-y-2">
+                                            <div>
+                                              <label className="text-xs text-gray-600">
+                                                Input
+                                              </label>
+                                              <textarea
+                                                value={testCase.input}
+                                                onChange={(e) =>
+                                                  updateTestCase(
+                                                    "visible_testcases",
+                                                    index,
+                                                    "input",
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                className="w-full text-xs p-2 border border-gray-300 rounded"
+                                                rows={2}
+                                                placeholder="Input data..."
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="text-xs text-gray-600">
+                                                Expected Output
+                                              </label>
+                                              <textarea
+                                                value={testCase.expected_output}
+                                                onChange={(e) =>
+                                                  updateTestCase(
+                                                    "visible_testcases",
+                                                    index,
+                                                    "expected_output",
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                className="w-full text-xs p-2 border border-gray-300 rounded"
+                                                rows={2}
+                                                placeholder="Expected output..."
+                                              />
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    ))}
+                                      ),
+                                    )}
                                   </div>
                                 </div>
 
@@ -1830,7 +1994,9 @@ const ManageTest: React.FC = () => {
                                     </h4>
                                     <button
                                       type="button"
-                                      onClick={() => addTestCase("hidden_testcases")}
+                                      onClick={() =>
+                                        addTestCase("hidden_testcases")
+                                      }
                                       className="text-blue-600 hover:text-blue-800 text-sm"
                                     >
                                       + Add
@@ -1838,60 +2004,75 @@ const ManageTest: React.FC = () => {
                                   </div>
                                   {/* REMOVED: max-h-48 overflow-y-auto */}
                                   <div className="space-y-3">
-                                    {questionForm.hidden_testcases.map((testCase, index) => (
-                                      <div key={index} className="p-3 bg-blue-50 rounded-lg">
-                                        <div className="flex justify-between items-center mb-2">
-                                          <span className="text-xs font-medium text-gray-600">
-                                            Test Case {index + 1}
-                                          </span>
-                                          {questionForm.hidden_testcases.length > 1 && (
-                                            <button
-                                              type="button"
-                                              onClick={() => removeTestCase("hidden_testcases", index)}
-                                              className="text-red-600 hover:text-red-800 text-xs"
-                                            >
-                                              Remove
-                                            </button>
-                                          )}
-                                        </div>
-                                        <div className="space-y-2">
-                                          <div>
-                                            <label className="text-xs text-gray-600">Input</label>
-                                            <textarea
-                                              value={testCase.input}
-                                              onChange={(e) =>
-                                                updateTestCase(
-                                                  "hidden_testcases",
-                                                  index,
-                                                  "input",
-                                                  e.target.value,
-                                                )
-                                              }
-                                              className="w-full text-xs p-2 border border-gray-300 rounded"
-                                              rows={2}
-                                              placeholder="Input data..."
-                                            />
+                                    {questionForm.hidden_testcases.map(
+                                      (testCase, index) => (
+                                        <div
+                                          key={index}
+                                          className="p-3 bg-blue-50 rounded-lg"
+                                        >
+                                          <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-medium text-gray-600">
+                                              Test Case {index + 1}
+                                            </span>
+                                            {questionForm.hidden_testcases
+                                              .length > 1 && (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  removeTestCase(
+                                                    "hidden_testcases",
+                                                    index,
+                                                  )
+                                                }
+                                                className="text-red-600 hover:text-red-800 text-xs"
+                                              >
+                                                Remove
+                                              </button>
+                                            )}
                                           </div>
-                                          <div>
-                                            <label className="text-xs text-gray-600">Expected Output</label>
-                                            <textarea
-                                              value={testCase.expected_output}
-                                              onChange={(e) =>
-                                                updateTestCase(
-                                                  "hidden_testcases",
-                                                  index,
-                                                  "expected_output",
-                                                  e.target.value,
-                                                )
-                                              }
-                                              className="w-full text-xs p-2 border border-gray-300 rounded"
-                                              rows={2}
-                                              placeholder="Expected output..."
-                                            />
+                                          <div className="space-y-2">
+                                            <div>
+                                              <label className="text-xs text-gray-600">
+                                                Input
+                                              </label>
+                                              <textarea
+                                                value={testCase.input}
+                                                onChange={(e) =>
+                                                  updateTestCase(
+                                                    "hidden_testcases",
+                                                    index,
+                                                    "input",
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                className="w-full text-xs p-2 border border-gray-300 rounded"
+                                                rows={2}
+                                                placeholder="Input data..."
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="text-xs text-gray-600">
+                                                Expected Output
+                                              </label>
+                                              <textarea
+                                                value={testCase.expected_output}
+                                                onChange={(e) =>
+                                                  updateTestCase(
+                                                    "hidden_testcases",
+                                                    index,
+                                                    "expected_output",
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                className="w-full text-xs p-2 border border-gray-300 rounded"
+                                                rows={2}
+                                                placeholder="Expected output..."
+                                              />
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    ))}
+                                      ),
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1937,19 +2118,35 @@ const ManageTest: React.FC = () => {
       {error && (
         <div className="fixed bottom-4 right-4 max-w-md p-4 bg-red-100 border border-red-200 text-red-800 rounded-lg shadow-lg">
           <div className="flex items-center">
-            <svg className="w-5 h-5 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <svg
+              className="w-5 h-5 mr-3 text-red-600"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
             </svg>
             <span className="text-sm">{error}</span>
           </div>
         </div>
       )}
-      
+
       {success && (
         <div className="fixed bottom-4 right-4 max-w-md p-4 bg-green-100 border border-green-200 text-green-800 rounded-lg shadow-lg">
           <div className="flex items-center">
-            <svg className="w-5 h-5 mr-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            <svg
+              className="w-5 h-5 mr-3 text-green-600"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
             </svg>
             <span className="text-sm">{success}</span>
           </div>
